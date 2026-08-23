@@ -31,7 +31,7 @@ export class AuthService {
     @InjectRepository(EmailVerificationToken)
     private readonly verificationTokens: Repository<EmailVerificationToken>,
     @InjectRepository(RefreshToken)
-    private readonly refreshTokens: Repository<RefreshToken>,
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
   ) {}
 
   registerCustomer(dto: RegisterDto): Promise<{ id: string; email: string }> {
@@ -141,9 +141,52 @@ export class AuthService {
     const { raw, hash } = generateToken();
     const ttlDays = Number(this.config.get('REFRESH_TOKEN_TTL_DAYS', 30));
     const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
-    await this.refreshTokens.save(
-      this.refreshTokens.create({ userId, tokenHash: hash, expiresAt }),
+    await this.refreshTokenRepository.save(
+      this.refreshTokenRepository.create({ userId, tokenHash: hash, expiresAt }),
     );
     return raw;
+  }
+
+  async refreshTokens(
+    rawRefreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const tokenHashValue = hashToken(rawRefreshToken);
+    const tokenRecord = await this.refreshTokenRepository.findOne({
+      where: { tokenHash: tokenHashValue },
+    });
+    if (!tokenRecord || tokenRecord.revokedAt) {
+      throw new UnauthorizedException('Refresh token không hợp lệ');
+    }
+    if (tokenRecord.expiresAt.getTime() < Date.now()) {
+      throw new UnauthorizedException('Refresh token đã hết hạn');
+    }
+
+    const user = await this.usersService.findById(tokenRecord.userId);
+    if (!user) {
+      throw new UnauthorizedException('Refresh token không hợp lệ');
+    }
+    this.assertActive(user.status);
+
+    tokenRecord.revokedAt = new Date();
+    await this.refreshTokenRepository.save(tokenRecord);
+
+    const accessToken = await this.jwtService.signAsync({
+      sub: user.id,
+      role: user.role,
+    });
+    const refreshToken = await this.issueRefreshToken(user.id);
+
+    return { accessToken, refreshToken };
+  }
+
+  async logout(rawRefreshToken: string): Promise<void> {
+    const tokenHashValue = hashToken(rawRefreshToken);
+    const tokenRecord = await this.refreshTokenRepository.findOne({
+      where: { tokenHash: tokenHashValue },
+    });
+    if (tokenRecord && !tokenRecord.revokedAt) {
+      tokenRecord.revokedAt = new Date();
+      await this.refreshTokenRepository.save(tokenRecord);
+    }
   }
 }

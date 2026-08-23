@@ -18,6 +18,7 @@
 - Login must reject non-`active` accounts with a status-specific message (spec §3).
 - Admin accounts are never created through public registration — only via a seed script (spec §3).
 - `forgot-password` must not reveal whether an email exists (standard practice, adopted here since spec §4 does not contradict it).
+- Testing note (found during execution, Task 10): ts-jest here runs in transpile-only mode (no full type-check), so it silently let through (a) a duplicate-identifier bug — the `AuthService` constructor's injected `RefreshToken` repository was named `refreshTokens`, colliding with the public `refreshTokens()` method Task 10 adds — and (b) a real type error where `@nestjs/jwt`'s `JwtSignOptions.expiresIn` (`ms.StringValue | number`) rejected the plain `string` from `config.get<string>(...)`. Both are fixed in this plan: the repository field is `refreshTokenRepository`, and the `expiresIn` value is cast `as JwtSignOptions['expiresIn']`. **Run `npx tsc --noEmit` after any multi-file task as a cheap extra check** — ts-jest passing is not proof the code type-checks.
 - Testing note (found during execution, Task 9): all e2e spec files share one real Postgres database with no per-file isolation, and each file's `clearDatabase()` truncates the same tables. Jest's default parallel workers race different spec files against each other, causing flaky failures once there are enough e2e files running concurrently (it didn't surface until 5 files existed). Fixed by adding `"maxWorkers": 1` to `apps/api/test/jest-e2e.json` — e2e spec files now always run serially.
 - Testing note: the spec (§6) asks for "unit tests for AuthService." `AuthService` is thin orchestration over already-unit-tested collaborators (`UsersService`, `MailService`, `token.util`), so this plan exercises it through e2e specs hitting real HTTP routes (Tasks 6, 7, 9, 10, 12) instead of mocked unit tests — that gives equivalent coverage of "register / hash password / verify token / login success-and-failure per status" without duplicating assertions against mocks.
 
@@ -1891,7 +1892,7 @@ export class AuthService {
     @InjectRepository(EmailVerificationToken)
     private readonly verificationTokens: Repository<EmailVerificationToken>,
     @InjectRepository(RefreshToken)
-    private readonly refreshTokens: Repository<RefreshToken>,
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
   ) {}
 
   registerCustomer(dto: RegisterDto): Promise<{ id: string; email: string }> {
@@ -2001,8 +2002,8 @@ export class AuthService {
     const { raw, hash } = generateToken();
     const ttlDays = Number(this.config.get('REFRESH_TOKEN_TTL_DAYS', 30));
     const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
-    await this.refreshTokens.save(
-      this.refreshTokens.create({ userId, tokenHash: hash, expiresAt }),
+    await this.refreshTokenRepository.save(
+      this.refreshTokenRepository.create({ userId, tokenHash: hash, expiresAt }),
     );
     return raw;
   }
@@ -2034,7 +2035,7 @@ Replace `apps/api/src/auth/auth.module.ts` entirely:
 ```ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from '../users/users.module';
@@ -2060,7 +2061,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
           'change-me-access-secret',
         ),
         signOptions: {
-          expiresIn: config.get<string>('JWT_ACCESS_EXPIRES_IN', '15m'),
+          expiresIn: config.get<string>(
+            'JWT_ACCESS_EXPIRES_IN',
+            '15m',
+          ) as JwtSignOptions['expiresIn'],
         },
       }),
     }),
@@ -2241,7 +2245,7 @@ In `apps/api/src/auth/auth.service.ts`, add these two methods to the `AuthServic
     rawRefreshToken: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenHashValue = hashToken(rawRefreshToken);
-    const tokenRecord = await this.refreshTokens.findOne({
+    const tokenRecord = await this.refreshTokenRepository.findOne({
       where: { tokenHash: tokenHashValue },
     });
     if (!tokenRecord || tokenRecord.revokedAt) {
@@ -2258,7 +2262,7 @@ In `apps/api/src/auth/auth.service.ts`, add these two methods to the `AuthServic
     this.assertActive(user.status);
 
     tokenRecord.revokedAt = new Date();
-    await this.refreshTokens.save(tokenRecord);
+    await this.refreshTokenRepository.save(tokenRecord);
 
     const accessToken = await this.jwtService.signAsync({
       sub: user.id,
@@ -2271,12 +2275,12 @@ In `apps/api/src/auth/auth.service.ts`, add these two methods to the `AuthServic
 
   async logout(rawRefreshToken: string): Promise<void> {
     const tokenHashValue = hashToken(rawRefreshToken);
-    const tokenRecord = await this.refreshTokens.findOne({
+    const tokenRecord = await this.refreshTokenRepository.findOne({
       where: { tokenHash: tokenHashValue },
     });
     if (tokenRecord && !tokenRecord.revokedAt) {
       tokenRecord.revokedAt = new Date();
-      await this.refreshTokens.save(tokenRecord);
+      await this.refreshTokenRepository.save(tokenRecord);
     }
   }
 ```
@@ -3146,7 +3150,7 @@ export class AuthService {
     @InjectRepository(EmailVerificationToken)
     private readonly verificationTokens: Repository<EmailVerificationToken>,
     @InjectRepository(RefreshToken)
-    private readonly refreshTokens: Repository<RefreshToken>,
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
     @InjectRepository(PasswordResetToken)
     private readonly passwordResetTokens: Repository<PasswordResetToken>,
   ) {}
@@ -3258,8 +3262,8 @@ export class AuthService {
     const { raw, hash } = generateToken();
     const ttlDays = Number(this.config.get('REFRESH_TOKEN_TTL_DAYS', 30));
     const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
-    await this.refreshTokens.save(
-      this.refreshTokens.create({ userId, tokenHash: hash, expiresAt }),
+    await this.refreshTokenRepository.save(
+      this.refreshTokenRepository.create({ userId, tokenHash: hash, expiresAt }),
     );
     return raw;
   }
@@ -3268,7 +3272,7 @@ export class AuthService {
     rawRefreshToken: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenHashValue = hashToken(rawRefreshToken);
-    const tokenRecord = await this.refreshTokens.findOne({
+    const tokenRecord = await this.refreshTokenRepository.findOne({
       where: { tokenHash: tokenHashValue },
     });
     if (!tokenRecord || tokenRecord.revokedAt) {
@@ -3285,7 +3289,7 @@ export class AuthService {
     this.assertActive(user.status);
 
     tokenRecord.revokedAt = new Date();
-    await this.refreshTokens.save(tokenRecord);
+    await this.refreshTokenRepository.save(tokenRecord);
 
     const accessToken = await this.jwtService.signAsync({
       sub: user.id,
@@ -3298,12 +3302,12 @@ export class AuthService {
 
   async logout(rawRefreshToken: string): Promise<void> {
     const tokenHashValue = hashToken(rawRefreshToken);
-    const tokenRecord = await this.refreshTokens.findOne({
+    const tokenRecord = await this.refreshTokenRepository.findOne({
       where: { tokenHash: tokenHashValue },
     });
     if (tokenRecord && !tokenRecord.revokedAt) {
       tokenRecord.revokedAt = new Date();
-      await this.refreshTokens.save(tokenRecord);
+      await this.refreshTokenRepository.save(tokenRecord);
     }
   }
 
@@ -3344,7 +3348,7 @@ export class AuthService {
     tokenRecord.usedAt = new Date();
     await this.passwordResetTokens.save(tokenRecord);
 
-    await this.refreshTokens.update(
+    await this.refreshTokenRepository.update(
       { userId: tokenRecord.userId, revokedAt: IsNull() },
       { revokedAt: new Date() },
     );
@@ -3395,7 +3399,7 @@ Replace `apps/api/src/auth/auth.module.ts` entirely:
 ```ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from '../users/users.module';
@@ -3426,7 +3430,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
           'change-me-access-secret',
         ),
         signOptions: {
-          expiresIn: config.get<string>('JWT_ACCESS_EXPIRES_IN', '15m'),
+          expiresIn: config.get<string>(
+            'JWT_ACCESS_EXPIRES_IN',
+            '15m',
+          ) as JwtSignOptions['expiresIn'],
         },
       }),
     }),
