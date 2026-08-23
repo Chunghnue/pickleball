@@ -176,3 +176,37 @@ describe('UsersService.updatePassword', () => {
     ).resolves.toBe(true);
   });
 });
+
+describe('UsersService.updateProfile', () => {
+  let service: UsersService;
+  let repo: ReturnType<typeof mockRepository>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UsersService,
+        { provide: getRepositoryToken(User), useFactory: mockRepository },
+      ],
+    }).compile();
+
+    service = module.get(UsersService);
+    repo = module.get(getRepositoryToken(User));
+  });
+
+  it('updates only the provided fields', async () => {
+    repo.findOne.mockResolvedValue({
+      id: 'user-1',
+      fullName: 'Old Name',
+      phone: '0900000000',
+      avatarUrl: null,
+    });
+    repo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.updateProfile('user-1', {
+      fullName: 'New Name',
+    });
+
+    expect(result.fullName).toBe('New Name');
+    expect(result.phone).toBe('0900000000');
+  });
+});

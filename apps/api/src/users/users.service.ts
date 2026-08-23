@@ -90,4 +90,18 @@ export class UsersService {
     user.passwordHash = await bcrypt.hash(newPassword, 10);
     await this.usersRepository.save(user);
   }
+
+  async updateProfile(
+    userId: string,
+    updates: { fullName?: string; phone?: string; avatarUrl?: string },
+  ): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+    if (updates.fullName !== undefined) user.fullName = updates.fullName;
+    if (updates.phone !== undefined) user.phone = updates.phone;
+    if (updates.avatarUrl !== undefined) user.avatarUrl = updates.avatarUrl;
+    return this.usersRepository.save(user);
+  }
 }

@@ -19,6 +19,7 @@
 - Admin accounts are never created through public registration — only via a seed script (spec §3).
 - `forgot-password` must not reveal whether an email exists (standard practice, adopted here since spec §4 does not contradict it).
 - Testing note (found during execution, Task 10): ts-jest here runs in transpile-only mode (no full type-check), so it silently let through (a) a duplicate-identifier bug — the `AuthService` constructor's injected `RefreshToken` repository was named `refreshTokens`, colliding with the public `refreshTokens()` method Task 10 adds — and (b) a real type error where `@nestjs/jwt`'s `JwtSignOptions.expiresIn` (`ms.StringValue | number`) rejected the plain `string` from `config.get<string>(...)`. Both are fixed in this plan: the repository field is `refreshTokenRepository`, and the `expiresIn` value is cast `as JwtSignOptions['expiresIn']`. **Run `npx tsc --noEmit` after any multi-file task as a cheap extra check** — ts-jest passing is not proof the code type-checks.
+- Testing note (found during execution, Task 13): this tsconfig has `isolatedModules` + `emitDecoratorMetadata` enabled, which requires types used only in a decorated parameter's signature (e.g. `@CurrentUser() user: AuthenticatedUser`) to be imported via `import type`, not a regular value import alongside the decorator function — otherwise `tsc` errors with TS1272. Fixed by splitting `CurrentUser` (value import) and `AuthenticatedUser` (`import type`) into separate import statements in `users.controller.ts`.
 - Testing note (found during execution, Task 9): all e2e spec files share one real Postgres database with no per-file isolation, and each file's `clearDatabase()` truncates the same tables. Jest's default parallel workers race different spec files against each other, causing flaky failures once there are enough e2e files running concurrently (it didn't surface until 5 files existed). Fixed by adding `"maxWorkers": 1` to `apps/api/test/jest-e2e.json` — e2e spec files now always run serially.
 - Testing note: the spec (§6) asks for "unit tests for AuthService." `AuthService` is thin orchestration over already-unit-tested collaborators (`UsersService`, `MailService`, `token.util`), so this plan exercises it through e2e specs hitting real HTTP routes (Tasks 6, 7, 9, 10, 12) instead of mocked unit tests — that gives equivalent coverage of "register / hash password / verify token / login success-and-failure per status" without duplicating assertions against mocks.
 
@@ -3738,10 +3739,8 @@ Create `apps/api/src/users/users.controller.ts`:
 ```ts
 import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import {
-  CurrentUser,
-  AuthenticatedUser,
-} from '../auth/decorators/current-user.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
