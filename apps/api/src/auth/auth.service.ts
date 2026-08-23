@@ -23,6 +23,10 @@ export class AuthService {
     return this.register(dto, UserRole.CUSTOMER);
   }
 
+  registerOwner(dto: RegisterDto): Promise<{ id: string; email: string }> {
+    return this.register(dto, UserRole.OWNER);
+  }
+
   private async register(
     dto: RegisterDto,
     role: UserRole,

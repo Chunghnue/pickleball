@@ -11,6 +11,11 @@ export class AuthController {
     return this.authService.registerCustomer(dto);
   }
 
+  @Post('register/owner')
+  registerOwner(@Body() dto: RegisterDto) {
+    return this.authService.registerOwner(dto);
+  }
+
   @Get('verify-email')
   verifyEmail(@Query('token') token: string) {
     return this.authService.verifyEmail(token);
