@@ -20,6 +20,8 @@
 - `forgot-password` must not reveal whether an email exists (standard practice, adopted here since spec §4 does not contradict it).
 - Testing note (found during execution, Task 10): ts-jest here runs in transpile-only mode (no full type-check), so it silently let through (a) a duplicate-identifier bug — the `AuthService` constructor's injected `RefreshToken` repository was named `refreshTokens`, colliding with the public `refreshTokens()` method Task 10 adds — and (b) a real type error where `@nestjs/jwt`'s `JwtSignOptions.expiresIn` (`ms.StringValue | number`) rejected the plain `string` from `config.get<string>(...)`. Both are fixed in this plan: the repository field is `refreshTokenRepository`, and the `expiresIn` value is cast `as JwtSignOptions['expiresIn']`. **Run `npx tsc --noEmit` after any multi-file task as a cheap extra check** — ts-jest passing is not proof the code type-checks.
 - Testing note (found during execution, Task 13): this tsconfig has `isolatedModules` + `emitDecoratorMetadata` enabled, which requires types used only in a decorated parameter's signature (e.g. `@CurrentUser() user: AuthenticatedUser`) to be imported via `import type`, not a regular value import alongside the decorator function — otherwise `tsc` errors with TS1272. Fixed by splitting `CurrentUser` (value import) and `AuthenticatedUser` (`import type`) into separate import statements in `users.controller.ts`.
+- Testing note (found during execution, Task 14): a global 5-requests/60s login throttle is too strict once e2e coverage exists, because `admin-owners.e2e-spec.ts` alone legitimately makes ~6 login calls in one run (fresh admin fixture + login per test case, needed for per-test DB isolation — see the Task 9 note above). The 6th call silently 429'd, leaving `accessToken` undefined and turning an expected 403 into a misleading 401 in an unrelated assertion. Fixed by raising `AUTH_THROTTLE` to `{ limit: 10, ttl: 60000 }` (still a meaningful anti-brute-force limit) and updating `auth-rate-limit.e2e-spec.ts`'s loop to 10 successful requests + 1 blocked. If more e2e tests accumulate logins later, prefer restructuring tests to reuse a login (e.g. `beforeAll`) over raising this further.
+- Testing note (found during execution, Task 14): running `npm install <pkg>` relies on the shell's current working directory; if a prior command left the shell at the repo root instead of `apps/api`, the install silently creates a stray root `package.json`/`node_modules` instead of erroring — `@nestjs/throttler` ended up installed at the repo root this way, which then produced a confusing `Nest can't resolve dependencies of ThrottlerGuard (... Reflector ...)` error that looked like a DI/registration bug but was actually just "the package isn't in `apps/api/node_modules`." **Prefer `npm --prefix apps/api install <pkg>` over a bare `cd && npm install`** to make the target directory explicit and fail loudly instead of silently installing in the wrong place.
 - Testing note (found during execution, Task 9): all e2e spec files share one real Postgres database with no per-file isolation, and each file's `clearDatabase()` truncates the same tables. Jest's default parallel workers race different spec files against each other, causing flaky failures once there are enough e2e files running concurrently (it didn't surface until 5 files existed). Fixed by adding `"maxWorkers": 1` to `apps/api/test/jest-e2e.json` — e2e spec files now always run serially.
 - Testing note: the spec (§6) asks for "unit tests for AuthService." `AuthService` is thin orchestration over already-unit-tested collaborators (`UsersService`, `MailService`, `token.util`), so this plan exercises it through e2e specs hitting real HTTP routes (Tasks 6, 7, 9, 10, 12) instead of mocked unit tests — that gives equivalent coverage of "register / hash password / verify token / login success-and-failure per status" without duplicating assertions against mocks.
 
@@ -3812,7 +3814,7 @@ git commit -m "feat(api): implement GET/PATCH /users/me"
 
 **Interfaces:**
 - Consumes: nothing new (wraps existing `AuthController` routes from Tasks 6–12).
-- Produces: `POST /auth/register`, `POST /auth/register/owner`, `POST /auth/login` return `429` after 5 requests from the same client within 60 seconds; every other route defaults to a global 20-requests/60s limit via `APP_GUARD`.
+- Produces: `POST /auth/register`, `POST /auth/register/owner`, `POST /auth/login` return `429` after 10 requests from the same client within 60 seconds; every other route defaults to a global 20-requests/60s limit via `APP_GUARD`.
 
 - [ ] **Step 1: Install `@nestjs/throttler`**
 
@@ -3852,7 +3854,7 @@ describe('Auth rate limiting (e2e)', () => {
       password: 'wrong-password',
     };
 
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < 10; i += 1) {
       await request(app.getHttpServer())
         .post('/auth/login')
         .send(payload)
@@ -3870,7 +3872,7 @@ describe('Auth rate limiting (e2e)', () => {
 - [ ] **Step 3: Run the e2e test to verify it fails**
 
 Run: `cd apps/api && npm run test:e2e -- auth-rate-limit`
-Expected: FAIL — the 6th request returns 401 instead of 429 (no throttling configured yet).
+Expected: FAIL — the 11th request returns 401 instead of 429 (no throttling configured yet).
 
 - [ ] **Step 4: Wire the global `ThrottlerModule` and `APP_GUARD`**
 
@@ -3935,7 +3937,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
-const AUTH_THROTTLE = { default: { limit: 5, ttl: 60000 } };
+const AUTH_THROTTLE = { default: { limit: 10, ttl: 60000 } };
 
 @Controller('auth')
 export class AuthController {

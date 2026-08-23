@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -6,15 +7,19 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
+const AUTH_THROTTLE = { default: { limit: 10, ttl: 60000 } };
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Throttle(AUTH_THROTTLE)
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.authService.registerCustomer(dto);
   }
 
+  @Throttle(AUTH_THROTTLE)
   @Post('register/owner')
   registerOwner(@Body() dto: RegisterDto) {
     return this.authService.registerOwner(dto);
@@ -25,6 +30,7 @@ export class AuthController {
     return this.authService.verifyEmail(token);
   }
 
+  @Throttle(AUTH_THROTTLE)
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { UsersModule } from './users/users.module';
 import { MailModule } from './mail/mail.module';
@@ -10,6 +12,7 @@ import { AdminModule } from './admin/admin.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60000, limit: 20 }]),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -29,5 +32,11 @@ import { AdminModule } from './admin/admin.module';
     AdminModule,
   ],
   controllers: [AppController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
