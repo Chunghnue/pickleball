@@ -18,6 +18,7 @@
 - Login must reject non-`active` accounts with a status-specific message (spec §3).
 - Admin accounts are never created through public registration — only via a seed script (spec §3).
 - `forgot-password` must not reveal whether an email exists (standard practice, adopted here since spec §4 does not contradict it).
+- Testing note (found during execution, Task 9): all e2e spec files share one real Postgres database with no per-file isolation, and each file's `clearDatabase()` truncates the same tables. Jest's default parallel workers race different spec files against each other, causing flaky failures once there are enough e2e files running concurrently (it didn't surface until 5 files existed). Fixed by adding `"maxWorkers": 1` to `apps/api/test/jest-e2e.json` — e2e spec files now always run serially.
 - Testing note: the spec (§6) asks for "unit tests for AuthService." `AuthService` is thin orchestration over already-unit-tested collaborators (`UsersService`, `MailService`, `token.util`), so this plan exercises it through e2e specs hitting real HTTP routes (Tasks 6, 7, 9, 10, 12) instead of mocked unit tests — that gives equivalent coverage of "register / hash password / verify token / login success-and-failure per status" without duplicating assertions against mocks.
 
 ---

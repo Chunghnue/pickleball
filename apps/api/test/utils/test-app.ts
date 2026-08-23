@@ -28,6 +28,6 @@ export async function createTestApp(): Promise<INestApplication> {
 export async function clearDatabase(app: INestApplication): Promise<void> {
   const dataSource = app.get(DataSource);
   await dataSource.query(
-    'TRUNCATE TABLE email_verification_tokens, users RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE refresh_tokens, email_verification_tokens, users RESTART IDENTITY CASCADE',
   );
 }

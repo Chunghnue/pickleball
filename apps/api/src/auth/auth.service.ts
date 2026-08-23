@@ -1,12 +1,23 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { UserRole, UserStatus } from '../users/entities/user.entity';
 import { MailService } from '../mail/mail.service';
 import { EmailVerificationToken } from './entities/email-verification-token.entity';
+import { RefreshToken } from './entities/refresh-token.entity';
 import { generateToken, hashToken } from './token.util';
 import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
 
@@ -15,8 +26,12 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly mailService: MailService,
+    private readonly jwtService: JwtService,
+    private readonly config: ConfigService,
     @InjectRepository(EmailVerificationToken)
     private readonly verificationTokens: Repository<EmailVerificationToken>,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokens: Repository<RefreshToken>,
   ) {}
 
   registerCustomer(dto: RegisterDto): Promise<{ id: string; email: string }> {
@@ -86,5 +101,49 @@ export class AuthService {
     await this.verificationTokens.delete({ id: tokenRecord.id });
 
     return { status: updated.status };
+  }
+
+  async login(
+    dto: LoginDto,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const user = await this.usersService.findByEmail(dto.email);
+    if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
+      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+    }
+
+    this.assertActive(user.status);
+
+    const accessToken = await this.jwtService.signAsync({
+      sub: user.id,
+      role: user.role,
+    });
+    const refreshToken = await this.issueRefreshToken(user.id);
+
+    return { accessToken, refreshToken };
+  }
+
+  private assertActive(status: UserStatus): void {
+    const messages: Partial<Record<UserStatus, string>> = {
+      [UserStatus.PENDING_VERIFICATION]:
+        'Vui lòng xác thực email trước khi đăng nhập',
+      [UserStatus.PENDING_APPROVAL]: 'Tài khoản đang chờ admin duyệt',
+      [UserStatus.REJECTED]: 'Tài khoản đã bị từ chối',
+      [UserStatus.SUSPENDED]: 'Tài khoản đã bị khoá',
+    };
+    if (status !== UserStatus.ACTIVE) {
+      throw new ForbiddenException(
+        messages[status] ?? 'Tài khoản không thể đăng nhập',
+      );
+    }
+  }
+
+  private async issueRefreshToken(userId: string): Promise<string> {
+    const { raw, hash } = generateToken();
+    const ttlDays = Number(this.config.get('REFRESH_TOKEN_TTL_DAYS', 30));
+    const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+    await this.refreshTokens.save(
+      this.refreshTokens.create({ userId, tokenHash: hash, expiresAt }),
+    );
+    return raw;
   }
 }
