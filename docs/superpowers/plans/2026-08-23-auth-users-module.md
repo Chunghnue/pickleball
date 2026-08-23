@@ -120,7 +120,7 @@ Replace `apps/api/test/app.e2e-spec.ts`:
 ```ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from './../src/app.module';
 
 describe('AppController (e2e)', () => {
@@ -1067,7 +1067,7 @@ Create `apps/api/test/auth-register.e2e-spec.ts`:
 
 ```ts
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 
 describe('POST /auth/register (e2e)', () => {
@@ -1383,7 +1383,7 @@ Create `apps/api/test/auth-verify-email.e2e-spec.ts`:
 ```ts
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 
 describe('GET /auth/verify-email (e2e)', () => {
@@ -1537,7 +1537,7 @@ Create `apps/api/test/auth-register-owner.e2e-spec.ts`:
 
 ```ts
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 
 describe('POST /auth/register/owner (e2e)', () => {
@@ -1661,7 +1661,7 @@ Create `apps/api/test/auth-login.e2e-spec.ts`:
 
 ```ts
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 
 describe('POST /auth/login (e2e)', () => {
@@ -2131,7 +2131,7 @@ Create `apps/api/test/auth-refresh-logout.e2e-spec.ts`:
 
 ```ts
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 
 describe('POST /auth/refresh and /auth/logout (e2e)', () => {
@@ -2362,7 +2362,7 @@ Create `apps/api/test/admin-owners.e2e-spec.ts`:
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 
@@ -2938,7 +2938,7 @@ Create `apps/api/test/auth-password-reset.e2e-spec.ts`:
 
 ```ts
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 
 describe('Password reset (e2e)', () => {
@@ -3570,7 +3570,7 @@ Create `apps/api/test/users-profile.e2e-spec.ts`:
 
 ```ts
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 
 describe('GET/PATCH /users/me (e2e)', () => {
@@ -3799,7 +3799,7 @@ Create `apps/api/test/auth-rate-limit.e2e-spec.ts`:
 
 ```ts
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, clearDatabase } from './utils/test-app';
 
 describe('Auth rate limiting (e2e)', () => {
