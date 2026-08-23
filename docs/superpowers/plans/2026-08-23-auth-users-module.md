@@ -221,7 +221,7 @@ git commit -m "feat(api): scaffold NestJS app with health check"
 - Modify: `apps/api/package.json` (migration scripts)
 
 **Interfaces:**
-- Produces: live Postgres reachable at `localhost:5432` (db `pickleball`, user/pass `pickleball`), Mailhog SMTP at `localhost:1025` / web UI at `localhost:8025`. `AppModule` now bootstraps a TypeORM connection using `ConfigService`. Env vars: `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM`, `API_BASE_URL`, `PORT`.
+- Produces: live Postgres reachable at `localhost:5433` (db `pickleball`, user/pass `pickleball`), Mailhog SMTP at `localhost:1025` / web UI at `localhost:8025`. `AppModule` now bootstraps a TypeORM connection using `ConfigService`. Env vars: `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM`, `API_BASE_URL`, `PORT`.
 - Consumes: Task 1's `AppModule`, `test/app.e2e-spec.ts`.
 
 - [ ] **Step 1: Add Docker Compose services**
@@ -238,7 +238,7 @@ services:
       POSTGRES_PASSWORD: pickleball
       POSTGRES_DB: pickleball
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -277,7 +277,7 @@ Create `apps/api/.env.example`:
 
 ```
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=5433
 DB_USERNAME=pickleball
 DB_PASSWORD=pickleball
 DB_NAME=pickleball
@@ -319,7 +319,7 @@ dotenv.config();
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 5432,
+  port: Number(process.env.DB_PORT) || 5433,
   username: process.env.DB_USERNAME || 'pickleball',
   password: process.env.DB_PASSWORD || 'pickleball',
   database: process.env.DB_NAME || 'pickleball',
@@ -347,7 +347,7 @@ import { AppController } from './app.controller';
       useFactory: (config: ConfigService) => ({
         type: 'postgres' as const,
         host: config.get<string>('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 5432),
+        port: config.get<number>('DB_PORT', 5433),
         username: config.get<string>('DB_USERNAME', 'pickleball'),
         password: config.get<string>('DB_PASSWORD', 'pickleball'),
         database: config.get<string>('DB_NAME', 'pickleball'),
@@ -3868,7 +3868,7 @@ import { AdminModule } from './admin/admin.module';
       useFactory: (config: ConfigService) => ({
         type: 'postgres' as const,
         host: config.get<string>('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 5432),
+        port: config.get<number>('DB_PORT', 5433),
         username: config.get<string>('DB_USERNAME', 'pickleball'),
         password: config.get<string>('DB_PASSWORD', 'pickleball'),
         database: config.get<string>('DB_NAME', 'pickleball'),
