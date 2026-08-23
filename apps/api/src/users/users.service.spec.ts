@@ -48,3 +48,34 @@ describe('UsersService', () => {
     expect(result.emailVerified).toBe(false);
   });
 });
+
+describe('UsersService.markVerified', () => {
+  let service: UsersService;
+  let repo: ReturnType<typeof mockRepository>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UsersService,
+        { provide: getRepositoryToken(User), useFactory: mockRepository },
+      ],
+    }).compile();
+
+    service = module.get(UsersService);
+    repo = module.get(getRepositoryToken(User));
+  });
+
+  it('sets emailVerified and the given status', async () => {
+    repo.findOne.mockResolvedValue({
+      id: 'user-1',
+      emailVerified: false,
+      status: UserStatus.PENDING_VERIFICATION,
+    });
+    repo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.markVerified('user-1', UserStatus.ACTIVE);
+
+    expect(result.emailVerified).toBe(true);
+    expect(result.status).toBe(UserStatus.ACTIVE);
+  });
+});

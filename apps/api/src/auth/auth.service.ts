@@ -1,11 +1,11 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from '../users/users.service';
-import { UserRole } from '../users/entities/user.entity';
+import { UserRole, UserStatus } from '../users/entities/user.entity';
 import { MailService } from '../mail/mail.service';
 import { EmailVerificationToken } from './entities/email-verification-token.entity';
-import { generateToken } from './token.util';
+import { generateToken, hashToken } from './token.util';
 import { RegisterDto } from './dto/register.dto';
 
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
@@ -54,5 +54,33 @@ export class AuthService {
     await this.mailService.sendVerificationEmail(user.email, raw);
 
     return { id: user.id, email: user.email };
+  }
+
+  async verifyEmail(rawToken: string): Promise<{ status: UserStatus }> {
+    const tokenHashValue = hashToken(rawToken);
+    const tokenRecord = await this.verificationTokens.findOne({
+      where: { tokenHash: tokenHashValue },
+    });
+    if (!tokenRecord) {
+      throw new BadRequestException('Token không hợp lệ');
+    }
+    if (tokenRecord.expiresAt.getTime() < Date.now()) {
+      await this.verificationTokens.delete({ id: tokenRecord.id });
+      throw new BadRequestException('Token đã hết hạn');
+    }
+
+    const user = await this.usersService.findById(tokenRecord.userId);
+    if (!user) {
+      throw new BadRequestException('Token không hợp lệ');
+    }
+
+    const nextStatus =
+      user.role === UserRole.OWNER
+        ? UserStatus.PENDING_APPROVAL
+        : UserStatus.ACTIVE;
+    const updated = await this.usersService.markVerified(user.id, nextStatus);
+    await this.verificationTokens.delete({ id: tokenRecord.id });
+
+    return { status: updated.status };
   }
 }

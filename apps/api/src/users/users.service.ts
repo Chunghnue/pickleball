@@ -40,4 +40,14 @@ export class UsersService {
   findById(id: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { id } });
   }
+
+  async markVerified(userId: string, nextStatus: UserStatus): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error(`User ${userId} not found`);
+    }
+    user.emailVerified = true;
+    user.status = nextStatus;
+    return this.usersRepository.save(user);
+  }
 }
