@@ -146,3 +146,33 @@ describe('UsersService owner approval', () => {
     expect(result.status).toBe(UserStatus.REJECTED);
   });
 });
+
+describe('UsersService.updatePassword', () => {
+  let service: UsersService;
+  let repo: ReturnType<typeof mockRepository>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UsersService,
+        { provide: getRepositoryToken(User), useFactory: mockRepository },
+      ],
+    }).compile();
+
+    service = module.get(UsersService);
+    repo = module.get(getRepositoryToken(User));
+  });
+
+  it('hashes and saves the new password', async () => {
+    repo.findOne.mockResolvedValue({ id: 'user-1', passwordHash: 'old-hash' });
+    repo.save.mockImplementation((data) => Promise.resolve(data));
+
+    await service.updatePassword('user-1', 'brand-new-password');
+
+    const saved = await repo.save.mock.results[0].value;
+    expect(saved.passwordHash).not.toBe('old-hash');
+    await expect(
+      bcrypt.compare('brand-new-password', saved.passwordHash),
+    ).resolves.toBe(true);
+  });
+});

@@ -81,4 +81,13 @@ export class UsersService {
     user.status = nextStatus;
     return this.usersRepository.save(user);
   }
+
+  async updatePassword(userId: string, newPassword: string): Promise<void> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.usersRepository.save(user);
+  }
 }

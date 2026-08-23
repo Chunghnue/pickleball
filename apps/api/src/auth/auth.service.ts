@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -15,11 +15,13 @@ import { UserRole, UserStatus } from '../users/entities/user.entity';
 import { MailService } from '../mail/mail.service';
 import { EmailVerificationToken } from './entities/email-verification-token.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { generateToken, hashToken } from './token.util';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
+const PASSWORD_RESET_TTL_HOURS = 1;
 
 @Injectable()
 export class AuthService {
@@ -32,6 +34,8 @@ export class AuthService {
     private readonly verificationTokens: Repository<EmailVerificationToken>,
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepository: Repository<RefreshToken>,
+    @InjectRepository(PasswordResetToken)
+    private readonly passwordResetTokens: Repository<PasswordResetToken>,
   ) {}
 
   registerCustomer(dto: RegisterDto): Promise<{ id: string; email: string }> {
@@ -188,5 +192,48 @@ export class AuthService {
       tokenRecord.revokedAt = new Date();
       await this.refreshTokenRepository.save(tokenRecord);
     }
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      return;
+    }
+
+    const { raw, hash } = generateToken();
+    const expiresAt = new Date(
+      Date.now() + PASSWORD_RESET_TTL_HOURS * 60 * 60 * 1000,
+    );
+    await this.passwordResetTokens.save(
+      this.passwordResetTokens.create({
+        userId: user.id,
+        tokenHash: hash,
+        expiresAt,
+      }),
+    );
+    await this.mailService.sendPasswordResetEmail(user.email, raw);
+  }
+
+  async resetPassword(rawToken: string, newPassword: string): Promise<void> {
+    const tokenHashValue = hashToken(rawToken);
+    const tokenRecord = await this.passwordResetTokens.findOne({
+      where: { tokenHash: tokenHashValue },
+    });
+    if (!tokenRecord || tokenRecord.usedAt) {
+      throw new BadRequestException('Token không hợp lệ');
+    }
+    if (tokenRecord.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Token đã hết hạn');
+    }
+
+    await this.usersService.updatePassword(tokenRecord.userId, newPassword);
+
+    tokenRecord.usedAt = new Date();
+    await this.passwordResetTokens.save(tokenRecord);
+
+    await this.refreshTokenRepository.update(
+      { userId: tokenRecord.userId, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
   }
 }

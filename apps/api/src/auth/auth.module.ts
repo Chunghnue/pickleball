@@ -7,13 +7,18 @@ import { UsersModule } from '../users/users.module';
 import { MailModule } from '../mail/mail.module';
 import { EmailVerificationToken } from './entities/email-verification-token.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EmailVerificationToken, RefreshToken]),
+    TypeOrmModule.forFeature([
+      EmailVerificationToken,
+      RefreshToken,
+      PasswordResetToken,
+    ]),
     UsersModule,
     MailModule,
     PassportModule,
