@@ -79,3 +79,70 @@ describe('UsersService.markVerified', () => {
     expect(result.status).toBe(UserStatus.ACTIVE);
   });
 });
+
+describe('UsersService owner approval', () => {
+  let service: UsersService;
+  let repo: ReturnType<typeof mockRepository> & { find: jest.Mock };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UsersService,
+        {
+          provide: getRepositoryToken(User),
+          useFactory: () => ({ ...mockRepository(), find: jest.fn() }),
+        },
+      ],
+    }).compile();
+
+    service = module.get(UsersService);
+    repo = module.get(getRepositoryToken(User));
+  });
+
+  it('findPendingOwners returns owners awaiting approval', async () => {
+    repo.find.mockResolvedValue([{ id: 'owner-1' }]);
+
+    const result = await service.findPendingOwners();
+
+    expect(repo.find).toHaveBeenCalledWith({
+      where: { role: UserRole.OWNER, status: UserStatus.PENDING_APPROVAL },
+    });
+    expect(result).toEqual([{ id: 'owner-1' }]);
+  });
+
+  it('approveOwner activates a pending owner', async () => {
+    repo.findOne.mockResolvedValue({
+      id: 'owner-1',
+      role: UserRole.OWNER,
+      status: UserStatus.PENDING_APPROVAL,
+    });
+    repo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.approveOwner('owner-1');
+
+    expect(result.status).toBe(UserStatus.ACTIVE);
+  });
+
+  it('approveOwner rejects a user that is not pending approval', async () => {
+    repo.findOne.mockResolvedValue({
+      id: 'owner-1',
+      role: UserRole.OWNER,
+      status: UserStatus.ACTIVE,
+    });
+
+    await expect(service.approveOwner('owner-1')).rejects.toThrow();
+  });
+
+  it('rejectOwner marks a pending owner as rejected', async () => {
+    repo.findOne.mockResolvedValue({
+      id: 'owner-1',
+      role: UserRole.OWNER,
+      status: UserStatus.PENDING_APPROVAL,
+    });
+    repo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.rejectOwner('owner-1');
+
+    expect(result.status).toBe(UserStatus.REJECTED);
+  });
+});

@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { MailService } from '../../src/mail/mail.service';
@@ -21,6 +26,7 @@ export async function createTestApp(): Promise<INestApplication> {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
   );
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   await app.init();
   return app;
 }

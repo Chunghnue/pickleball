@@ -2336,6 +2336,7 @@ This task also fixes a latent leak: TypeORM returns full `User` instances, and u
 **Files:**
 - Modify: `apps/api/src/users/entities/user.entity.ts` (`@Exclude()` on `passwordHash`)
 - Modify: `apps/api/src/main.ts` (global `ClassSerializerInterceptor`)
+- Modify: `apps/api/test/utils/test-app.ts` (same interceptor — `createTestApp()` doesn't go through `main.ts`)
 - Modify: `apps/api/src/users/users.service.ts` (add `findPendingOwners`, `approveOwner`, `rejectOwner`)
 - Modify: `apps/api/src/users/users.service.spec.ts`
 - Create: `apps/api/src/auth/decorators/roles.decorator.ts`
@@ -2663,6 +2664,27 @@ async function bootstrap() {
   await app.listen(process.env.PORT ?? 3001);
 }
 bootstrap();
+```
+
+`apps/api/test/utils/test-app.ts` builds its Nest app independently of `main.ts`'s `bootstrap()` — it needs the same interceptor registered, or `passwordHash` will still leak in every e2e test's response body. In `apps/api/test/utils/test-app.ts`, update the imports and `createTestApp()`:
+
+```ts
+import { Test, TestingModule } from '@nestjs/testing';
+import {
+  ClassSerializerInterceptor,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { DataSource } from 'typeorm';
+```
+
+```ts
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+  );
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  await app.init();
 ```
 
 - [ ] **Step 8: Add the `Roles` decorator and `RolesGuard`**
