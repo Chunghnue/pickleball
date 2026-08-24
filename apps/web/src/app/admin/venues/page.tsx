@@ -7,24 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminNav } from "@/components/admin-nav";
 
-interface PendingOwner {
+interface PendingVenue {
   id: string;
-  email: string;
-  fullName: string;
+  name: string;
+  address: string;
+  city: string;
 }
 
-export default function AdminOwnersPage() {
+export default function AdminVenuesPage() {
   const router = useRouter();
-  const [owners, setOwners] = useState<PendingOwner[] | null>(null);
+  const [venues, setVenues] = useState<PendingVenue[] | null>(null);
 
   async function loadPending() {
-    const response = await fetch("/api/admin/owners/pending");
+    const response = await fetch("/api/admin/venues/pending");
     if (response.status === 401) {
-      router.push("/login?returnTo=%2Fadmin%2Fowners");
+      router.push("/login?returnTo=%2Fadmin%2Fvenues");
       return;
     }
     const data = await response.json().catch(() => []);
-    setOwners(Array.isArray(data) ? data : []);
+    setVenues(Array.isArray(data) ? data : []);
   }
 
   useEffect(() => {
@@ -32,14 +33,14 @@ export default function AdminOwnersPage() {
   }, []);
 
   async function handleDecision(id: string, action: "approve" | "reject") {
-    const response = await fetch(`/api/admin/owners/${id}/${action}`, {
+    const response = await fetch(`/api/admin/venues/${id}/${action}`, {
       method: "POST",
     });
     if (!response.ok) {
       toast.error("Có lỗi xảy ra, vui lòng thử lại.");
       return;
     }
-    toast.success(action === "approve" ? "Đã duyệt chủ sân" : "Đã từ chối chủ sân");
+    toast.success(action === "approve" ? "Đã duyệt sân" : "Đã từ chối sân");
     loadPending();
   }
 
@@ -52,33 +53,40 @@ export default function AdminOwnersPage() {
     <main className="mx-auto flex max-w-2xl flex-1 flex-col gap-6 p-8">
       <AdminNav />
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Chủ sân chờ duyệt</h1>
+        <h1 className="text-2xl font-bold">Sân chờ duyệt</h1>
         <Button variant="outline" onClick={handleLogout}>
           Đăng xuất
         </Button>
       </div>
 
-      {owners === null && <p>Đang tải...</p>}
-      {owners !== null && owners.length === 0 && (
-        <p className="text-muted-foreground">Không có chủ sân nào đang chờ duyệt.</p>
+      {venues === null && <p>Đang tải...</p>}
+      {venues !== null && venues.length === 0 && (
+        <p className="text-muted-foreground">
+          Không có sân nào đang chờ duyệt.
+        </p>
       )}
 
       <div className="flex flex-col gap-4">
-        {owners?.map((owner) => (
-          <Card key={owner.id}>
+        {venues?.map((venue) => (
+          <Card key={venue.id}>
             <CardHeader>
-              <CardTitle className="text-base">{owner.fullName}</CardTitle>
+              <CardTitle className="text-base">{venue.name}</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{owner.email}</span>
+              <span className="text-sm text-muted-foreground">
+                {venue.address}, {venue.city}
+              </span>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => handleDecision(owner.id, "approve")}>
+                <Button
+                  size="sm"
+                  onClick={() => handleDecision(venue.id, "approve")}
+                >
                   Duyệt
                 </Button>
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => handleDecision(owner.id, "reject")}
+                  onClick={() => handleDecision(venue.id, "reject")}
                 >
                   Từ chối
                 </Button>
