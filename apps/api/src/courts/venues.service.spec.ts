@@ -16,6 +16,7 @@ const mockVenueImagesRepository = () => ({
   save: jest.fn(),
   findOne: jest.fn(),
   remove: jest.fn(),
+  find: jest.fn(),
 });
 
 async function buildTestingModule() {
@@ -222,5 +223,23 @@ describe('VenuesService public reads', () => {
     await expect(service.findPublicById('venue-1')).rejects.toThrow(
       'Venue venue-1 không tồn tại',
     );
+  });
+});
+
+describe('VenuesService.findImagesByVenue', () => {
+  it('returns images for the given venue', async () => {
+    const { service, venueImagesRepo } = await buildTestingModule();
+    venueImagesRepo.find.mockResolvedValue([
+      { id: 'image-1', venueId: 'venue-1', url: 'https://example.com/a.jpg' },
+    ]);
+
+    const result = await service.findImagesByVenue('venue-1');
+
+    expect(venueImagesRepo.find).toHaveBeenCalledWith({
+      where: { venueId: 'venue-1' },
+    });
+    expect(result).toEqual([
+      { id: 'image-1', venueId: 'venue-1', url: 'https://example.com/a.jpg' },
+    ]);
   });
 });

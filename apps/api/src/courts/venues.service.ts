@@ -82,6 +82,10 @@ export class VenuesService {
     await this.venueImagesRepository.remove(image);
   }
 
+  findImagesByVenue(venueId: string): Promise<VenueImage[]> {
+    return this.venueImagesRepository.find({ where: { venueId } });
+  }
+
   async getOwnedVenueOrThrow(
     ownerId: string,
     venueId: string,

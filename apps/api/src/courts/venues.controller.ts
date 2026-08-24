@@ -45,11 +45,13 @@ export class VenuesController {
   @Get('mine/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.OWNER)
-  findMineById(
+  async findMineById(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.venuesService.findMineById(user.userId, id);
+    const venue = await this.venuesService.findMineById(user.userId, id);
+    const images = await this.venuesService.findImagesByVenue(id);
+    return { ...venue, images };
   }
 
   @Patch('mine/:id')
@@ -94,6 +96,7 @@ export class VenuesController {
   async findOne(@Param('id') id: string) {
     const venue = await this.venuesService.findPublicById(id);
     const courts = await this.courtsService.findActiveByVenue(id);
-    return { ...venue, courts };
+    const images = await this.venuesService.findImagesByVenue(id);
+    return { ...venue, courts, images };
   }
 }
