@@ -2562,17 +2562,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { updateProfileSchema, type UpdateProfileInput } from "@/lib/schemas";
+import { getSubmitErrorMessage } from "@/lib/error-message";
 
 interface Profile {
   email: string;
@@ -2618,7 +2612,7 @@ export default function ProfilePage() {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      toast.error(data?.message ?? "Cập nhật thất bại");
+      toast.error(getSubmitErrorMessage(response, data));
       return;
     }
 
@@ -2638,6 +2632,8 @@ export default function ProfilePage() {
     );
   }
 
+  const { errors } = form.formState;
+
   return (
     <main className="flex flex-1 items-center justify-center p-8">
       <Card className="w-full max-w-sm">
@@ -2646,56 +2642,45 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <p className="mb-4 text-sm text-muted-foreground">{profile.email}</p>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="fullName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Họ tên</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Họ tên</Label>
+              <Input
+                id="fullName"
+                aria-invalid={!!errors.fullName}
+                {...form.register("fullName")}
               />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Số điện thoại</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              {errors.fullName && (
+                <p className="text-sm text-destructive">
+                  {errors.fullName.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Số điện thoại</Label>
+              <Input id="phone" {...form.register("phone")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="avatarUrl">Ảnh đại diện (URL)</Label>
+              <Input
+                id="avatarUrl"
+                aria-invalid={!!errors.avatarUrl}
+                {...form.register("avatarUrl")}
               />
-              <FormField
-                control={form.control}
-                name="avatarUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ảnh đại diện (URL)</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={form.formState.isSubmitting}
-              >
-                Lưu thay đổi
-              </Button>
-            </form>
-          </Form>
+              {errors.avatarUrl && (
+                <p className="text-sm text-destructive">
+                  {errors.avatarUrl.message}
+                </p>
+              )}
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={form.formState.isSubmitting}
+            >
+              Lưu thay đổi
+            </Button>
+          </form>
           <Button variant="outline" className="mt-4 w-full" onClick={handleLogout}>
             Đăng xuất
           </Button>
