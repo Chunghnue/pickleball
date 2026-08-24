@@ -412,3 +412,25 @@ describe('BookingsService.cancelByOwner', () => {
     ).rejects.toThrow('Booking booking-1 không tồn tại');
   });
 });
+
+describe('BookingsService.getAvailability', () => {
+  it('marks slots that already have a booking_slots row as booked', async () => {
+    const { service, courtsService, bookingSlotsRepo } =
+      await buildTestingModule();
+    courtsService.getSlotsForDate.mockResolvedValue([
+      { start: '08:00', end: '09:00', price: 100000 },
+      { start: '09:00', end: '10:00', price: 100000 },
+    ]);
+    bookingSlotsRepo.find.mockResolvedValue([{ slotStart: '08:00' }]);
+
+    const result = await service.getAvailability('court-1', '2026-08-25');
+
+    expect(bookingSlotsRepo.find).toHaveBeenCalledWith({
+      where: { courtId: 'court-1', date: '2026-08-25' },
+    });
+    expect(result).toEqual([
+      { start: '08:00', end: '09:00', price: 100000, isBooked: true },
+      { start: '09:00', end: '10:00', price: 100000, isBooked: false },
+    ]);
+  });
+});

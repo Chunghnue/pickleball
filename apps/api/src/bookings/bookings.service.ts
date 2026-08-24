@@ -14,6 +14,7 @@ import { VenuesService } from '../courts/venues.service';
 import { VenueStatus } from '../courts/entities/venue.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { generateBookingSlotStarts } from './booking-slot-generator';
+import { Slot } from '../courts/slot-generator';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const UNIQUE_VIOLATION_CODE = '23505';
@@ -193,6 +194,21 @@ export class BookingsService {
       throw new BadRequestException('Chỉ có thể huỷ booking đang confirmed');
     }
     return this.cancel(booking, ownerId);
+  }
+
+  async getAvailability(
+    courtId: string,
+    date: string,
+  ): Promise<Array<Slot & { isBooked: boolean }>> {
+    const slots = await this.courtsService.getSlotsForDate(courtId, date);
+    const bookedSlots = await this.bookingSlotsRepository.find({
+      where: { courtId, date },
+    });
+    const bookedStarts = new Set(bookedSlots.map((slot) => slot.slotStart));
+    return slots.map((slot) => ({
+      ...slot,
+      isBooked: bookedStarts.has(slot.start),
+    }));
   }
 
   private async cancel(
