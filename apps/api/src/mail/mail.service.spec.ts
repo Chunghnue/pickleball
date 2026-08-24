@@ -24,7 +24,7 @@ describe('MailService', () => {
                 MAIL_HOST: 'localhost',
                 MAIL_PORT: '1025',
                 MAIL_FROM: 'no-reply@pickleball.local',
-                API_BASE_URL: 'http://localhost:3001',
+                APP_URL: 'http://localhost:3000',
               })[key] ?? fallback,
           },
         },
@@ -34,25 +34,29 @@ describe('MailService', () => {
     service = module.get(MailService);
   });
 
-  it('sends a verification email with a link containing the raw token', async () => {
+  it('sends a verification email linking to the frontend app', async () => {
     await service.sendVerificationEmail('user@test.com', 'raw-token-123');
 
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'user@test.com',
         subject: expect.any(String),
-        html: expect.stringContaining('raw-token-123'),
+        html: expect.stringContaining(
+          'http://localhost:3000/verify-email?token=raw-token-123',
+        ),
       }),
     );
   });
 
-  it('sends a password reset email with a link containing the raw token', async () => {
+  it('sends a password reset email linking to the frontend app', async () => {
     await service.sendPasswordResetEmail('user@test.com', 'reset-token-456');
 
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'user@test.com',
-        html: expect.stringContaining('reset-token-456'),
+        html: expect.stringContaining(
+          'http://localhost:3000/reset-password?token=reset-token-456',
+        ),
       }),
     );
   });

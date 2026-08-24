@@ -6,7 +6,7 @@ import * as nodemailer from 'nodemailer';
 export class MailService {
   private readonly transporter: nodemailer.Transporter;
   private readonly from: string;
-  private readonly apiBaseUrl: string;
+  private readonly appUrl: string;
 
   constructor(private readonly config: ConfigService) {
     this.transporter = nodemailer.createTransport({
@@ -15,11 +15,11 @@ export class MailService {
       secure: false,
     });
     this.from = this.config.get<string>('MAIL_FROM', 'no-reply@pickleball.local');
-    this.apiBaseUrl = this.config.get<string>('API_BASE_URL', 'http://localhost:3001');
+    this.appUrl = this.config.get<string>('APP_URL', 'http://localhost:3000');
   }
 
   async sendVerificationEmail(to: string, token: string): Promise<void> {
-    const link = `${this.apiBaseUrl}/auth/verify-email?token=${token}`;
+    const link = `${this.appUrl}/verify-email?token=${token}`;
     await this.transporter.sendMail({
       from: this.from,
       to,
@@ -29,7 +29,7 @@ export class MailService {
   }
 
   async sendPasswordResetEmail(to: string, token: string): Promise<void> {
-    const link = `${this.apiBaseUrl}/auth/reset-password?token=${token}`;
+    const link = `${this.appUrl}/reset-password?token=${token}`;
     await this.transporter.sendMail({
       from: this.from,
       to,
