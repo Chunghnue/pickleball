@@ -1,4 +1,5 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { timeColumnTransformer } from '../time-column.transformer';
 
 @Entity('booking_slots')
 @Index(['courtId', 'date', 'slotStart'], { unique: true })
@@ -12,15 +13,13 @@ export class BookingSlot {
   @Column({ name: 'court_id' })
   courtId: string;
 
-  @Column({
-    type: 'date',
-    transformer: {
-      to: (value: string) => value,
-      from: (value: Date) => value.toISOString().slice(0, 10),
-    },
-  })
+  @Column({ type: 'date' })
   date: string;
 
-  @Column({ name: 'slot_start', type: 'time' })
+  @Column({
+    name: 'slot_start',
+    type: 'time',
+    transformer: timeColumnTransformer,
+  })
   slotStart: string;
 }

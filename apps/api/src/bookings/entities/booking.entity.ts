@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { timeColumnTransformer } from '../time-column.transformer';
 
 export enum BookingStatus {
   CONFIRMED = 'confirmed',
@@ -23,19 +24,21 @@ export class Booking {
   @Column({ name: 'customer_id' })
   customerId: string;
 
-  @Column({
-    type: 'date',
-    transformer: {
-      to: (value: string) => value,
-      from: (value: Date) => value.toISOString().slice(0, 10),
-    },
-  })
+  @Column({ type: 'date' })
   date: string;
 
-  @Column({ name: 'start_time', type: 'time' })
+  @Column({
+    name: 'start_time',
+    type: 'time',
+    transformer: timeColumnTransformer,
+  })
   startTime: string;
 
-  @Column({ name: 'end_time', type: 'time' })
+  @Column({
+    name: 'end_time',
+    type: 'time',
+    transformer: timeColumnTransformer,
+  })
   endTime: string;
 
   @Column({
