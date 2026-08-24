@@ -4,7 +4,7 @@
 
 **Goal:** Build the Next.js UI for the Auth + Users module — register/login/verify/reset/profile for customers, owner registration, and the admin owner-approval screen — per `docs/superpowers/specs/2026-08-24-auth-users-frontend-design.md`.
 
-**Architecture:** BFF pattern. The browser only ever talks to Next.js Route Handlers under `apps/web/src/app/api/*`; those handlers proxy to the already-built NestJS API (`apps/api`) and manage `access_token`/`refresh_token` as httpOnly cookies. A shared `fetchApiCore` helper transparently refreshes an expired access token and retries once. `middleware.ts` does cheap, unverified role-based redirects for UX only — the real authorization boundary is NestJS's existing `JwtAuthGuard`/`RolesGuard`.
+**Architecture:** BFF pattern. The browser only ever talks to Next.js Route Handlers under `apps/web/src/app/api/*`; those handlers proxy to the already-built NestJS API (`apps/api`) and manage `access_token`/`refresh_token` as httpOnly cookies. A shared `fetchApiCore` helper transparently refreshes an expired access token and retries once. `proxy.ts` does cheap, unverified role-based redirects for UX only — the real authorization boundary is NestJS's existing `JwtAuthGuard`/`RolesGuard`.
 
 **Tech Stack:** Next.js 16 (App Router, already scaffolded), React 19, shadcn/ui (Radix + Tailwind v4, already installed), react-hook-form + zod + `@hookform/resolvers`, Vitest (pure-function tests only — no component rendering, no Playwright, per the approved design).
 
@@ -12,11 +12,32 @@
 
 - Token storage: httpOnly, `sameSite=lax` cookies set by Next.js Route Handlers — the browser must never see a raw access/refresh token (spec §2).
 - All browser→backend traffic goes through same-origin Next.js Route Handlers; the NestJS API is never called directly from the browser, so **no CORS configuration is needed on the backend**.
-- `middleware.ts` role checks are UX-only (unverified JWT decode); real authorization stays enforced by NestJS's existing guards (spec §2).
+- `proxy.ts` role checks are UX-only (unverified JWT decode); real authorization stays enforced by NestJS's existing guards (spec §2).
 - Verification/reset emails must link to the frontend (`APP_URL`), not the API (spec §2, §7 — this plan's Task 1).
 - Testing scope per the approved design (spec §6): Vitest covers only the refresh-retry logic and the zod schemas. No component-render tests, no Playwright. Every page is verified either by a curl render-smoke-check (during its own task) or by the full interactive walkthrough in the final task.
 - Route handlers are thin proxies with no dedicated automated tests (matches the design's stated scope) — they are verified via curl against the real running `apps/api` as each task builds them.
 - Self-review note: the design's error-handling section requires "401 after a failed silent refresh → redirect to `/login`." The initial draft of `/me` and `/admin/owners` (Tasks 17–18) fetched their data without checking for a `401` first, which would have rendered `undefined` fields instead of redirecting. Both are fixed below to redirect on `401`. Mutation calls (`PATCH /users/me`, `POST /admin/owners/:id/approve|reject`) are intentionally left toast-only on `401` — by the time a mutation fires, the page's own initial load already proved the session was valid, so a 401 there is a rare mid-session expiry, not a wrong assumption; the API's `"Unauthorized"` message still surfaces via the toast rather than failing silently.
+- Execution note (found during Task 3): Next.js 16 deprecates `middleware.ts`/`export function middleware(...)` in favor of `proxy.ts`/`export function proxy(...)` — same behavior and `matcher` config, new file and export name. Use `proxy.ts` throughout, not `middleware.ts`.
+- Execution note (found during Task 2): this project's `components.json` resolves the **Base UI** component library (`@base-ui/react`, via `shadcn init -d`'s default `base` library choice), not classic Radix. The composite `form` shadcn component (`Form`/`FormField`/`FormItem`/`FormControl`/`FormMessage`, built on `radix-ui`'s `Slot`) hasn't been ported to Base UI in the registry yet — `npx shadcn add form` silently no-ops instead of erroring, while every other component in Task 2's list installs fine. **Every form page in this plan (Tasks 12, 13, 14, 16, 17) uses react-hook-form's plain `register()` API directly with the installed `Label`/`Input` instead of the missing composite wrapper:**
+
+  ```tsx
+  <div className="space-y-2">
+    <Label htmlFor="email">Email</Label>
+    <Input
+      id="email"
+      type="email"
+      aria-invalid={!!form.formState.errors.email}
+      {...form.register("email")}
+    />
+    {form.formState.errors.email && (
+      <p className="text-sm text-destructive">
+        {form.formState.errors.email.message}
+      </p>
+    )}
+  </div>
+  ```
+
+  This still fully satisfies the design's "react-hook-form + zod" requirement — it's a different (simpler, more standard for plain text inputs) wiring of the same libraries, not a scope change. `Input`'s existing Tailwind classes already style the `aria-invalid` state, so no extra CSS is needed for the error look.
 
 ---
 
@@ -33,7 +54,7 @@ apps/web/
   vitest.config.ts
   components.json                  # via shadcn init
   src/
-    middleware.ts
+    proxy.ts
     lib/
       utils.ts                     # via shadcn init (cn())
       api-config.ts                # API_BASE_URL constant
@@ -44,7 +65,7 @@ apps/web/
       fetch-api.ts                 # real fetchApi() wrapper
       schemas.ts                   # all zod schemas (tested)
       proxy-response.ts            # toNextResponse() shared helper
-    components/ui/                 # shadcn: button, input, label, form, card, alert, sonner
+    components/ui/                 # shadcn: button, input, label, card, alert, sonner (no "form" -- see note above)
     app/
       layout.tsx                   # MODIFY: add <Toaster />
       page.tsx                     # MODIFY: landing page
@@ -242,7 +263,7 @@ git commit -m "feat(api): point verification/reset email links at the frontend a
 **Files:**
 - Create: `apps/web/components.json`, `apps/web/src/lib/utils.ts` (via `shadcn init`)
 - Modify: `apps/web/src/app/globals.css` (via `shadcn init`)
-- Create: `apps/web/src/components/ui/{button,input,label,form,card,alert,sonner}.tsx` (via `shadcn add`)
+- Create: `apps/web/src/components/ui/{button,input,label,card,alert,sonner}.tsx` (via `shadcn add`)
 - Modify: `apps/web/package.json` (dependencies + `test` script)
 - Create: `apps/web/vitest.config.ts`
 
@@ -263,11 +284,11 @@ Expected: creates `components.json` and `src/lib/utils.ts`, and adds CSS theme v
 
 ```bash
 cd apps/web
-npx shadcn@latest add button input label form card alert sonner -y
+npx shadcn@latest add button input label card alert sonner -y
 cd ../..
 ```
 
-Expected: creates files under `apps/web/src/components/ui/`.
+Expected: creates files under `apps/web/src/components/ui/`. (Deliberately not `form` — see the Global Constraints note on why, and the react-hook-form `register()` pattern used instead.)
 
 - [ ] **Step 3: Install form and validation libraries**
 
@@ -325,21 +346,21 @@ git commit -m "feat(web): add shadcn/ui, react-hook-form/zod, and Vitest"
 
 ---
 
-### Task 3: JWT decode + route-protection logic (tested), then `middleware.ts`
+### Task 3: JWT decode + route-protection logic (tested), then `proxy.ts`
 
 **Files:**
 - Create: `apps/web/src/lib/jwt.ts`
 - Create: `apps/web/src/lib/jwt.test.ts`
 - Create: `apps/web/src/lib/route-protection.ts`
 - Create: `apps/web/src/lib/route-protection.test.ts`
-- Create: `apps/web/src/middleware.ts`
+- Create: `apps/web/src/proxy.ts`
 
 **Interfaces:**
 - Consumes: nothing new.
 - Produces:
   - `decodeJwtPayload(token: string): JwtPayload | null` where `JwtPayload = { sub: string; role: 'customer' | 'owner' | 'admin'; iat: number; exp: number }` — Task 8 (login route) and Task 14 (`/login` page) use this to read the role claim.
   - `resolveRedirect(pathname: string, accessToken: string | undefined): string | null` — returns a redirect path, or `null` if the request should proceed.
-  - `middleware.ts` wired to run on `/me/:path*`, `/owner/:path*`, `/admin/:path*`.
+  - `proxy.ts` wired to run on `/me/:path*`, `/owner/:path*`, `/admin/:path*`.
 
 - [ ] **Step 1: Write the failing test for `decodeJwtPayload`**
 
@@ -409,7 +430,7 @@ export function decodeJwtPayload(token: string): JwtPayload | null {
 }
 ```
 
-`atob` (not `Buffer`) is used deliberately — this file must work in the Edge Runtime, where `middleware.ts` (Task 3) runs, and `Buffer` isn't guaranteed there.
+`atob` (not `Buffer`) is used deliberately — it's a global in both Node.js and browsers, so this file works unmodified in `proxy.ts` (Task 3, Node.js runtime by default in Next.js 16) without depending on a Node-specific API.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
@@ -516,15 +537,15 @@ export function resolveRedirect(
 Run: `cd apps/web && npm test -- route-protection.test.ts`
 Expected: PASS
 
-- [ ] **Step 9: Wire up `middleware.ts`**
+- [ ] **Step 9: Wire up `proxy.ts`**
 
-Create `apps/web/src/middleware.ts`:
+Create `apps/web/src/proxy.ts`:
 
 ```ts
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveRedirect } from '@/lib/route-protection';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const accessToken = request.cookies.get('access_token')?.value;
   const redirectPath = resolveRedirect(request.nextUrl.pathname, accessToken);
 
@@ -548,8 +569,8 @@ Expected: both PASS
 - [ ] **Step 11: Commit**
 
 ```bash
-git add apps/web/src/lib/jwt.ts apps/web/src/lib/jwt.test.ts apps/web/src/lib/route-protection.ts apps/web/src/lib/route-protection.test.ts apps/web/src/middleware.ts
-git commit -m "feat(web): add JWT decode, route-protection redirects, and middleware"
+git add apps/web/src/lib/jwt.ts apps/web/src/lib/jwt.test.ts apps/web/src/lib/route-protection.ts apps/web/src/lib/route-protection.test.ts apps/web/src/proxy.ts
+git commit -m "feat(web): add JWT decode, route-protection redirects, and proxy"
 ```
 
 ---
