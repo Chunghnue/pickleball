@@ -48,10 +48,15 @@ export default function ProfilePage() {
   }, [form, router]);
 
   async function onSubmit(values: UpdateProfileInput) {
+    const payload = {
+      fullName: values.fullName,
+      phone: values.phone,
+      avatarUrl: values.avatarUrl === "" ? undefined : values.avatarUrl,
+    };
     const response = await fetch("/api/users/me", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => null);
 

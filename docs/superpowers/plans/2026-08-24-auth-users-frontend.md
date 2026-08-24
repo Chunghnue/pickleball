@@ -16,6 +16,7 @@
 - Verification/reset emails must link to the frontend (`APP_URL`), not the API (spec §2, §7 — this plan's Task 1).
 - Testing scope per the approved design (spec §6): Vitest covers only the refresh-retry logic and the zod schemas. No component-render tests, no Playwright. Every page is verified either by a curl render-smoke-check (during its own task) or by the full interactive walkthrough in the final task.
 - Route handlers are thin proxies with no dedicated automated tests (matches the design's stated scope) — they are verified via curl against the real running `apps/api` as each task builds them.
+- Execution note (found during Task 19, real-browser walkthrough): submitting `/me`'s profile form with `avatarUrl` untouched sends `avatarUrl: ""` to `PATCH /users/me`, and the backend's `@IsUrl()` validator rejects an empty string even though the field is `@IsOptional()` — `@IsOptional()` only skips validation for a truly-absent (`undefined`) value, not an empty one. `onSubmit` now maps `""` to `undefined` before building the request body (`JSON.stringify` omits `undefined` properties entirely), so an untouched optional URL field is sent as absent rather than empty. curl-only testing of the route handler in isolation (Task 9) didn't catch this because that test PATCHed with a real value, never an untouched form's default empty string.
 - Execution note (found during Task 19, real-browser walkthrough — curl couldn't have caught this): React 19's Strict Mode double-invokes `useEffect` in dev, so `/verify-email`'s effect fired the verification request twice. The token is single-use (deleted server-side after the first success), so the second call failed with "Token không hợp lệ" and clobbered the success state that was already set — the page flashed success then landed on an error. Fixed with a `useRef` guard (`hasRequested`) so the effect only ever sends the request once per mount, regardless of how many times Strict Mode invokes it. This is the concrete reason the design calls for an actual browser pass at the end instead of trusting curl/route-handler checks alone: curl only ever sends the request once, so it can't see double-invoke bugs.
 - Self-review note: the design's error-handling section requires "401 after a failed silent refresh → redirect to `/login`." The initial draft of `/me` and `/admin/owners` (Tasks 17–18) fetched their data without checking for a `401` first, which would have rendered `undefined` fields instead of redirecting. Both are fixed below to redirect on `401`. Mutation calls (`PATCH /users/me`, `POST /admin/owners/:id/approve|reject`) are intentionally left toast-only on `401` — by the time a mutation fires, the page's own initial load already proved the session was valid, so a 401 there is a rare mid-session expiry, not a wrong assumption; the API's `"Unauthorized"` message still surfaces via the toast rather than failing silently.
 - Execution note (found during Task 11): this project's `Button` (Base UI, not Radix) has no `asChild` prop — Base UI uses a different, unrelated polymorphic-composition API. Don't write `<Button asChild><Link .../></Button>`; use the exported `buttonVariants(...)` class-name helper directly on the `Link` instead (see Task 11).
@@ -2613,10 +2614,15 @@ export default function ProfilePage() {
   }, [form, router]);
 
   async function onSubmit(values: UpdateProfileInput) {
+    const payload = {
+      fullName: values.fullName,
+      phone: values.phone,
+      avatarUrl: values.avatarUrl === "" ? undefined : values.avatarUrl,
+    };
     const response = await fetch("/api/users/me", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => null);
 
