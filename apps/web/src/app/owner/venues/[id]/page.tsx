@@ -5,12 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { VenueInfoSection } from "./venue-info-section";
 import { VenueImagesSection } from "./venue-images-section";
-import type { Venue } from "./types";
+import { CourtsSection } from "./courts-section";
+import type { Court, Venue } from "./types";
 
 export default function OwnerVenueDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [venue, setVenue] = useState<Venue | null>(null);
+  const [courts, setCourts] = useState<Court[] | null>(null);
 
   useEffect(() => {
     fetch(`/api/venues/mine/${params.id}`)
@@ -30,6 +32,13 @@ export default function OwnerVenueDetailPage() {
         setVenue(data);
       });
   }, [params.id, router]);
+
+  useEffect(() => {
+    if (!venue) return;
+    fetch(`/api/venues/mine/${venue.id}/courts`)
+      .then((res) => res.json())
+      .then((data) => setCourts(Array.isArray(data) ? data : []));
+  }, [venue]);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -59,6 +68,13 @@ export default function OwnerVenueDetailPage() {
         images={venue.images}
         onImagesChanged={(images) => setVenue({ ...venue, images })}
       />
+      {courts && (
+        <CourtsSection
+          venueId={venue.id}
+          courts={courts}
+          onCourtsChanged={setCourts}
+        />
+      )}
     </main>
   );
 }
