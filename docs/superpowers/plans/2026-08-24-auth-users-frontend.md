@@ -2320,15 +2320,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/schemas";
 
@@ -2371,6 +2364,8 @@ export default function ForgotPasswordPage() {
     );
   }
 
+  const { errors } = form.formState;
+
   return (
     <main className="flex flex-1 items-center justify-center p-8">
       <Card className="w-full max-w-sm">
@@ -2378,30 +2373,27 @@ export default function ForgotPasswordPage() {
           <CardTitle>Quên mật khẩu</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                aria-invalid={!!errors.email}
+                {...form.register("email")}
               />
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={form.formState.isSubmitting}
-              >
-                Gửi yêu cầu
-              </Button>
-            </form>
-          </Form>
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email.message}</p>
+              )}
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={form.formState.isSubmitting}
+            >
+              Gửi yêu cầu
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </main>
@@ -2422,17 +2414,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/schemas";
+import { getSubmitErrorMessage } from "@/lib/error-message";
 
 export default function ResetPasswordPage() {
   return (
@@ -2460,13 +2446,15 @@ function ResetPasswordContent() {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      toast.error(data?.message ?? "Đặt lại mật khẩu thất bại");
+      toast.error(getSubmitErrorMessage(response, data));
       return;
     }
 
     toast.success("Đặt lại mật khẩu thành công");
     router.push("/login");
   }
+
+  const { errors } = form.formState;
 
   return (
     <main className="flex flex-1 items-center justify-center p-8">
@@ -2475,30 +2463,29 @@ function ResetPasswordContent() {
           <CardTitle>Đặt lại mật khẩu</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="newPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mật khẩu mới</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Mật khẩu mới</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                aria-invalid={!!errors.newPassword}
+                {...form.register("newPassword")}
               />
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={form.formState.isSubmitting}
-              >
-                Đặt lại mật khẩu
-              </Button>
-            </form>
-          </Form>
+              {errors.newPassword && (
+                <p className="text-sm text-destructive">
+                  {errors.newPassword.message}
+                </p>
+              )}
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={form.formState.isSubmitting}
+            >
+              Đặt lại mật khẩu
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </main>
@@ -2506,7 +2493,7 @@ function ResetPasswordContent() {
 }
 ```
 
-Note: `token` has no visible `<FormField>` — it's carried purely through `defaultValues` (set from the URL's `?token=`) and submitted as-is via `form.handleSubmit`, which includes every field in the form's state whether or not it has a rendered control.
+Note: `token` has no visible input field — it's carried purely through `defaultValues` (set from the URL's `?token=`) and submitted as-is via `form.handleSubmit`, which includes every field in the form's state whether or not it has a rendered control.
 
 - [ ] **Step 3: Verify both render, and verify `/api/auth/reset-password` end-to-end**
 
