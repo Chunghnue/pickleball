@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { MailModule } from './mail/mail.module';
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
+import { CourtsModule } from './courts/courts.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AdminModule } from './admin/admin.module';
     MailModule,
     AuthModule,
     AdminModule,
+    CourtsModule,
   ],
   controllers: [AppController],
   providers: [
