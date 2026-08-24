@@ -5,6 +5,11 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   updateProfileSchema,
+  createVenueSchema,
+  updateVenueSchema,
+  addVenueImageSchema,
+  createCourtSchema,
+  updateCourtSchema,
 } from './schemas';
 
 describe('registerSchema', () => {
@@ -106,5 +111,125 @@ describe('updateProfileSchema', () => {
 
   it('accepts an empty string avatarUrl (an untouched optional field)', () => {
     expect(updateProfileSchema.safeParse({ avatarUrl: '' }).success).toBe(true);
+  });
+});
+
+describe('createVenueSchema', () => {
+  it('accepts a valid payload', () => {
+    expect(
+      createVenueSchema.safeParse({
+        name: 'ABC Pickleball',
+        address: '123 Le Loi',
+        city: 'Ho Chi Minh',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects an empty name', () => {
+    expect(
+      createVenueSchema.safeParse({ name: '', address: 'X', city: 'Y' }).success,
+    ).toBe(false);
+  });
+
+  it('accepts an optional description', () => {
+    expect(
+      createVenueSchema.safeParse({
+        name: 'A',
+        address: 'B',
+        city: 'C',
+        description: 'Mô tả',
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe('updateVenueSchema', () => {
+  it('accepts an empty object (no fields required)', () => {
+    expect(updateVenueSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('rejects an empty name when provided', () => {
+    expect(updateVenueSchema.safeParse({ name: '' }).success).toBe(false);
+  });
+});
+
+describe('addVenueImageSchema', () => {
+  it('accepts a valid URL', () => {
+    expect(
+      addVenueImageSchema.safeParse({ url: 'https://example.com/a.jpg' }).success,
+    ).toBe(true);
+  });
+
+  it('rejects an invalid URL', () => {
+    expect(addVenueImageSchema.safeParse({ url: 'not-a-url' }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe('createCourtSchema', () => {
+  const valid = {
+    name: 'Sân 1',
+    pricePerHour: 100000,
+    openTime: '08:00',
+    closeTime: '20:00',
+    slotDurationMinutes: 60,
+  };
+
+  it('accepts a valid payload', () => {
+    expect(createCourtSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it('coerces string number inputs from form fields', () => {
+    const result = createCourtSchema.safeParse({
+      ...valid,
+      pricePerHour: '100000',
+      slotDurationMinutes: '60',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.pricePerHour).toBe(100000);
+      expect(result.data.slotDurationMinutes).toBe(60);
+    }
+  });
+
+  it('rejects a price of 0', () => {
+    expect(
+      createCourtSchema.safeParse({ ...valid, pricePerHour: 0 }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a malformed openTime', () => {
+    expect(
+      createCourtSchema.safeParse({ ...valid, openTime: '8:00' }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a slotDurationMinutes below 15', () => {
+    expect(
+      createCourtSchema.safeParse({ ...valid, slotDurationMinutes: 10 }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a slotDurationMinutes above 240', () => {
+    expect(
+      createCourtSchema.safeParse({ ...valid, slotDurationMinutes: 300 }).success,
+    ).toBe(false);
+  });
+});
+
+describe('updateCourtSchema', () => {
+  it('accepts an empty object (no fields required)', () => {
+    expect(updateCourtSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('accepts isActive alone', () => {
+    expect(updateCourtSchema.safeParse({ isActive: false }).success).toBe(true);
+  });
+
+  it('rejects an out-of-range slotDurationMinutes when provided', () => {
+    expect(
+      updateCourtSchema.safeParse({ slotDurationMinutes: 500 }).success,
+    ).toBe(false);
   });
 });
