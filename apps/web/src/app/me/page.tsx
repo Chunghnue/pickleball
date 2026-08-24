@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -130,7 +131,13 @@ export default function ProfilePage() {
               Lưu thay đổi
             </Button>
           </form>
-          <Button variant="outline" className="mt-4 w-full" onClick={handleLogout}>
+          <Link
+            href="/me/bookings"
+            className={`${buttonVariants({ variant: "outline" })} mt-4 w-full`}
+          >
+            Booking của tôi
+          </Link>
+          <Button variant="outline" className="mt-2 w-full" onClick={handleLogout}>
             Đăng xuất
           </Button>
         </CardContent>
