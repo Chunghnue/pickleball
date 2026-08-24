@@ -1,30 +1,96 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+interface Venue {
+  id: string;
+  name: string;
+  city: string;
+  status: "pending_approval" | "active" | "rejected";
+}
+
+const STATUS_LABEL: Record<Venue["status"], string> = {
+  pending_approval: "Đang chờ duyệt",
+  active: "Đang hoạt động",
+  rejected: "Bị từ chối",
+};
+
+const STATUS_CLASS: Record<Venue["status"], string> = {
+  pending_approval: "text-amber-600",
+  active: "text-emerald-600",
+  rejected: "text-destructive",
+};
+
 export default function OwnerDashboardPage() {
+  const router = useRouter();
+  const [venues, setVenues] = useState<Venue[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/venues/mine")
+      .then(async (res) => {
+        if (res.status === 401) {
+          router.push("/login?returnTo=%2Fowner");
+          return null;
+        }
+        return (await res.json()) as Venue[];
+      })
+      .then((data) => {
+        if (!data) return;
+        setVenues(data);
+      });
+  }, [router]);
+
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/login";
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center p-8">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Chào chủ sân</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground">
-            Bạn đã đăng nhập với vai trò chủ sân. Tính năng quản lý sân sẽ sớm
-            ra mắt.
-          </p>
-          <Button variant="outline" className="w-full" onClick={handleLogout}>
+    <main className="mx-auto flex max-w-2xl flex-1 flex-col gap-6 p-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Sân của tôi</h1>
+        <div className="flex gap-2">
+          <Link href="/owner/venues/new" className={buttonVariants()}>
+            Thêm sân mới
+          </Link>
+          <Button variant="outline" onClick={handleLogout}>
             Đăng xuất
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {venues === null && <p>Đang tải...</p>}
+      {venues !== null && venues.length === 0 && (
+        <p className="text-muted-foreground">
+          Bạn chưa có địa điểm nào. Hãy thêm sân mới để bắt đầu.
+        </p>
+      )}
+
+      <div className="flex flex-col gap-4">
+        {venues?.map((venue) => (
+          <Link key={venue.id} href={`/owner/venues/${venue.id}`}>
+            <Card className="transition-colors hover:bg-muted">
+              <CardHeader>
+                <CardTitle className="text-base">{venue.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {venue.city}
+                </span>
+                <span
+                  className={`text-sm font-medium ${STATUS_CLASS[venue.status]}`}
+                >
+                  {STATUS_LABEL[venue.status]}
+                </span>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
     </main>
   );
 }
