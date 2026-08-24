@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { VenueInfoSection } from "./venue-info-section";
 import { VenueImagesSection } from "./venue-images-section";
 import { CourtsSection } from "./courts-section";
+import { BookingsSection } from "./bookings-section";
 import type { Court, Venue } from "./types";
 
 export default function OwnerVenueDetailPage() {
@@ -69,11 +70,14 @@ export default function OwnerVenueDetailPage() {
         onImagesChanged={(images) => setVenue({ ...venue, images })}
       />
       {courts && (
-        <CourtsSection
-          venueId={venue.id}
-          courts={courts}
-          onCourtsChanged={setCourts}
-        />
+        <>
+          <CourtsSection
+            venueId={venue.id}
+            courts={courts}
+            onCourtsChanged={setCourts}
+          />
+          <BookingsSection venueId={venue.id} courts={courts} />
+        </>
       )}
     </main>
   );
