@@ -29,6 +29,7 @@ export default function VenueDetailPage() {
   const [venue, setVenue] = useState<PublicVenueDetail | null | "not-found">(
     null,
   );
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/venues/${params.id}`).then(async (res) => {
@@ -36,12 +37,25 @@ export default function VenueDetailPage() {
         setVenue("not-found");
         return;
       }
-      setVenue((await res.json()) as PublicVenueDetail);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(data?.message ?? "Không thể tải thông tin sân.");
+        return;
+      }
+      setVenue(data as PublicVenueDetail);
     });
   }, [params.id]);
 
   if (venue === "not-found") {
     notFound();
+  }
+
+  if (error) {
+    return (
+      <main className="flex flex-1 items-center justify-center p-8">
+        <p className="text-destructive">{error}</p>
+      </main>
+    );
   }
 
   if (!venue) {
