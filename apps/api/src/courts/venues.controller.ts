@@ -16,13 +16,17 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { VenuesService } from './venues.service';
+import { CourtsService } from './courts.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { AddVenueImageDto } from './dto/add-venue-image.dto';
 
 @Controller('venues')
 export class VenuesController {
-  constructor(private readonly venuesService: VenuesService) {}
+  constructor(
+    private readonly venuesService: VenuesService,
+    private readonly courtsService: CourtsService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -84,5 +88,12 @@ export class VenuesController {
   @Get()
   search(@Query('query') query?: string) {
     return this.venuesService.searchPublic(query);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const venue = await this.venuesService.findPublicById(id);
+    const courts = await this.courtsService.findActiveByVenue(id);
+    return { ...venue, courts };
   }
 }
