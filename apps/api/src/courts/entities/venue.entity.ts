@@ -39,6 +39,9 @@ export class Venue {
   })
   status: VenueStatus;
 
+  @Column({ name: 'cancellation_cutoff_hours', type: 'int', default: 2 })
+  cancellationCutoffHours: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 
 export class UpdateVenueDto {
   @IsOptional()
@@ -19,4 +19,10 @@ export class UpdateVenueDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(72)
+  cancellationCutoffHours?: number;
 }

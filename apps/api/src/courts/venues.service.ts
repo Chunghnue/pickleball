@@ -51,6 +51,9 @@ export class VenuesService {
     if (dto.address !== undefined) venue.address = dto.address;
     if (dto.city !== undefined) venue.city = dto.city;
     if (dto.description !== undefined) venue.description = dto.description;
+    if (dto.cancellationCutoffHours !== undefined) {
+      venue.cancellationCutoffHours = dto.cancellationCutoffHours;
+    }
     return this.venuesRepository.save(venue);
   }
 

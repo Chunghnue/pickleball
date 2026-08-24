@@ -110,6 +110,26 @@ describe('VenuesService.update', () => {
     expect(result.name).toBe('New Name');
     expect(result.address).toBe('Old Address');
   });
+
+  it('updates cancellationCutoffHours when provided', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      name: 'Old Name',
+      address: 'Old Address',
+      city: 'Old City',
+      description: null,
+      cancellationCutoffHours: 2,
+    });
+    venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.update('owner-1', 'venue-1', {
+      cancellationCutoffHours: 4,
+    });
+
+    expect(result.cancellationCutoffHours).toBe(4);
+  });
 });
 
 describe('VenuesService images', () => {
