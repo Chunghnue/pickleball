@@ -105,6 +105,14 @@ export class VenuesService {
     return venue;
   }
 
+  async findByIdOrThrow(id: string): Promise<Venue> {
+    const venue = await this.venuesRepository.findOne({ where: { id } });
+    if (!venue) {
+      throw new NotFoundException(`Venue ${id} không tồn tại`);
+    }
+    return venue;
+  }
+
   findPendingVenues(): Promise<Venue[]> {
     return this.venuesRepository.find({
       where: { status: VenueStatus.PENDING_APPROVAL },

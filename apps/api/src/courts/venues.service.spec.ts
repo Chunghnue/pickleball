@@ -223,6 +223,26 @@ describe('VenuesService approval', () => {
   });
 });
 
+describe('VenuesService.findByIdOrThrow', () => {
+  it('returns the venue regardless of status or owner', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-2' });
+
+    const result = await service.findByIdOrThrow('venue-1');
+
+    expect(result.id).toBe('venue-1');
+  });
+
+  it('throws NotFoundException when the venue does not exist', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.findByIdOrThrow('venue-1')).rejects.toThrow(
+      'Venue venue-1 không tồn tại',
+    );
+  });
+});
+
 describe('VenuesService public reads', () => {
   it('searchPublic without a query returns only active venues', async () => {
     const { service, venuesRepo } = await buildTestingModule();

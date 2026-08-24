@@ -126,6 +126,26 @@ describe('CourtsService.findActiveByVenue', () => {
   });
 });
 
+describe('CourtsService.findByIdOrThrow', () => {
+  it('returns the court regardless of active status', async () => {
+    const { service, courtsRepo } = await buildTestingModule();
+    courtsRepo.findOne.mockResolvedValue({ id: 'court-1', isActive: false });
+
+    const result = await service.findByIdOrThrow('court-1');
+
+    expect(result.id).toBe('court-1');
+  });
+
+  it('throws NotFoundException when the court does not exist', async () => {
+    const { service, courtsRepo } = await buildTestingModule();
+    courtsRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.findByIdOrThrow('court-1')).rejects.toThrow(
+      'Court court-1 không tồn tại',
+    );
+  });
+});
+
 describe('CourtsService.getSlotsForDate', () => {
   const FIXED_TODAY = new Date('2026-08-24T12:00:00Z');
 

@@ -84,6 +84,14 @@ export class CourtsService {
     });
   }
 
+  async findByIdOrThrow(id: string): Promise<Court> {
+    const court = await this.courtsRepository.findOne({ where: { id } });
+    if (!court) {
+      throw new NotFoundException(`Court ${id} không tồn tại`);
+    }
+    return court;
+  }
+
   async getSlotsForDate(courtId: string, date: string): Promise<Slot[]> {
     if (!DATE_PATTERN.test(date)) {
       throw new BadRequestException('date phải theo định dạng YYYY-MM-DD');
