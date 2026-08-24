@@ -340,3 +340,75 @@ describe('BookingsService.cancelByCustomer', () => {
     ).rejects.toThrow('Chỉ có thể huỷ booking đang confirmed');
   });
 });
+
+describe('BookingsService.findByVenueForOwner', () => {
+  it('lists bookings for every court in the venue', async () => {
+    const { service, bookingsRepo, courtsService } = await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([
+      { id: 'court-1' },
+      { id: 'court-2' },
+    ]);
+    bookingsRepo.find.mockResolvedValue([{ id: 'booking-1' }]);
+
+    const result = await service.findByVenueForOwner('owner-1', 'venue-1', {});
+
+    expect(courtsService.findByVenueForOwner).toHaveBeenCalledWith(
+      'owner-1',
+      'venue-1',
+    );
+    expect(bookingsRepo.find).toHaveBeenCalledWith({
+      where: { courtId: expect.anything() },
+      order: { date: 'ASC', startTime: 'ASC' },
+    });
+    expect(result).toEqual([{ id: 'booking-1' }]);
+  });
+
+  it('filters to a single court when courtId is provided', async () => {
+    const { service, bookingsRepo, courtsService } = await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([
+      { id: 'court-1' },
+      { id: 'court-2' },
+    ]);
+    bookingsRepo.find.mockResolvedValue([]);
+
+    await service.findByVenueForOwner('owner-1', 'venue-1', {
+      courtId: 'court-2',
+    });
+
+    const whereArg = bookingsRepo.find.mock.calls[0][0].where;
+    expect(whereArg.courtId.value).toEqual(['court-2']);
+  });
+});
+
+describe('BookingsService.cancelByOwner', () => {
+  it('cancels a booking belonging to the venue regardless of cutoff', async () => {
+    const { service, bookingsRepo, courtsService, dataSource } =
+      await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
+    bookingsRepo.findOne.mockResolvedValue({
+      id: 'booking-1',
+      courtId: 'court-1',
+      status: BookingStatus.CONFIRMED,
+    });
+    const manager = {
+      save: jest.fn((data: unknown) => Promise.resolve(data)),
+      delete: jest.fn(),
+    };
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    const result = await service.cancelByOwner('owner-1', 'venue-1', 'booking-1');
+
+    expect(result.status).toBe(BookingStatus.CANCELLED);
+    expect(result.cancelledBy).toBe('owner-1');
+  });
+
+  it('throws NotFoundException when the booking is not on any court in the venue', async () => {
+    const { service, bookingsRepo, courtsService } = await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
+    bookingsRepo.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.cancelByOwner('owner-1', 'venue-1', 'booking-1'),
+    ).rejects.toThrow('Booking booking-1 không tồn tại');
+  });
+});

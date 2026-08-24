@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
 import { Booking, BookingStatus } from './entities/booking.entity';
 import { BookingSlot } from './entities/booking-slot.entity';
 import { CourtsService } from '../courts/courts.service';
@@ -146,6 +146,53 @@ export class BookingsService {
     }
 
     return this.cancel(booking, customerId);
+  }
+
+  async findByVenueForOwner(
+    ownerId: string,
+    venueId: string,
+    filters: { date?: string; courtId?: string },
+  ): Promise<Booking[]> {
+    await this.completePastBookings();
+    const courts = await this.courtsService.findByVenueForOwner(
+      ownerId,
+      venueId,
+    );
+    const courtIds = filters.courtId
+      ? courts
+          .filter((court) => court.id === filters.courtId)
+          .map((court) => court.id)
+      : courts.map((court) => court.id);
+
+    return this.bookingsRepository.find({
+      where: {
+        courtId: In(courtIds.length > 0 ? courtIds : ['__none__']),
+        ...(filters.date ? { date: filters.date } : {}),
+      },
+      order: { date: 'ASC', startTime: 'ASC' },
+    });
+  }
+
+  async cancelByOwner(
+    ownerId: string,
+    venueId: string,
+    id: string,
+  ): Promise<Booking> {
+    const courts = await this.courtsService.findByVenueForOwner(
+      ownerId,
+      venueId,
+    );
+    const courtIds = courts.map((court) => court.id);
+    const booking = await this.bookingsRepository.findOne({
+      where: { id, courtId: In(courtIds.length > 0 ? courtIds : ['__none__']) },
+    });
+    if (!booking) {
+      throw new NotFoundException(`Booking ${id} không tồn tại`);
+    }
+    if (booking.status !== BookingStatus.CONFIRMED) {
+      throw new BadRequestException('Chỉ có thể huỷ booking đang confirmed');
+    }
+    return this.cancel(booking, ownerId);
   }
 
   private async cancel(
