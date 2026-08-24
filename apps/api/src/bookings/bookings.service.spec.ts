@@ -7,6 +7,7 @@ import { BookingSlot } from './entities/booking-slot.entity';
 import { CourtsService } from '../courts/courts.service';
 import { VenuesService } from '../courts/venues.service';
 import { VenueStatus } from '../courts/entities/venue.entity';
+import { UsersService } from '../users/users.service';
 
 const mockBookingsRepository = () => {
   const queryBuilder = {
@@ -39,6 +40,10 @@ const mockVenuesService = () => ({
   getOwnedVenueOrThrow: jest.fn(),
 });
 
+const mockUsersService = () => ({
+  findById: jest.fn(),
+});
+
 function buildMockManager() {
   return {
     create: jest.fn((_entity: unknown, data: unknown) => data),
@@ -69,6 +74,7 @@ async function buildTestingModule() {
       },
       { provide: CourtsService, useFactory: mockCourtsService },
       { provide: VenuesService, useFactory: mockVenuesService },
+      { provide: UsersService, useFactory: mockUsersService },
       { provide: DataSource, useFactory: mockDataSource },
     ],
   }).compile();
@@ -86,6 +92,9 @@ async function buildTestingModule() {
     >,
     venuesService: module.get(VenuesService) as ReturnType<
       typeof mockVenuesService
+    >,
+    usersService: module.get(UsersService) as ReturnType<
+      typeof mockUsersService
     >,
     dataSource: module.get(DataSource) as ReturnType<typeof mockDataSource>,
   };
@@ -229,9 +238,21 @@ describe('BookingsService.create', () => {
 });
 
 describe('BookingsService.findMineByCustomer', () => {
-  it('completes past bookings before listing, ordered newest first', async () => {
-    const { service, bookingsRepo } = await buildTestingModule();
-    bookingsRepo.find.mockResolvedValue([{ id: 'booking-1' }]);
+  it('completes past bookings before listing, enriched with court/venue name', async () => {
+    const { service, bookingsRepo, courtsService, venuesService } =
+      await buildTestingModule();
+    bookingsRepo.find.mockResolvedValue([
+      { id: 'booking-1', courtId: 'court-1' },
+    ]);
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+      name: 'Sân 1',
+    });
+    venuesService.findByIdOrThrow.mockResolvedValue({
+      id: 'venue-1',
+      name: 'Venue A',
+    });
 
     const result = await service.findMineByCustomer('customer-1');
 
@@ -240,11 +261,47 @@ describe('BookingsService.findMineByCustomer', () => {
       where: { customerId: 'customer-1' },
       order: { date: 'DESC', startTime: 'DESC' },
     });
-    expect(result).toEqual([{ id: 'booking-1' }]);
+    expect(result).toEqual([
+      {
+        id: 'booking-1',
+        courtId: 'court-1',
+        courtName: 'Sân 1',
+        venueName: 'Venue A',
+      },
+    ]);
   });
 });
 
 describe('BookingsService.findMineById', () => {
+  it('returns the booking enriched with court/venue name', async () => {
+    const { service, bookingsRepo, courtsService, venuesService } =
+      await buildTestingModule();
+    bookingsRepo.findOne.mockResolvedValue({
+      id: 'booking-1',
+      customerId: 'customer-1',
+      courtId: 'court-1',
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+      name: 'Sân 1',
+    });
+    venuesService.findByIdOrThrow.mockResolvedValue({
+      id: 'venue-1',
+      name: 'Venue A',
+    });
+
+    const result = await service.findMineById('customer-1', 'booking-1');
+
+    expect(result).toEqual({
+      id: 'booking-1',
+      customerId: 'customer-1',
+      courtId: 'court-1',
+      courtName: 'Sân 1',
+      venueName: 'Venue A',
+    });
+  });
+
   it('throws NotFoundException when the booking does not belong to the customer', async () => {
     const { service, bookingsRepo } = await buildTestingModule();
     bookingsRepo.findOne.mockResolvedValue(null);
@@ -342,13 +399,21 @@ describe('BookingsService.cancelByCustomer', () => {
 });
 
 describe('BookingsService.findByVenueForOwner', () => {
-  it('lists bookings for every court in the venue', async () => {
-    const { service, bookingsRepo, courtsService } = await buildTestingModule();
+  it('lists bookings for every court in the venue, enriched with customer name/phone', async () => {
+    const { service, bookingsRepo, courtsService, usersService } =
+      await buildTestingModule();
     courtsService.findByVenueForOwner.mockResolvedValue([
       { id: 'court-1' },
       { id: 'court-2' },
     ]);
-    bookingsRepo.find.mockResolvedValue([{ id: 'booking-1' }]);
+    bookingsRepo.find.mockResolvedValue([
+      { id: 'booking-1', customerId: 'customer-1' },
+    ]);
+    usersService.findById.mockResolvedValue({
+      id: 'customer-1',
+      fullName: 'Nguyễn Văn A',
+      phone: '0900000000',
+    });
 
     const result = await service.findByVenueForOwner('owner-1', 'venue-1', {});
 
@@ -360,7 +425,14 @@ describe('BookingsService.findByVenueForOwner', () => {
       where: { courtId: expect.anything() },
       order: { date: 'ASC', startTime: 'ASC' },
     });
-    expect(result).toEqual([{ id: 'booking-1' }]);
+    expect(result).toEqual([
+      {
+        id: 'booking-1',
+        customerId: 'customer-1',
+        customerName: 'Nguyễn Văn A',
+        customerPhone: '0900000000',
+      },
+    ]);
   });
 
   it('filters to a single court when courtId is provided', async () => {

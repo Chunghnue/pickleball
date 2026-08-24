@@ -15,9 +15,16 @@ import { VenueStatus } from '../courts/entities/venue.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { generateBookingSlotStarts } from './booking-slot-generator';
 import { Slot } from '../courts/slot-generator';
+import { UsersService } from '../users/users.service';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const UNIQUE_VIOLATION_CODE = '23505';
+
+type BookingWithCourtInfo = Booking & { courtName: string; venueName: string };
+type BookingWithCustomerInfo = Booking & {
+  customerName: string;
+  customerPhone: string | null;
+};
 
 @Injectable()
 export class BookingsService {
@@ -28,6 +35,7 @@ export class BookingsService {
     private readonly bookingSlotsRepository: Repository<BookingSlot>,
     private readonly courtsService: CourtsService,
     private readonly venuesService: VenuesService,
+    private readonly usersService: UsersService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
@@ -102,15 +110,19 @@ export class BookingsService {
     }
   }
 
-  async findMineByCustomer(customerId: string): Promise<Booking[]> {
+  async findMineByCustomer(customerId: string): Promise<BookingWithCourtInfo[]> {
     await this.completePastBookings();
-    return this.bookingsRepository.find({
+    const bookings = await this.bookingsRepository.find({
       where: { customerId },
       order: { date: 'DESC', startTime: 'DESC' },
     });
+    return this.enrichWithCourtInfo(bookings);
   }
 
-  async findMineById(customerId: string, id: string): Promise<Booking> {
+  async findMineById(
+    customerId: string,
+    id: string,
+  ): Promise<BookingWithCourtInfo> {
     await this.completePastBookings();
     const booking = await this.bookingsRepository.findOne({
       where: { id, customerId },
@@ -118,7 +130,8 @@ export class BookingsService {
     if (!booking) {
       throw new NotFoundException(`Booking ${id} không tồn tại`);
     }
-    return booking;
+    const [enriched] = await this.enrichWithCourtInfo([booking]);
+    return enriched;
   }
 
   async cancelByCustomer(customerId: string, id: string): Promise<Booking> {
@@ -153,7 +166,7 @@ export class BookingsService {
     ownerId: string,
     venueId: string,
     filters: { date?: string; courtId?: string },
-  ): Promise<Booking[]> {
+  ): Promise<BookingWithCustomerInfo[]> {
     await this.completePastBookings();
     const courts = await this.courtsService.findByVenueForOwner(
       ownerId,
@@ -165,13 +178,24 @@ export class BookingsService {
           .map((court) => court.id)
       : courts.map((court) => court.id);
 
-    return this.bookingsRepository.find({
+    const bookings = await this.bookingsRepository.find({
       where: {
         courtId: In(courtIds.length > 0 ? courtIds : ['__none__']),
         ...(filters.date ? { date: filters.date } : {}),
       },
       order: { date: 'ASC', startTime: 'ASC' },
     });
+
+    return Promise.all(
+      bookings.map(async (booking) => {
+        const customer = await this.usersService.findById(booking.customerId);
+        return {
+          ...booking,
+          customerName: customer?.fullName ?? 'Không rõ',
+          customerPhone: customer?.phone ?? null,
+        };
+      }),
+    );
   }
 
   async cancelByOwner(
@@ -209,6 +233,18 @@ export class BookingsService {
       ...slot,
       isBooked: bookedStarts.has(slot.start),
     }));
+  }
+
+  private async enrichWithCourtInfo(
+    bookings: Booking[],
+  ): Promise<BookingWithCourtInfo[]> {
+    return Promise.all(
+      bookings.map(async (booking) => {
+        const court = await this.courtsService.findByIdOrThrow(booking.courtId);
+        const venue = await this.venuesService.findByIdOrThrow(court.venueId);
+        return { ...booking, courtName: court.name, venueName: venue.name };
+      }),
+    );
   }
 
   private async cancel(
