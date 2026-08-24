@@ -227,3 +227,116 @@ describe('BookingsService.create', () => {
     ).rejects.toThrow('Court court-1 không tồn tại');
   });
 });
+
+describe('BookingsService.findMineByCustomer', () => {
+  it('completes past bookings before listing, ordered newest first', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.find.mockResolvedValue([{ id: 'booking-1' }]);
+
+    const result = await service.findMineByCustomer('customer-1');
+
+    expect(bookingsRepo.createQueryBuilder().execute).toHaveBeenCalled();
+    expect(bookingsRepo.find).toHaveBeenCalledWith({
+      where: { customerId: 'customer-1' },
+      order: { date: 'DESC', startTime: 'DESC' },
+    });
+    expect(result).toEqual([{ id: 'booking-1' }]);
+  });
+});
+
+describe('BookingsService.findMineById', () => {
+  it('throws NotFoundException when the booking does not belong to the customer', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.findMineById('customer-1', 'booking-1'),
+    ).rejects.toThrow('Booking booking-1 không tồn tại');
+  });
+});
+
+describe('BookingsService.cancelByCustomer', () => {
+  const FIXED_NOW = new Date('2026-08-24T10:00:00Z');
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(FIXED_NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('cancels a booking outside the cutoff window and frees its slots', async () => {
+    const { service, bookingsRepo, courtsService, venuesService, dataSource } =
+      await buildTestingModule();
+    const booking = {
+      id: 'booking-1',
+      customerId: 'customer-1',
+      courtId: 'court-1',
+      date: '2026-08-25',
+      startTime: '10:00',
+      status: BookingStatus.CONFIRMED,
+    };
+    bookingsRepo.findOne.mockResolvedValue(booking);
+    courtsService.findByIdOrThrow.mockResolvedValue({ venueId: 'venue-1' });
+    venuesService.findByIdOrThrow.mockResolvedValue({
+      cancellationCutoffHours: 2,
+    });
+    const manager = {
+      save: jest.fn((data: unknown) => Promise.resolve(data)),
+      delete: jest.fn(),
+    };
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    const result = await service.cancelByCustomer('customer-1', 'booking-1');
+
+    expect(result.status).toBe(BookingStatus.CANCELLED);
+    expect(result.cancelledBy).toBe('customer-1');
+    expect(manager.delete).toHaveBeenCalledWith(BookingSlot, {
+      bookingId: 'booking-1',
+    });
+  });
+
+  it('throws ForbiddenException inside the cutoff window', async () => {
+    const { service, bookingsRepo, courtsService, venuesService } =
+      await buildTestingModule();
+    bookingsRepo.findOne.mockResolvedValue({
+      id: 'booking-1',
+      customerId: 'customer-1',
+      courtId: 'court-1',
+      date: '2026-08-24',
+      startTime: '11:00',
+      status: BookingStatus.CONFIRMED,
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({ venueId: 'venue-1' });
+    venuesService.findByIdOrThrow.mockResolvedValue({
+      cancellationCutoffHours: 2,
+    });
+
+    await expect(
+      service.cancelByCustomer('customer-1', 'booking-1'),
+    ).rejects.toThrow('Không thể huỷ trong vòng 2 giờ trước giờ chơi');
+  });
+
+  it('throws NotFoundException when the booking does not belong to the customer', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.cancelByCustomer('customer-1', 'booking-1'),
+    ).rejects.toThrow('Booking booking-1 không tồn tại');
+  });
+
+  it('throws BadRequestException when the booking is not confirmed', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.findOne.mockResolvedValue({
+      id: 'booking-1',
+      customerId: 'customer-1',
+      status: BookingStatus.CANCELLED,
+    });
+
+    await expect(
+      service.cancelByCustomer('customer-1', 'booking-1'),
+    ).rejects.toThrow('Chỉ có thể huỷ booking đang confirmed');
+  });
+});

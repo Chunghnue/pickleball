@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -98,5 +99,76 @@ export class BookingsService {
       }
       throw error;
     }
+  }
+
+  async findMineByCustomer(customerId: string): Promise<Booking[]> {
+    await this.completePastBookings();
+    return this.bookingsRepository.find({
+      where: { customerId },
+      order: { date: 'DESC', startTime: 'DESC' },
+    });
+  }
+
+  async findMineById(customerId: string, id: string): Promise<Booking> {
+    await this.completePastBookings();
+    const booking = await this.bookingsRepository.findOne({
+      where: { id, customerId },
+    });
+    if (!booking) {
+      throw new NotFoundException(`Booking ${id} không tồn tại`);
+    }
+    return booking;
+  }
+
+  async cancelByCustomer(customerId: string, id: string): Promise<Booking> {
+    const booking = await this.bookingsRepository.findOne({
+      where: { id, customerId },
+    });
+    if (!booking) {
+      throw new NotFoundException(`Booking ${id} không tồn tại`);
+    }
+    if (booking.status !== BookingStatus.CONFIRMED) {
+      throw new BadRequestException('Chỉ có thể huỷ booking đang confirmed');
+    }
+
+    const court = await this.courtsService.findByIdOrThrow(booking.courtId);
+    const venue = await this.venuesService.findByIdOrThrow(court.venueId);
+    // Simplification: treat date+time as UTC, matching CourtsService's
+    // date-string handling — no per-venue timezone support in MVP.
+    const startsAtMs = new Date(
+      `${booking.date}T${booking.startTime}:00Z`,
+    ).getTime();
+    const cutoffMs = venue.cancellationCutoffHours * 60 * 60 * 1000;
+    if (Date.now() >= startsAtMs - cutoffMs) {
+      throw new ForbiddenException(
+        `Không thể huỷ trong vòng ${venue.cancellationCutoffHours} giờ trước giờ chơi`,
+      );
+    }
+
+    return this.cancel(booking, customerId);
+  }
+
+  private async cancel(
+    booking: Booking,
+    cancelledBy: string,
+  ): Promise<Booking> {
+    return this.dataSource.transaction(async (manager) => {
+      booking.status = BookingStatus.CANCELLED;
+      booking.cancelledAt = new Date();
+      booking.cancelledBy = cancelledBy;
+      const saved = await manager.save(booking);
+      await manager.delete(BookingSlot, { bookingId: booking.id });
+      return saved;
+    });
+  }
+
+  private async completePastBookings(): Promise<void> {
+    await this.bookingsRepository
+      .createQueryBuilder()
+      .update(Booking)
+      .set({ status: BookingStatus.COMPLETED })
+      .where('status = :confirmed', { confirmed: BookingStatus.CONFIRMED })
+      .andWhere(`(date + end_time) < now()`)
+      .execute();
   }
 }
