@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ function VerifyEmailContent() {
   const token = searchParams.get("token");
   const [status, setStatus] = useState<Status>("loading");
   const [message, setMessage] = useState("");
+  const hasRequested = useRef(false);
 
   useEffect(() => {
     if (!token) {
@@ -27,6 +28,11 @@ function VerifyEmailContent() {
       setMessage("Thiếu token xác thực.");
       return;
     }
+
+    if (hasRequested.current) {
+      return;
+    }
+    hasRequested.current = true;
 
     fetch(`/api/auth/verify-email?token=${encodeURIComponent(token)}`)
       .then(async (response) => {
