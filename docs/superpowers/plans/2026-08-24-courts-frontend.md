@@ -439,9 +439,9 @@ git commit -m "feat(web): add venue and court validation schemas"
 **Files:**
 - Create: `apps/web/src/app/api/venues/route.ts`
 - Create: `apps/web/src/app/api/venues/mine/route.ts`
-- Create: `apps/web/src/app/api/venues/mine/[id]/route.ts`
-- Create: `apps/web/src/app/api/venues/mine/[id]/images/route.ts`
-- Create: `apps/web/src/app/api/venues/mine/[id]/images/[imageId]/route.ts`
+- Create: `apps/web/src/app/api/venues/mine/[venueId]/route.ts`
+- Create: `apps/web/src/app/api/venues/mine/[venueId]/images/route.ts`
+- Create: `apps/web/src/app/api/venues/mine/[venueId]/images/[imageId]/route.ts`
 - Create: `apps/web/src/app/api/venues/mine/[venueId]/courts/route.ts`
 - Create: `apps/web/src/app/api/venues/mine/[venueId]/courts/[id]/route.ts`
 - Create: `apps/web/src/app/api/venues/[id]/route.ts`
@@ -504,7 +504,7 @@ export async function GET() {
 }
 ```
 
-- [ ] **Step 3: `apps/web/src/app/api/venues/mine/[id]/route.ts`**
+- [ ] **Step 3: `apps/web/src/app/api/venues/mine/[venueId]/route.ts`**
 
 ```typescript
 import { NextRequest } from 'next/server';
@@ -542,7 +542,7 @@ export async function PATCH(
 }
 ```
 
-- [ ] **Step 4: `apps/web/src/app/api/venues/mine/[id]/images/route.ts`**
+- [ ] **Step 4: `apps/web/src/app/api/venues/mine/[venueId]/images/route.ts`**
 
 ```typescript
 import { NextRequest } from 'next/server';
@@ -568,7 +568,7 @@ export async function POST(
 }
 ```
 
-- [ ] **Step 5: `apps/web/src/app/api/venues/mine/[id]/images/[imageId]/route.ts`**
+- [ ] **Step 5: `apps/web/src/app/api/venues/mine/[venueId]/images/[imageId]/route.ts`**
 
 ```typescript
 import { fetchApi } from '@/lib/fetch-api';
@@ -1042,7 +1042,7 @@ git commit -m "feat(web): add owner create-venue page"
 - Create: `apps/web/src/app/owner/venues/[id]/venue-info-section.tsx`
 
 **Interfaces:**
-- Consumes: `GET/PATCH /api/venues/mine/[id]` (Task 3, now returns `images` per Task 1), `updateVenueSchema`, `type UpdateVenueInput` (Task 2)
+- Consumes: `GET/PATCH /api/venues/mine/[venueId]` (Task 3, now returns `images` per Task 1), `updateVenueSchema`, `type UpdateVenueInput` (Task 2)
 - Produces (used by Tasks 7, 8): `Venue`, `VenueImage`, `Court` interfaces from `./types`; `VenueInfoSection` component
 
 - [ ] **Step 1: Create the shared types**
@@ -1285,7 +1285,7 @@ git commit -m "feat(web): add owner venue detail page with editable info"
 - Modify: `apps/web/src/app/owner/venues/[id]/page.tsx`
 
 **Interfaces:**
-- Consumes: `Venue`, `VenueImage` (Task 6 `./types`), `POST/DELETE /api/venues/mine/[id]/images*` (Task 3)
+- Consumes: `Venue`, `VenueImage` (Task 6 `./types`), `POST/DELETE /api/venues/mine/[venueId]/images*` (Task 3)
 - Produces: `VenueImagesSection` component, rendered by `page.tsx`
 
 - [ ] **Step 1: Create the images section**
