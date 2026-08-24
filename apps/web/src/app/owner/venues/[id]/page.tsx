@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { VenueInfoSection } from "./venue-info-section";
+import { VenueImagesSection } from "./venue-images-section";
 import type { Venue } from "./types";
 
 export default function OwnerVenueDetailPage() {
@@ -53,6 +54,11 @@ export default function OwnerVenueDetailPage() {
       </div>
 
       <VenueInfoSection venue={venue} onUpdated={setVenue} />
+      <VenueImagesSection
+        venueId={venue.id}
+        images={venue.images}
+        onImagesChanged={(images) => setVenue({ ...venue, images })}
+      />
     </main>
   );
 }
