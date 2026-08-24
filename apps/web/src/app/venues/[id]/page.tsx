@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { notFound, useParams } from "next/navigation";
+import { notFound, useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { getSubmitErrorMessage } from "@/lib/error-message";
+import {
+  computeMaxConsecutiveDuration,
+  type AvailabilitySlot,
+} from "@/lib/slot-selection";
 
 interface PublicCourt {
   id: string;
@@ -102,25 +109,83 @@ export default function VenueDetailPage() {
 }
 
 function CourtSlots({ court }: { court: PublicCourt }) {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
-  const [slots, setSlots] = useState<
-    { start: string; end: string; price: number }[] | null
-  >(null);
+  const [slots, setSlots] = useState<AvailabilitySlot[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [durationSlots, setDurationSlots] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function loadSlots() {
+    setError(null);
+    const res = await fetch(
+      `/api/bookings/availability?courtId=${court.id}&date=${date}`,
+    );
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setError(data?.message ?? "Không thể tải khung giờ.");
+      setSlots(null);
+      return;
+    }
+    setSlots(data);
+  }
 
   useEffect(() => {
-    setError(null);
-    fetch(`/api/courts/${court.id}/slots?date=${date}`).then(async (res) => {
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setError(data?.message ?? "Không thể tải khung giờ.");
-        setSlots(null);
-        return;
-      }
-      setSlots(data);
-    });
+    setSelectedIndex(null);
+    setDurationSlots(1);
+    loadSlots();
   }, [court.id, date]);
+
+  function handleSlotClick(index: number) {
+    if (!slots || slots[index].isBooked) return;
+    if (selectedIndex === index) {
+      setSelectedIndex(null);
+      return;
+    }
+    setSelectedIndex(index);
+    setDurationSlots(1);
+  }
+
+  async function handleConfirmBooking() {
+    if (!slots || selectedIndex === null) return;
+    setSubmitting(true);
+    const startTime = slots[selectedIndex].start;
+    const endTime = slots[selectedIndex + durationSlots - 1].end;
+    const response = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courtId: court.id, date, startTime, endTime }),
+    });
+    setSubmitting(false);
+
+    if (response.status === 401) {
+      router.push(
+        `/login?returnTo=${encodeURIComponent(`/venues/${params.id}`)}`,
+      );
+      return;
+    }
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      toast.error(getSubmitErrorMessage(response, data));
+      loadSlots();
+      setSelectedIndex(null);
+      return;
+    }
+
+    toast.success("Đặt sân thành công");
+    setSelectedIndex(null);
+    setDurationSlots(1);
+    loadSlots();
+  }
+
+  const maxDuration =
+    slots && selectedIndex !== null
+      ? computeMaxConsecutiveDuration(slots, selectedIndex)
+      : 0;
 
   return (
     <Card>
@@ -150,14 +215,67 @@ function CourtSlots({ court }: { court: PublicCourt }) {
         )}
         {!error && slots && slots.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {slots.map((slot) => (
-              <span
-                key={slot.start}
-                className="rounded-md border px-2.5 py-1 text-sm"
-              >
-                {slot.start}–{slot.end} · {slot.price.toLocaleString("vi-VN")}đ
-              </span>
-            ))}
+            {slots.map((slot, index) => {
+              const isSelected =
+                selectedIndex !== null &&
+                index >= selectedIndex &&
+                index < selectedIndex + durationSlots;
+              return (
+                <button
+                  key={slot.start}
+                  type="button"
+                  disabled={slot.isBooked}
+                  onClick={() => handleSlotClick(index)}
+                  className={`rounded-md border px-2.5 py-1 text-sm ${
+                    slot.isBooked
+                      ? "cursor-not-allowed opacity-50"
+                      : isSelected
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "hover:bg-accent"
+                  }`}
+                >
+                  {slot.start}–{slot.end} · {slot.price.toLocaleString("vi-VN")}đ
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {slots && selectedIndex !== null && maxDuration > 0 && (
+          <div className="flex items-center gap-2">
+            <Label htmlFor={`duration-${court.id}`}>Số giờ chơi</Label>
+            <select
+              id={`duration-${court.id}`}
+              className="rounded-md border px-2 py-1 text-sm"
+              value={durationSlots}
+              onChange={(event) => setDurationSlots(Number(event.target.value))}
+            >
+              {Array.from({ length: maxDuration }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {slots && selectedIndex !== null && maxDuration > 0 && (
+          <div className="rounded-md border p-3 text-sm">
+            <p>
+              {slots[selectedIndex].start}–
+              {slots[selectedIndex + durationSlots - 1].end} ·{" "}
+              {slots
+                .slice(selectedIndex, selectedIndex + durationSlots)
+                .reduce((sum, s) => sum + s.price, 0)
+                .toLocaleString("vi-VN")}
+              đ
+            </p>
+            <Button
+              size="sm"
+              className="mt-2"
+              disabled={submitting}
+              onClick={handleConfirmBooking}
+            >
+              Xác nhận đặt sân
+            </Button>
           </div>
         )}
       </CardContent>
