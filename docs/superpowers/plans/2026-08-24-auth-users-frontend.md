@@ -17,6 +17,7 @@
 - Testing scope per the approved design (spec §6): Vitest covers only the refresh-retry logic and the zod schemas. No component-render tests, no Playwright. Every page is verified either by a curl render-smoke-check (during its own task) or by the full interactive walkthrough in the final task.
 - Route handlers are thin proxies with no dedicated automated tests (matches the design's stated scope) — they are verified via curl against the real running `apps/api` as each task builds them.
 - Self-review note: the design's error-handling section requires "401 after a failed silent refresh → redirect to `/login`." The initial draft of `/me` and `/admin/owners` (Tasks 17–18) fetched their data without checking for a `401` first, which would have rendered `undefined` fields instead of redirecting. Both are fixed below to redirect on `401`. Mutation calls (`PATCH /users/me`, `POST /admin/owners/:id/approve|reject`) are intentionally left toast-only on `401` — by the time a mutation fires, the page's own initial load already proved the session was valid, so a 401 there is a rare mid-session expiry, not a wrong assumption; the API's `"Unauthorized"` message still surfaces via the toast rather than failing silently.
+- Execution note (found during Task 11): this project's `Button` (Base UI, not Radix) has no `asChild` prop — Base UI uses a different, unrelated polymorphic-composition API. Don't write `<Button asChild><Link .../></Button>`; use the exported `buttonVariants(...)` class-name helper directly on the `Link` instead (see Task 11).
 - Execution note (found during Task 3): Next.js 16 deprecates `middleware.ts`/`export function middleware(...)` in favor of `proxy.ts`/`export function proxy(...)` — same behavior and `matcher` config, new file and export name. Use `proxy.ts` throughout, not `middleware.ts`.
 - Execution note (found during Task 2): this project's `components.json` resolves the **Base UI** component library (`@base-ui/react`, via `shadcn init -d`'s default `base` library choice), not classic Radix. The composite `form` shadcn component (`Form`/`FormField`/`FormItem`/`FormControl`/`FormMessage`, built on `radix-ui`'s `Slot`) hasn't been ported to Base UI in the registry yet — `npx shadcn add form` silently no-ops instead of erroring, while every other component in Task 2's list installs fine. **Every form page in this plan (Tasks 12, 13, 14, 16, 17) uses react-hook-form's plain `register()` API directly with the installed `Label`/`Input` instead of the missing composite wrapper:**
 
@@ -1689,7 +1690,7 @@ Replace `apps/web/src/app/page.tsx` entirely:
 
 ```tsx
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
@@ -1699,12 +1700,12 @@ export default function HomePage() {
         Đặt sân pickleball nhanh chóng, dễ dàng.
       </p>
       <div className="flex gap-4">
-        <Button asChild>
-          <Link href="/login">Đăng nhập</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/register">Đăng ký</Link>
-        </Button>
+        <Link href="/login" className={buttonVariants()}>
+          Đăng nhập
+        </Link>
+        <Link href="/register" className={buttonVariants({ variant: "outline" })}>
+          Đăng ký
+        </Link>
       </div>
     </main>
   );
