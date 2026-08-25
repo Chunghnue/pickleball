@@ -6,6 +6,8 @@ import { PaymentsService } from './payments.service';
 import { Payment, PaymentStatus } from './entities/payment.entity';
 import { BookingsService } from '../bookings/bookings.service';
 import { Booking } from '../bookings/entities/booking.entity';
+import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const mockPaymentsRepository = () => ({
   create: jest.fn((data: unknown) => data),
@@ -19,6 +21,15 @@ const mockBookingsService = () => ({
   findByIdForOwnerOrThrow: jest.fn(),
 });
 
+const mockUsersService = () => ({
+  findById: jest.fn(),
+});
+
+const mockNotificationsService = () => ({
+  notifyPaymentConfirmed: jest.fn().mockResolvedValue(undefined),
+  notifyPaymentRefunded: jest.fn().mockResolvedValue(undefined),
+});
+
 async function buildTestingModule() {
   const module: TestingModule = await Test.createTestingModule({
     providers: [
@@ -28,6 +39,8 @@ async function buildTestingModule() {
         useFactory: mockPaymentsRepository,
       },
       { provide: BookingsService, useFactory: mockBookingsService },
+      { provide: UsersService, useFactory: mockUsersService },
+      { provide: NotificationsService, useFactory: mockNotificationsService },
     ],
   }).compile();
 
@@ -38,6 +51,12 @@ async function buildTestingModule() {
     >,
     bookingsService: module.get(BookingsService) as ReturnType<
       typeof mockBookingsService
+    >,
+    usersService: module.get(UsersService) as ReturnType<
+      typeof mockUsersService
+    >,
+    notificationsService: module.get(NotificationsService) as ReturnType<
+      typeof mockNotificationsService
     >,
   };
 }
@@ -97,15 +116,30 @@ describe('PaymentsService.findByBookingId', () => {
 
 describe('PaymentsService.markPaid', () => {
   it('transitions unpaid to paid and records who/when/note', async () => {
-    const { service, paymentsRepo, bookingsService } = await buildTestingModule();
+    const {
+      service,
+      paymentsRepo,
+      bookingsService,
+      usersService,
+      notificationsService,
+    } = await buildTestingModule();
     bookingsService.findByIdForOwnerOrThrow.mockResolvedValue({
       id: 'booking-1',
+      customerId: 'customer-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      totalPrice: 100000,
     } as Booking);
     paymentsRepo.findOne.mockResolvedValue({
       id: 'payment-1',
       bookingId: 'booking-1',
       status: PaymentStatus.UNPAID,
       note: null,
+    });
+    usersService.findById.mockResolvedValue({
+      id: 'customer-1',
+      email: 'customer@test.com',
     });
 
     const result = await service.markPaid(
@@ -124,6 +158,13 @@ describe('PaymentsService.markPaid', () => {
     expect(result.paidBy).toBe('owner-1');
     expect(result.note).toBe('CK Vietcombank');
     expect(result.paidAt).toBeInstanceOf(Date);
+    expect(notificationsService.notifyPaymentConfirmed).toHaveBeenCalledWith({
+      to: 'customer@test.com',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      totalPrice: 100000,
+    });
   });
 
   it('throws BadRequestException when payment is not unpaid', async () => {
@@ -170,15 +211,30 @@ describe('PaymentsService.markPaid', () => {
 
 describe('PaymentsService.markRefunded', () => {
   it('transitions paid to refunded and records who/when/note', async () => {
-    const { service, paymentsRepo, bookingsService } = await buildTestingModule();
+    const {
+      service,
+      paymentsRepo,
+      bookingsService,
+      usersService,
+      notificationsService,
+    } = await buildTestingModule();
     bookingsService.findByIdForOwnerOrThrow.mockResolvedValue({
       id: 'booking-1',
+      customerId: 'customer-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      totalPrice: 100000,
     } as Booking);
     paymentsRepo.findOne.mockResolvedValue({
       id: 'payment-1',
       bookingId: 'booking-1',
       status: PaymentStatus.PAID,
       note: null,
+    });
+    usersService.findById.mockResolvedValue({
+      id: 'customer-1',
+      email: 'customer@test.com',
     });
 
     const result = await service.markRefunded(
@@ -192,6 +248,13 @@ describe('PaymentsService.markRefunded', () => {
     expect(result.refundedBy).toBe('owner-1');
     expect(result.note).toBe('Đã CK lại');
     expect(result.refundedAt).toBeInstanceOf(Date);
+    expect(notificationsService.notifyPaymentRefunded).toHaveBeenCalledWith({
+      to: 'customer@test.com',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      totalPrice: 100000,
+    });
   });
 
   it('throws BadRequestException when payment is not paid', async () => {

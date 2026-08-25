@@ -9,6 +9,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Payment, PaymentStatus } from './entities/payment.entity';
 import { BookingsService } from '../bookings/bookings.service';
+import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class PaymentsService {
@@ -17,6 +19,8 @@ export class PaymentsService {
     private readonly paymentsRepository: Repository<Payment>,
     @Inject(forwardRef(() => BookingsService))
     private readonly bookingsService: BookingsService,
+    private readonly usersService: UsersService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createForBooking(
@@ -43,7 +47,7 @@ export class PaymentsService {
     bookingId: string,
     note?: string,
   ): Promise<Payment> {
-    await this.bookingsService.findByIdForOwnerOrThrow(
+    const booking = await this.bookingsService.findByIdForOwnerOrThrow(
       ownerId,
       venueId,
       bookingId,
@@ -58,7 +62,18 @@ export class PaymentsService {
     payment.paidAt = new Date();
     payment.paidBy = ownerId;
     if (note !== undefined) payment.note = note;
-    return this.paymentsRepository.save(payment);
+    const saved = await this.paymentsRepository.save(payment);
+
+    const customer = await this.usersService.findById(booking.customerId);
+    await this.notificationsService.notifyPaymentConfirmed({
+      to: customer?.email ?? '',
+      date: booking.date,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      totalPrice: booking.totalPrice,
+    });
+
+    return saved;
   }
 
   async markRefunded(
@@ -67,7 +82,7 @@ export class PaymentsService {
     bookingId: string,
     note?: string,
   ): Promise<Payment> {
-    await this.bookingsService.findByIdForOwnerOrThrow(
+    const booking = await this.bookingsService.findByIdForOwnerOrThrow(
       ownerId,
       venueId,
       bookingId,
@@ -82,7 +97,18 @@ export class PaymentsService {
     payment.refundedAt = new Date();
     payment.refundedBy = ownerId;
     if (note !== undefined) payment.note = note;
-    return this.paymentsRepository.save(payment);
+    const saved = await this.paymentsRepository.save(payment);
+
+    const customer = await this.usersService.findById(booking.customerId);
+    await this.notificationsService.notifyPaymentRefunded({
+      to: customer?.email ?? '',
+      date: booking.date,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      totalPrice: booking.totalPrice,
+    });
+
+    return saved;
   }
 
   private async getPaymentOrThrow(bookingId: string): Promise<Payment> {
