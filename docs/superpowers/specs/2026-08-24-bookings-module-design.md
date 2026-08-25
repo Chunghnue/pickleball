@@ -110,7 +110,8 @@ Vì mọi booking đều được ghép từ các slot đơn vị nằm trên c�
 ## 8. Ngoài phạm vi (module Bookings)
 
 - Frontend (spec riêng, sau khi spec này được duyệt)
-- Owner tự tạo booking (walk-in khách vãng lai, chặn slot bảo trì riêng lẻ) — dùng tạm `court.isActive` để chặn cả ngày nếu cần
+- ~~Owner tự tạo booking (walk-in khách vãng lai)~~ — **Đã đảo ngược**, xem [2026-08-26-customers-module-design.md](./2026-08-26-customers-module-design.md) §4 (thêm `customer_contacts`, `bookings.customer_id` nullable, endpoint `POST /venues/mine/:venueId/bookings`).
+- Chặn slot bảo trì riêng lẻ — dùng tạm `court.isActive` để chặn cả ngày nếu cần (vẫn ngoài phạm vi)
 - Trạng thái `pending`/`requested` chờ owner duyệt trước khi giữ chỗ
 - Tích hợp thanh toán (thuộc module Payments, tham chiếu tới `bookings.id`)
 - Đặt nhiều court trong 1 booking, đặt lặp lại định kỳ (recurring booking)

@@ -69,10 +69,10 @@ JWT, role `owner`. Nếu có `venueId`, phải thuộc sở hữu của owner đ
 | `todayBookingsCount` | Số dòng `bookings` có `createdAt` nằm trong ngày hôm nay (giờ server), thuộc court của venue trong phạm vi lọc. Tính cả booking đã bị huỷ trong ngày (phản ánh đúng "phát sinh trong ngày", không phải "đang active"). |
 | `todayRevenue` | Tổng `payments.amount` với `status = 'paid'` và `paidAt` nằm trong ngày hôm nay, join qua `booking → court → venue` để lọc theo owner/venue. |
 | `courts.active` / `courts.total` | Đếm `courts.isActive = true` / tổng số `courts`, trong các venue thuộc phạm vi lọc (không lọc theo `venue.status` — venue `pending_approval`/`rejected` không có court nào hiển thị public nhưng vẫn tính vào dashboard của owner). |
-| `newCustomersThisMonth` | Với các booking thuộc phạm vi lọc, nhóm theo `customerId`, lấy `MIN(createdAt)` mỗi khách; đếm số khách có `MIN(createdAt)` nằm trong tháng hiện tại. Nghĩa là "khách đặt sân lần đầu tại (các) venue này trong tháng này" — không suy ra từ toàn hệ thống, chỉ trong phạm vi venue của owner này. |
+| `newCustomersThisMonth` | Nhóm theo định danh khách — `customerId` nếu có, ngược lại `customerContactId` (xem [2026-08-26-customers-module-design.md](./2026-08-26-customers-module-design.md) §4, `bookings.customer_id` có thể null với booking walk-in) — lấy `MIN(createdAt)` mỗi khách; đếm số khách có `MIN(createdAt)` nằm trong tháng hiện tại. Nghĩa là "khách đặt sân lần đầu tại (các) venue này trong tháng này" — không suy ra từ toàn hệ thống, chỉ trong phạm vi venue của owner này. |
 | `revenueByDay` | 30 ngày gần nhất (kể cả hôm nay), mỗi ngày = tổng `payments.amount` với `status='paid'`, nhóm theo `DATE(paidAt)`. Ngày không có thanh toán trả về `revenue: 0` (không bỏ qua ngày). |
 | `revenueByCourt` | Tổng `payments.amount` (`status='paid'`, không giới hạn thời gian — toàn bộ lịch sử) nhóm theo `court_id`, join `courts` lấy tên. Sắp giảm dần theo revenue. |
-| `recentBookings` | 10 booking mới nhất theo `createdAt desc`, thuộc phạm vi lọc, kèm tên/SĐT khách (join `users`) và tên sân (join `courts`). |
+| `recentBookings` | 10 booking mới nhất theo `createdAt desc`, thuộc phạm vi lọc, kèm tên/SĐT khách và tên sân (join `courts`). Tên/SĐT khách lấy từ `users` nếu `customerId` có giá trị, ngược lại lấy từ `customer_contacts` qua `customerContactId` (booking walk-in). |
 
 "Ngày hôm nay" / "tháng hiện tại" dùng giờ hệ thống server (không có khái niệm timezone theo owner ở MVP — nhất quán với cách `bookings.date` đã được xử lý ở module Bookings).
 
