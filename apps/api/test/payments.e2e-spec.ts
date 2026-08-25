@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { createTestApp, clearDatabase } from './utils/test-app';
+import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court } from '../src/courts/entities/court.entity';
@@ -18,6 +18,7 @@ describe('Payments (e2e)', () => {
 
   beforeEach(async () => {
     await clearDatabase(app);
+    mockMailService.send.mockClear();
   });
 
   afterAll(async () => {
@@ -112,6 +113,11 @@ describe('Payments (e2e)', () => {
       .set('Authorization', `Bearer ${owner.token}`)
       .send({ note: 'CK Vietcombank' })
       .expect(201);
+    expect(mockMailService.send).toHaveBeenCalledWith(
+      'paycustomer1@test.com',
+      'Xác nhận đã thanh toán',
+      expect.any(String),
+    );
 
     const ownerListAfterPaid = await request(app.getHttpServer())
       .get(`/venues/mine/${venueId}/bookings`)
@@ -143,6 +149,11 @@ describe('Payments (e2e)', () => {
       .set('Authorization', `Bearer ${owner.token}`)
       .send({ note: 'Đã hoàn tiền qua CK' })
       .expect(201);
+    expect(mockMailService.send).toHaveBeenCalledWith(
+      'paycustomer1@test.com',
+      'Xác nhận hoàn tiền',
+      expect.any(String),
+    );
 
     const ownerListAfterRefunded = await request(app.getHttpServer())
       .get(`/venues/mine/${venueId}/bookings`)

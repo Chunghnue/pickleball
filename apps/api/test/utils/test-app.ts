@@ -12,6 +12,7 @@ import { MailService } from '../../src/mail/mail.service';
 export const mockMailService = {
   sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
   sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+  send: jest.fn().mockResolvedValue(undefined),
 };
 
 export async function createTestApp(): Promise<INestApplication> {

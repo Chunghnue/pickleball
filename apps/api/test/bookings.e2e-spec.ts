@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { createTestApp, clearDatabase } from './utils/test-app';
+import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court } from '../src/courts/entities/court.entity';
@@ -19,6 +19,7 @@ describe('Bookings (e2e)', () => {
 
   beforeEach(async () => {
     await clearDatabase(app);
+    mockMailService.send.mockClear();
   });
 
   afterAll(async () => {
@@ -107,6 +108,16 @@ describe('Bookings (e2e)', () => {
       status: 'confirmed',
       totalPrice: 100000,
     });
+    expect(mockMailService.send).toHaveBeenCalledWith(
+      'customer1@test.com',
+      'Xác nhận đặt sân',
+      expect.stringContaining('Sân 1'),
+    );
+    expect(mockMailService.send).toHaveBeenCalledWith(
+      'owner1@test.com',
+      'Có booking mới',
+      expect.stringContaining('Sân 1'),
+    );
 
     const availability = await request(app.getHttpServer())
       .get('/bookings/availability')
@@ -216,6 +227,11 @@ describe('Bookings (e2e)', () => {
       .post(`/venues/mine/${venueId}/bookings/${bookingId}/cancel`)
       .set('Authorization', `Bearer ${owner.token}`)
       .expect(201);
+    expect(mockMailService.send).toHaveBeenCalledWith(
+      'customer3@test.com',
+      'Booking đã được huỷ',
+      expect.any(String),
+    );
 
     const availability = await request(app.getHttpServer())
       .get('/bookings/availability')
