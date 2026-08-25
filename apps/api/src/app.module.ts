@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
 import { CourtsModule } from './courts/courts.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { BookingsModule } from './bookings/bookings.module';
     AdminModule,
     CourtsModule,
     BookingsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [
