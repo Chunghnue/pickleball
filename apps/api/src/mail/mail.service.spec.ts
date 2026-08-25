@@ -60,4 +60,15 @@ describe('MailService', () => {
       }),
     );
   });
+
+  it('sends a generic email with the given subject and html', async () => {
+    await service.send('user@test.com', 'Test Subject', '<p>Hello</p>');
+
+    expect(sendMail).toHaveBeenCalledWith({
+      from: 'no-reply@pickleball.local',
+      to: 'user@test.com',
+      subject: 'Test Subject',
+      html: '<p>Hello</p>',
+    });
+  });
 });
