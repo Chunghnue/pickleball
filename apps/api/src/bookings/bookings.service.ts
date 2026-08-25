@@ -203,6 +203,18 @@ export class BookingsService {
     venueId: string,
     id: string,
   ): Promise<Booking> {
+    const booking = await this.findByIdForOwnerOrThrow(ownerId, venueId, id);
+    if (booking.status !== BookingStatus.CONFIRMED) {
+      throw new BadRequestException('Chỉ có thể huỷ booking đang confirmed');
+    }
+    return this.cancel(booking, ownerId);
+  }
+
+  async findByIdForOwnerOrThrow(
+    ownerId: string,
+    venueId: string,
+    id: string,
+  ): Promise<Booking> {
     const courts = await this.courtsService.findByVenueForOwner(
       ownerId,
       venueId,
@@ -214,10 +226,7 @@ export class BookingsService {
     if (!booking) {
       throw new NotFoundException(`Booking ${id} không tồn tại`);
     }
-    if (booking.status !== BookingStatus.CONFIRMED) {
-      throw new BadRequestException('Chỉ có thể huỷ booking đang confirmed');
-    }
-    return this.cancel(booking, ownerId);
+    return booking;
   }
 
   async getAvailability(

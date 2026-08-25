@@ -485,6 +485,32 @@ describe('BookingsService.cancelByOwner', () => {
   });
 });
 
+describe('BookingsService.findByIdForOwnerOrThrow', () => {
+  it('returns the booking when it belongs to a court in the venue', async () => {
+    const { service, bookingsRepo, courtsService } = await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
+    bookingsRepo.findOne.mockResolvedValue({ id: 'booking-1', courtId: 'court-1' });
+
+    const result = await service.findByIdForOwnerOrThrow(
+      'owner-1',
+      'venue-1',
+      'booking-1',
+    );
+
+    expect(result).toEqual({ id: 'booking-1', courtId: 'court-1' });
+  });
+
+  it('throws NotFoundException when the booking is not on any court in the venue', async () => {
+    const { service, bookingsRepo, courtsService } = await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
+    bookingsRepo.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.findByIdForOwnerOrThrow('owner-1', 'venue-1', 'booking-1'),
+    ).rejects.toThrow('Booking booking-1 không tồn tại');
+  });
+});
+
 describe('BookingsService.getAvailability', () => {
   it('marks slots that already have a booking_slots row as booked', async () => {
     const { service, courtsService, bookingSlotsRepo } =
