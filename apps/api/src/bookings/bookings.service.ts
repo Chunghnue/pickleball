@@ -2,6 +2,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -16,15 +18,23 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { generateBookingSlotStarts } from './booking-slot-generator';
 import { Slot } from '../courts/slot-generator';
 import { UsersService } from '../users/users.service';
+import { PaymentsService } from '../payments/payments.service';
+import { PaymentStatus } from '../payments/entities/payment.entity';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const UNIQUE_VIOLATION_CODE = '23505';
 
-type BookingWithCourtInfo = Booking & { courtName: string; venueName: string };
+type PaymentInfo = {
+  paymentStatus: PaymentStatus;
+  paymentNote: string | null;
+  paidAt: Date | null;
+  refundedAt: Date | null;
+};
+type BookingWithCourtInfo = Booking & { courtName: string; venueName: string } & PaymentInfo;
 type BookingWithCustomerInfo = Booking & {
   customerName: string;
   customerPhone: string | null;
-};
+} & PaymentInfo;
 
 @Injectable()
 export class BookingsService {
@@ -36,6 +46,8 @@ export class BookingsService {
     private readonly courtsService: CourtsService,
     private readonly venuesService: VenuesService,
     private readonly usersService: UsersService,
+    @Inject(forwardRef(() => PaymentsService))
+    private readonly paymentsService: PaymentsService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
@@ -96,6 +108,7 @@ export class BookingsService {
           }),
         );
         await manager.save(slots);
+        await this.paymentsService.createForBooking(savedBooking.id, manager);
 
         return savedBooking;
       });
@@ -189,8 +202,9 @@ export class BookingsService {
     return Promise.all(
       bookings.map(async (booking) => {
         const customer = await this.usersService.findById(booking.customerId);
+        const withPayment = await this.attachPaymentInfo(booking);
         return {
-          ...booking,
+          ...withPayment,
           customerName: customer?.fullName ?? 'Không rõ',
           customerPhone: customer?.phone ?? null,
         };
@@ -251,9 +265,23 @@ export class BookingsService {
       bookings.map(async (booking) => {
         const court = await this.courtsService.findByIdOrThrow(booking.courtId);
         const venue = await this.venuesService.findByIdOrThrow(court.venueId);
-        return { ...booking, courtName: court.name, venueName: venue.name };
+        const withPayment = await this.attachPaymentInfo(booking);
+        return { ...withPayment, courtName: court.name, venueName: venue.name };
       }),
     );
+  }
+
+  private async attachPaymentInfo<T extends Booking>(
+    booking: T,
+  ): Promise<T & PaymentInfo> {
+    const payment = await this.paymentsService.findByBookingId(booking.id);
+    return {
+      ...booking,
+      paymentStatus: payment?.status ?? PaymentStatus.UNPAID,
+      paymentNote: payment?.note ?? null,
+      paidAt: payment?.paidAt ?? null,
+      refundedAt: payment?.refundedAt ?? null,
+    };
   }
 
   private async cancel(
