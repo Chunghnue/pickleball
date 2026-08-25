@@ -432,20 +432,36 @@ describe('BookingsService.cancelByCustomer', () => {
   });
 
   it('cancels a booking outside the cutoff window and frees its slots', async () => {
-    const { service, bookingsRepo, courtsService, venuesService, dataSource } =
-      await buildTestingModule();
+    const {
+      service,
+      bookingsRepo,
+      courtsService,
+      venuesService,
+      usersService,
+      dataSource,
+      notificationsService,
+    } = await buildTestingModule();
     const booking = {
       id: 'booking-1',
       customerId: 'customer-1',
       courtId: 'court-1',
       date: '2026-08-25',
       startTime: '10:00',
+      endTime: '11:00',
       status: BookingStatus.CONFIRMED,
     };
     bookingsRepo.findOne.mockResolvedValue(booking);
-    courtsService.findByIdOrThrow.mockResolvedValue({ venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      venueId: 'venue-1',
+      name: 'Sân 1',
+    });
     venuesService.findByIdOrThrow.mockResolvedValue({
       cancellationCutoffHours: 2,
+      name: 'Venue A',
+    });
+    usersService.findById.mockResolvedValue({
+      id: 'customer-1',
+      email: 'customer@test.com',
     });
     const manager = {
       save: jest.fn((data: unknown) => Promise.resolve(data)),
@@ -459,6 +475,15 @@ describe('BookingsService.cancelByCustomer', () => {
     expect(result.cancelledBy).toBe('customer-1');
     expect(manager.delete).toHaveBeenCalledWith(BookingSlot, {
       bookingId: 'booking-1',
+    });
+    expect(notificationsService.notifyBookingCancelled).toHaveBeenCalledWith({
+      to: 'customer@test.com',
+      venueName: 'Venue A',
+      courtName: 'Sân 1',
+      date: '2026-08-25',
+      startTime: '10:00',
+      endTime: '11:00',
+      cancelledBy: 'customer',
     });
   });
 
@@ -567,13 +592,33 @@ describe('BookingsService.findByVenueForOwner', () => {
 
 describe('BookingsService.cancelByOwner', () => {
   it('cancels a booking belonging to the venue regardless of cutoff', async () => {
-    const { service, bookingsRepo, courtsService, dataSource } =
-      await buildTestingModule();
+    const {
+      service,
+      bookingsRepo,
+      courtsService,
+      venuesService,
+      usersService,
+      dataSource,
+      notificationsService,
+    } = await buildTestingModule();
     courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
     bookingsRepo.findOne.mockResolvedValue({
       id: 'booking-1',
       courtId: 'court-1',
+      customerId: 'customer-1',
+      date: '2026-08-25',
+      startTime: '10:00',
+      endTime: '11:00',
       status: BookingStatus.CONFIRMED,
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      venueId: 'venue-1',
+      name: 'Sân 1',
+    });
+    venuesService.findByIdOrThrow.mockResolvedValue({ name: 'Venue A' });
+    usersService.findById.mockResolvedValue({
+      id: 'customer-1',
+      email: 'customer@test.com',
     });
     const manager = {
       save: jest.fn((data: unknown) => Promise.resolve(data)),
@@ -585,6 +630,15 @@ describe('BookingsService.cancelByOwner', () => {
 
     expect(result.status).toBe(BookingStatus.CANCELLED);
     expect(result.cancelledBy).toBe('owner-1');
+    expect(notificationsService.notifyBookingCancelled).toHaveBeenCalledWith({
+      to: 'customer@test.com',
+      venueName: 'Venue A',
+      courtName: 'Sân 1',
+      date: '2026-08-25',
+      startTime: '10:00',
+      endTime: '11:00',
+      cancelledBy: 'owner',
+    });
   });
 
   it('throws NotFoundException when the booking is not on any court in the venue', async () => {

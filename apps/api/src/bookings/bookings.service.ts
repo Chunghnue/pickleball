@@ -13,7 +13,8 @@ import { Booking, BookingStatus } from './entities/booking.entity';
 import { BookingSlot } from './entities/booking-slot.entity';
 import { CourtsService } from '../courts/courts.service';
 import { VenuesService } from '../courts/venues.service';
-import { VenueStatus } from '../courts/entities/venue.entity';
+import { Court } from '../courts/entities/court.entity';
+import { Venue, VenueStatus } from '../courts/entities/venue.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { generateBookingSlotStarts } from './booking-slot-generator';
 import { Slot } from '../courts/slot-generator';
@@ -201,7 +202,7 @@ export class BookingsService {
       );
     }
 
-    return this.cancel(booking, customerId);
+    return this.cancel(booking, customerId, court, venue);
   }
 
   async findByVenueForOwner(
@@ -250,7 +251,9 @@ export class BookingsService {
     if (booking.status !== BookingStatus.CONFIRMED) {
       throw new BadRequestException('Chỉ có thể huỷ booking đang confirmed');
     }
-    return this.cancel(booking, ownerId);
+    const court = await this.courtsService.findByIdOrThrow(booking.courtId);
+    const venue = await this.venuesService.findByIdOrThrow(court.venueId);
+    return this.cancel(booking, ownerId, court, venue);
   }
 
   async findByIdForOwnerOrThrow(
@@ -316,15 +319,30 @@ export class BookingsService {
   private async cancel(
     booking: Booking,
     cancelledBy: string,
+    court: Court,
+    venue: Venue,
   ): Promise<Booking> {
-    return this.dataSource.transaction(async (manager) => {
+    const saved = await this.dataSource.transaction(async (manager) => {
       booking.status = BookingStatus.CANCELLED;
       booking.cancelledAt = new Date();
       booking.cancelledBy = cancelledBy;
-      const saved = await manager.save(booking);
+      const savedBooking = await manager.save(booking);
       await manager.delete(BookingSlot, { bookingId: booking.id });
-      return saved;
+      return savedBooking;
     });
+
+    const customer = await this.usersService.findById(booking.customerId);
+    await this.notificationsService.notifyBookingCancelled({
+      to: customer?.email ?? '',
+      venueName: venue.name,
+      courtName: court.name,
+      date: booking.date,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      cancelledBy: cancelledBy === booking.customerId ? 'customer' : 'owner',
+    });
+
+    return saved;
   }
 
   private async completePastBookings(): Promise<void> {
