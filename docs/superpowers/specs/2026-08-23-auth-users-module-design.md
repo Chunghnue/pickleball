@@ -38,7 +38,7 @@ Login chặn nếu status khác `active`, trả lỗi rõ ràng theo từng trư
 POST   /auth/register            đăng ký customer
 POST   /auth/register/owner      đăng ký owner
 GET    /auth/verify-email        xác thực email qua token
-POST   /auth/login               trả access + refresh token
+POST   /auth/login               trả access + refresh token. **Cập nhật ([2026-08-26-staff-accounts-design.md](./2026-08-26-staff-accounts-design.md)):** body đổi từ `{ email, password }` sang `{ identifier, password }` — `identifier` chấp nhận cả email hoặc số điện thoại, để hỗ trợ đăng nhập bằng SĐT cho tài khoản nhân viên.
 POST   /auth/refresh             cấp access token mới từ refresh token
 POST   /auth/logout              thu hồi refresh token
 POST   /auth/forgot-password     gửi email reset password
