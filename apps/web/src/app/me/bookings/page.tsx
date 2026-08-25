@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 
 type BookingStatus = "confirmed" | "cancelled" | "completed";
+type PaymentStatus = "unpaid" | "paid" | "refunded";
 
 interface Booking {
   id: string;
@@ -18,12 +19,19 @@ interface Booking {
   endTime: string;
   totalPrice: number;
   status: BookingStatus;
+  paymentStatus: PaymentStatus;
 }
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
   confirmed: "Đã xác nhận",
   cancelled: "Đã huỷ",
   completed: "Hoàn thành",
+};
+
+const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+  unpaid: "Chưa thanh toán",
+  paid: "Đã thanh toán",
+  refunded: "Đã hoàn tiền",
 };
 
 export default function MyBookingsPage() {
@@ -100,6 +108,7 @@ export default function MyBookingsPage() {
                   {booking.totalPrice.toLocaleString("vi-VN")}đ ·{" "}
                   {STATUS_LABEL[booking.status]}
                 </p>
+                <p>{PAYMENT_STATUS_LABEL[booking.paymentStatus]}</p>
               </div>
               {booking.status === "confirmed" && (
                 <div className="flex gap-2">
