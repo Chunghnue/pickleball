@@ -23,7 +23,7 @@ Phụ thuộc: **Courts** (court, venue, slot generation), **Users** (customer/o
 | customer_id | → users (bắt buộc, luôn là role `customer`) |
 | date | DATE |
 | start_time, end_time | TIME — khoảng thời gian tổng của booking (bao phủ N slot liên tiếp cùng court) |
-| total_price | NUMERIC — snapshot tổng giá tại thời điểm đặt (tổng giá từng slot theo `court.pricePerHour` lúc đặt; không tính lại nếu owner đổi giá sau) |
+| total_price | NUMERIC — snapshot tổng giá tại thời điểm đặt (tổng giá từng slot theo giá hiện tại lúc đặt; không tính lại nếu giá đổi sau). **Cập nhật ([2026-08-26-pricing-and-recurring-schedules-design.md](./2026-08-26-pricing-and-recurring-schedules-design.md)):** giá mỗi slot lấy từ `PricingService.resolvePrice()` thay vì đọc thẳng `court.pricePerHour` — hành vi snapshot không đổi, chỉ đổi nguồn tính "giá hiện tại" |
 | status | `confirmed` \| `cancelled` \| `completed` |
 | cancelled_at | nullable — thời điểm huỷ |
 | cancelled_by | nullable, → users — ai huỷ (customer hoặc owner) |

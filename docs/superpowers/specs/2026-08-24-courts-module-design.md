@@ -68,7 +68,9 @@ GET    /courts/:id/slots?date=YYYY-MM-DD   danh sách khung giờ khả dụng t
 
 Tính **on-the-fly** trong code ứng dụng tại thời điểm gọi API — không lưu bảng slot riêng. Lý do: tránh vấn đề dữ liệu lệch pha khi owner đổi giờ/giá (nếu lưu sẵn slot sẽ phải đồng bộ lại), và hiện chưa có nhu cầu override từng slot riêng lẻ. Nếu Bookings sau này cần gắn trạng thái độc lập cho từng slot, quyết định lại lúc đó.
 
-Thuật toán: chia đều từ `open_time` đến `close_time` theo bước `slot_duration_minutes`; mỗi slot trả về `{ start, end, price }` với `price = price_per_hour * (slot_duration_minutes / 60)`. Nếu khoảng `open_time`–`close_time` không chia hết cho `slot_duration_minutes`, bỏ phần dư cuối cùng (không sinh slot lẻ).
+Thuật toán: chia đều từ `open_time` đến `close_time` theo bước `slot_duration_minutes`; mỗi slot trả về `{ start, end, price }`. Nếu khoảng `open_time`–`close_time` không chia hết cho `slot_duration_minutes`, bỏ phần dư cuối cùng (không sinh slot lẻ).
+
+**Cập nhật ([2026-08-26-pricing-and-recurring-schedules-design.md](./2026-08-26-pricing-and-recurring-schedules-design.md)):** `price` không còn tính thẳng từ `price_per_hour * (slot_duration_minutes / 60)` — gọi `PricingService.resolvePrice(courtId, date, slotStart)` (module Pricing mới) để có giá/giờ đã áp dụng khung giá phù hợp, rồi mới nhân `slot_duration_minutes / 60`. `price_per_hour` vẫn giữ vai trò giá fallback khi không có pricing rule nào khớp.
 
 `date` trong quá khứ (< hôm nay theo giờ server) → trả lỗi 400. Vì Bookings module chưa tồn tại, endpoint này **chưa biết slot nào đã được đặt** — mọi slot sinh ra đều coi là còn trống. Bookings module sau này sẽ bổ sung việc lọc/đánh dấu slot đã đặt (documented as out of scope here, not a gap).
 
