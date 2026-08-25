@@ -10,6 +10,7 @@ import { VenueStatus } from '../courts/entities/venue.entity';
 import { UsersService } from '../users/users.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const mockBookingsRepository = () => {
   const queryBuilder = {
@@ -51,6 +52,12 @@ const mockPaymentsService = () => ({
   findByBookingId: jest.fn().mockResolvedValue(null),
 });
 
+const mockNotificationsService = () => ({
+  notifyBookingConfirmed: jest.fn().mockResolvedValue(undefined),
+  notifyBookingCancelled: jest.fn().mockResolvedValue(undefined),
+  notifyNewBookingForOwner: jest.fn().mockResolvedValue(undefined),
+});
+
 function buildMockManager() {
   return {
     create: jest.fn((_entity: unknown, data: unknown) => data),
@@ -83,6 +90,7 @@ async function buildTestingModule() {
       { provide: VenuesService, useFactory: mockVenuesService },
       { provide: UsersService, useFactory: mockUsersService },
       { provide: PaymentsService, useFactory: mockPaymentsService },
+      { provide: NotificationsService, useFactory: mockNotificationsService },
       { provide: DataSource, useFactory: mockDataSource },
     ],
   }).compile();
@@ -107,6 +115,9 @@ async function buildTestingModule() {
     paymentsService: module.get(PaymentsService) as ReturnType<
       typeof mockPaymentsService
     >,
+    notificationsService: module.get(NotificationsService) as ReturnType<
+      typeof mockNotificationsService
+    >,
     dataSource: module.get(DataSource) as ReturnType<typeof mockDataSource>,
   };
 }
@@ -125,19 +136,39 @@ describe('BookingsService.create', () => {
   const ACTIVE_COURT = {
     id: 'court-1',
     venueId: 'venue-1',
+    name: 'Sân 1',
     isActive: true,
     openTime: '08:00',
     closeTime: '20:00',
     slotDurationMinutes: 60,
     pricePerHour: 100000,
   };
-  const ACTIVE_VENUE = { id: 'venue-1', status: VenueStatus.ACTIVE };
+  const ACTIVE_VENUE = {
+    id: 'venue-1',
+    name: 'Venue A',
+    ownerId: 'owner-1',
+    status: VenueStatus.ACTIVE,
+  };
 
   it('creates a booking with one booking_slots row per unit slot', async () => {
-    const { service, courtsService, venuesService, dataSource, paymentsService } =
-      await buildTestingModule();
+    const {
+      service,
+      courtsService,
+      venuesService,
+      usersService,
+      dataSource,
+      paymentsService,
+      notificationsService,
+    } = await buildTestingModule();
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
     venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    usersService.findById.mockImplementation((id: string) =>
+      Promise.resolve(
+        id === 'customer-1'
+          ? { id: 'customer-1', email: 'customer@test.com', fullName: 'Nguyễn Văn A', phone: '0900000000' }
+          : { id: 'owner-1', email: 'owner@test.com', fullName: 'Owner' },
+      ),
+    );
     const manager = buildMockManager();
     dataSource.transaction.mockImplementation((cb) => cb(manager));
 
@@ -162,6 +193,27 @@ describe('BookingsService.create', () => {
       '08:00',
       '09:00',
     ]);
+    expect(notificationsService.notifyBookingConfirmed).toHaveBeenCalledWith({
+      to: 'customer@test.com',
+      customerName: 'Nguyễn Văn A',
+      venueName: 'Venue A',
+      courtName: 'Sân 1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '10:00',
+      totalPrice: 200000,
+    });
+    expect(notificationsService.notifyNewBookingForOwner).toHaveBeenCalledWith({
+      to: 'owner@test.com',
+      venueName: 'Venue A',
+      courtName: 'Sân 1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '10:00',
+      customerName: 'Nguyễn Văn A',
+      customerPhone: '0900000000',
+      totalPrice: 200000,
+    });
   });
 
   it('throws ConflictException when a slot is already taken', async () => {

@@ -20,6 +20,7 @@ import { Slot } from '../courts/slot-generator';
 import { UsersService } from '../users/users.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const UNIQUE_VIOLATION_CODE = '23505';
@@ -48,6 +49,7 @@ export class BookingsService {
     private readonly usersService: UsersService,
     @Inject(forwardRef(() => PaymentsService))
     private readonly paymentsService: PaymentsService,
+    private readonly notificationsService: NotificationsService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
@@ -86,8 +88,9 @@ export class BookingsService {
     const pricePerSlot = court.pricePerHour * (court.slotDurationMinutes / 60);
     const totalPrice = Math.round(pricePerSlot * slotStarts.length * 100) / 100;
 
+    let savedBooking: Booking;
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      savedBooking = await this.dataSource.transaction(async (manager) => {
         const booking = manager.create(Booking, {
           courtId: dto.courtId,
           customerId,
@@ -97,20 +100,20 @@ export class BookingsService {
           totalPrice,
           status: BookingStatus.CONFIRMED,
         });
-        const savedBooking = await manager.save(booking);
+        const saved = await manager.save(booking);
 
         const slots = slotStarts.map((slotStart) =>
           manager.create(BookingSlot, {
-            bookingId: savedBooking.id,
+            bookingId: saved.id,
             courtId: dto.courtId,
             date: dto.date,
             slotStart,
           }),
         );
         await manager.save(slots);
-        await this.paymentsService.createForBooking(savedBooking.id, manager);
+        await this.paymentsService.createForBooking(saved.id, manager);
 
-        return savedBooking;
+        return saved;
       });
     } catch (error) {
       if (
@@ -121,6 +124,32 @@ export class BookingsService {
       }
       throw error;
     }
+
+    const customer = await this.usersService.findById(customerId);
+    const owner = await this.usersService.findById(venue.ownerId);
+    await this.notificationsService.notifyBookingConfirmed({
+      to: customer?.email ?? '',
+      customerName: customer?.fullName ?? '',
+      venueName: venue.name,
+      courtName: court.name,
+      date: dto.date,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      totalPrice,
+    });
+    await this.notificationsService.notifyNewBookingForOwner({
+      to: owner?.email ?? '',
+      venueName: venue.name,
+      courtName: court.name,
+      date: dto.date,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      customerName: customer?.fullName ?? '',
+      customerPhone: customer?.phone ?? null,
+      totalPrice,
+    });
+
+    return savedBooking;
   }
 
   async findMineByCustomer(customerId: string): Promise<BookingWithCourtInfo[]> {

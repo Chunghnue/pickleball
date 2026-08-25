@@ -7,6 +7,7 @@ import { BookingsController } from './bookings.controller';
 import { CourtsModule } from '../courts/courts.module';
 import { UsersModule } from '../users/users.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PaymentsModule } from '../payments/payments.module';
     CourtsModule,
     UsersModule,
     forwardRef(() => PaymentsModule),
+    NotificationsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService],
