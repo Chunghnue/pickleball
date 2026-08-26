@@ -7,9 +7,15 @@ import { VenuesService } from './venues.service';
 import { CourtsService } from './courts.service';
 import { VenuesController } from './venues.controller';
 import { CourtsController } from './courts.controller';
+import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Venue, VenueImage, Court])],
+  imports: [
+    TypeOrmModule.forFeature([Venue, VenueImage, Court]),
+    UsersModule,
+    NotificationsModule,
+  ],
   controllers: [VenuesController, CourtsController],
   providers: [VenuesService, CourtsService],
   exports: [VenuesService, CourtsService],

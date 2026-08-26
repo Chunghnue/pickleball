@@ -3,6 +3,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { VenuesService } from './venues.service';
 import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
+import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const mockVenuesRepository = () => ({
   create: jest.fn(),
@@ -19,6 +21,15 @@ const mockVenueImagesRepository = () => ({
   find: jest.fn(),
 });
 
+const mockUsersService = () => ({
+  findById: jest.fn(),
+});
+
+const mockNotificationsService = () => ({
+  notifyVenueApproved: jest.fn().mockResolvedValue(undefined),
+  notifyVenueRejected: jest.fn().mockResolvedValue(undefined),
+});
+
 async function buildTestingModule() {
   const module: TestingModule = await Test.createTestingModule({
     providers: [
@@ -28,6 +39,8 @@ async function buildTestingModule() {
         provide: getRepositoryToken(VenueImage),
         useFactory: mockVenueImagesRepository,
       },
+      { provide: UsersService, useFactory: mockUsersService },
+      { provide: NotificationsService, useFactory: mockNotificationsService },
     ],
   }).compile();
 
@@ -38,6 +51,12 @@ async function buildTestingModule() {
     >,
     venueImagesRepo: module.get(getRepositoryToken(VenueImage)) as ReturnType<
       typeof mockVenueImagesRepository
+    >,
+    usersService: module.get(UsersService) as ReturnType<
+      typeof mockUsersService
+    >,
+    notificationsService: module.get(NotificationsService) as ReturnType<
+      typeof mockNotificationsService
     >,
   };
 }
@@ -174,17 +193,30 @@ describe('VenuesService images', () => {
 });
 
 describe('VenuesService approval', () => {
-  it('approveVenue activates a pending venue', async () => {
-    const { service, venuesRepo } = await buildTestingModule();
+  it('approveVenue activates a pending venue and sends an approval email', async () => {
+    const { service, venuesRepo, usersService, notificationsService } =
+      await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue({
       id: 'venue-1',
+      name: 'ABC Pickleball',
+      ownerId: 'owner-1',
       status: VenueStatus.PENDING_APPROVAL,
     });
     venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+    usersService.findById.mockResolvedValue({
+      id: 'owner-1',
+      email: 'owner-1@test.com',
+      fullName: 'Owner One',
+    });
 
     const result = await service.approveVenue('venue-1');
 
     expect(result.status).toBe(VenueStatus.ACTIVE);
+    expect(notificationsService.notifyVenueApproved).toHaveBeenCalledWith({
+      to: 'owner-1@test.com',
+      ownerName: 'Owner One',
+      venueName: 'ABC Pickleball',
+    });
   });
 
   it('approveVenue rejects a venue that is not pending approval', async () => {
@@ -197,17 +229,31 @@ describe('VenuesService approval', () => {
     await expect(service.approveVenue('venue-1')).rejects.toThrow();
   });
 
-  it('rejectVenue marks a pending venue as rejected', async () => {
-    const { service, venuesRepo } = await buildTestingModule();
+  it('rejectVenue marks a pending venue as rejected and sends a rejection email with the reason', async () => {
+    const { service, venuesRepo, usersService, notificationsService } =
+      await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue({
       id: 'venue-1',
+      name: 'ABC Pickleball',
+      ownerId: 'owner-1',
       status: VenueStatus.PENDING_APPROVAL,
     });
     venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+    usersService.findById.mockResolvedValue({
+      id: 'owner-1',
+      email: 'owner-1@test.com',
+      fullName: 'Owner One',
+    });
 
-    const result = await service.rejectVenue('venue-1');
+    const result = await service.rejectVenue('venue-1', 'Thiếu giấy phép');
 
     expect(result.status).toBe(VenueStatus.REJECTED);
+    expect(notificationsService.notifyVenueRejected).toHaveBeenCalledWith({
+      to: 'owner-1@test.com',
+      ownerName: 'Owner One',
+      venueName: 'ABC Pickleball',
+      reason: 'Thiếu giấy phép',
+    });
   });
 
   it('findPendingVenues queries by pending_approval status', async () => {

@@ -11,6 +11,8 @@ import { VenueImage } from './entities/venue-image.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { AddVenueImageDto } from './dto/add-venue-image.dto';
+import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class VenuesService {
@@ -19,6 +21,8 @@ export class VenuesService {
     private readonly venuesRepository: Repository<Venue>,
     @InjectRepository(VenueImage)
     private readonly venueImagesRepository: Repository<VenueImage>,
+    private readonly usersService: UsersService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   create(ownerId: string, dto: CreateVenueDto): Promise<Venue> {
@@ -123,13 +127,14 @@ export class VenuesService {
     return this.transitionStatus(id, VenueStatus.ACTIVE);
   }
 
-  rejectVenue(id: string): Promise<Venue> {
-    return this.transitionStatus(id, VenueStatus.REJECTED);
+  rejectVenue(id: string, reason?: string): Promise<Venue> {
+    return this.transitionStatus(id, VenueStatus.REJECTED, reason);
   }
 
   private async transitionStatus(
     id: string,
     nextStatus: VenueStatus,
+    reason?: string,
   ): Promise<Venue> {
     const venue = await this.venuesRepository.findOne({ where: { id } });
     if (!venue) {
@@ -141,7 +146,25 @@ export class VenuesService {
       );
     }
     venue.status = nextStatus;
-    return this.venuesRepository.save(venue);
+    const saved = await this.venuesRepository.save(venue);
+    const owner = await this.usersService.findById(saved.ownerId);
+    if (owner) {
+      if (nextStatus === VenueStatus.ACTIVE) {
+        await this.notificationsService.notifyVenueApproved({
+          to: owner.email,
+          ownerName: owner.fullName,
+          venueName: saved.name,
+        });
+      } else {
+        await this.notificationsService.notifyVenueRejected({
+          to: owner.email,
+          ownerName: owner.fullName,
+          venueName: saved.name,
+          reason,
+        });
+      }
+    }
+    return saved;
   }
 
   searchPublic(query?: string): Promise<Venue[]> {
