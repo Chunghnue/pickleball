@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const LINKS = [{ href: "/admin/approvals", label: "Chờ duyệt" }];
+const LINKS = [
+  { href: "/admin/approvals", label: "Chờ duyệt" },
+  { href: "/admin/stats", label: "Thống kê" },
+];
 
 export function AdminNav() {
   const pathname = usePathname();
