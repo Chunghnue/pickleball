@@ -699,3 +699,23 @@ describe('BookingsService.getAvailability', () => {
     ]);
   });
 });
+
+describe('BookingsService.findByIdOrThrow', () => {
+  it('returns the booking regardless of who owns it', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.findOne.mockResolvedValue({ id: 'booking-1', customerId: 'someone-else' });
+
+    const result = await service.findByIdOrThrow('booking-1');
+
+    expect(result.id).toBe('booking-1');
+  });
+
+  it('throws NotFoundException when the booking does not exist', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.findByIdOrThrow('booking-1')).rejects.toThrow(
+      'Booking booking-1 không tồn tại',
+    );
+  });
+});

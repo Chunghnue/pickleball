@@ -275,6 +275,14 @@ export class BookingsService {
     return booking;
   }
 
+  async findByIdOrThrow(id: string): Promise<Booking> {
+    const booking = await this.bookingsRepository.findOne({ where: { id } });
+    if (!booking) {
+      throw new NotFoundException(`Booking ${id} không tồn tại`);
+    }
+    return booking;
+  }
+
   async getAvailability(
     courtId: string,
     date: string,
