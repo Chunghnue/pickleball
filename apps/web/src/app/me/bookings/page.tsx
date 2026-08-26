@@ -38,6 +38,7 @@ export default function MyBookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [disputedIds, setDisputedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/api/bookings/mine")
@@ -75,6 +76,30 @@ export default function MyBookingsPage() {
     );
   }
 
+  async function handleReportIssue(id: string) {
+    const reason = window.prompt("Mô tả vấn đề bạn gặp phải với booking này:");
+    if (reason === null) return;
+    if (reason.trim() === "") {
+      toast.error("Vui lòng nhập lý do khiếu nại.");
+      return;
+    }
+
+    const response = await fetch(`/api/bookings/${id}/disputes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason.trim() }),
+    });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      toast.error(getSubmitErrorMessage(response, data));
+      return;
+    }
+
+    toast.success("Đã gửi khiếu nại, admin sẽ xem xét sớm.");
+    setDisputedIds((current) => new Set(current).add(id));
+  }
+
   if (!bookings) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
@@ -110,9 +135,9 @@ export default function MyBookingsPage() {
                 </p>
                 <p>{PAYMENT_STATUS_LABEL[booking.paymentStatus]}</p>
               </div>
-              {booking.status === "confirmed" && (
-                <div className="flex gap-2">
-                  {confirmingId === booking.id ? (
+              <div className="flex gap-2">
+                {booking.status === "confirmed" &&
+                  (confirmingId === booking.id ? (
                     <>
                       <Button
                         size="sm"
@@ -137,9 +162,18 @@ export default function MyBookingsPage() {
                     >
                       Huỷ
                     </Button>
+                  ))}
+                {booking.paymentStatus === "paid" &&
+                  !disputedIds.has(booking.id) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleReportIssue(booking.id)}
+                    >
+                      Báo cáo vấn đề
+                    </Button>
                   )}
-                </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         ))}
