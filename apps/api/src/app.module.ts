@@ -12,6 +12,7 @@ import { CourtsModule } from './courts/courts.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PaymentsModule } from './payments/payments.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DisputesModule } from './disputes/disputes.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     BookingsModule,
     PaymentsModule,
     NotificationsModule,
+    DisputesModule,
   ],
   controllers: [AppController],
   providers: [
