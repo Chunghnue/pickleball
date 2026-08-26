@@ -19,6 +19,7 @@ const mockPaymentsRepository = () => ({
 
 const mockBookingsService = () => ({
   findByIdForOwnerOrThrow: jest.fn(),
+  findByIdOrThrow: jest.fn(),
 });
 
 const mockUsersService = () => ({
@@ -271,6 +272,65 @@ describe('PaymentsService.markRefunded', () => {
     await expect(
       service.markRefunded('owner-1', 'venue-1', 'booking-1'),
     ).rejects.toThrow(
+      'Chỉ có thể đánh dấu đã hoàn tiền khi đang ở trạng thái đã thanh toán',
+    );
+  });
+});
+
+describe('PaymentsService.adminRefund', () => {
+  it('transitions paid to refunded without requiring venue ownership, attributed to the admin', async () => {
+    const {
+      service,
+      paymentsRepo,
+      bookingsService,
+      usersService,
+      notificationsService,
+    } = await buildTestingModule();
+    bookingsService.findByIdOrThrow.mockResolvedValue({
+      id: 'booking-1',
+      customerId: 'customer-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      totalPrice: 100000,
+    } as Booking);
+    paymentsRepo.findOne.mockResolvedValue({
+      id: 'payment-1',
+      bookingId: 'booking-1',
+      status: PaymentStatus.PAID,
+      note: null,
+    });
+    usersService.findById.mockResolvedValue({
+      id: 'customer-1',
+      email: 'customer@test.com',
+    });
+
+    const result = await service.adminRefund('booking-1', 'admin-1', 'Đã xác minh khiếu nại');
+
+    expect(bookingsService.findByIdOrThrow).toHaveBeenCalledWith('booking-1');
+    expect(result.status).toBe(PaymentStatus.REFUNDED);
+    expect(result.refundedBy).toBe('admin-1');
+    expect(result.note).toBe('Đã xác minh khiếu nại');
+    expect(result.refundedAt).toBeInstanceOf(Date);
+    expect(notificationsService.notifyPaymentRefunded).toHaveBeenCalledWith({
+      to: 'customer@test.com',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      totalPrice: 100000,
+    });
+  });
+
+  it('throws BadRequestException when payment is not paid', async () => {
+    const { service, paymentsRepo, bookingsService } = await buildTestingModule();
+    bookingsService.findByIdOrThrow.mockResolvedValue({ id: 'booking-1' } as Booking);
+    paymentsRepo.findOne.mockResolvedValue({
+      id: 'payment-1',
+      bookingId: 'booking-1',
+      status: PaymentStatus.UNPAID,
+    });
+
+    await expect(service.adminRefund('booking-1', 'admin-1')).rejects.toThrow(
       'Chỉ có thể đánh dấu đã hoàn tiền khi đang ở trạng thái đã thanh toán',
     );
   });
