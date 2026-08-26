@@ -129,6 +129,90 @@ describe('NotificationsService.notifyPaymentRefunded', () => {
   });
 });
 
+describe('NotificationsService.notifyOwnerApproved', () => {
+  it('sends an approval email to the owner', async () => {
+    const { service, mailService } = await buildTestingModule();
+
+    await service.notifyOwnerApproved({
+      to: 'owner@test.com',
+      fullName: 'Nguyễn Văn A',
+    });
+
+    expect(mailService.send).toHaveBeenCalledWith(
+      'owner@test.com',
+      'Tài khoản chủ sân đã được duyệt',
+      expect.stringContaining('Nguyễn Văn A'),
+    );
+  });
+});
+
+describe('NotificationsService.notifyOwnerRejected', () => {
+  it('includes the reason in the email when provided', async () => {
+    const { service, mailService } = await buildTestingModule();
+
+    await service.notifyOwnerRejected({
+      to: 'owner@test.com',
+      fullName: 'Nguyễn Văn A',
+      reason: 'Thiếu giấy phép kinh doanh',
+    });
+
+    expect(mailService.send).toHaveBeenCalledWith(
+      'owner@test.com',
+      'Tài khoản chủ sân đã bị từ chối',
+      expect.stringContaining('Thiếu giấy phép kinh doanh'),
+    );
+  });
+
+  it('omits the reason section when not provided', async () => {
+    const { service, mailService } = await buildTestingModule();
+
+    await service.notifyOwnerRejected({
+      to: 'owner@test.com',
+      fullName: 'Nguyễn Văn A',
+    });
+
+    const html = mailService.send.mock.calls[0][2];
+    expect(html).not.toContain('Lý do');
+  });
+});
+
+describe('NotificationsService.notifyVenueApproved', () => {
+  it('sends an approval email naming the venue', async () => {
+    const { service, mailService } = await buildTestingModule();
+
+    await service.notifyVenueApproved({
+      to: 'owner@test.com',
+      ownerName: 'Nguyễn Văn A',
+      venueName: 'Sân ABC',
+    });
+
+    expect(mailService.send).toHaveBeenCalledWith(
+      'owner@test.com',
+      'Chi nhánh đã được duyệt',
+      expect.stringContaining('Sân ABC'),
+    );
+  });
+});
+
+describe('NotificationsService.notifyVenueRejected', () => {
+  it('includes the reason in the email when provided', async () => {
+    const { service, mailService } = await buildTestingModule();
+
+    await service.notifyVenueRejected({
+      to: 'owner@test.com',
+      ownerName: 'Nguyễn Văn A',
+      venueName: 'Sân ABC',
+      reason: 'Thiếu giấy phép kinh doanh',
+    });
+
+    expect(mailService.send).toHaveBeenCalledWith(
+      'owner@test.com',
+      'Chi nhánh đã bị từ chối',
+      expect.stringContaining('Thiếu giấy phép kinh doanh'),
+    );
+  });
+});
+
 describe('NotificationsService best-effort error handling', () => {
   it('resolves without throwing when MailService.send rejects', async () => {
     const { service, mailService } = await buildTestingModule();

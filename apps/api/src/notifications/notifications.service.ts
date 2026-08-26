@@ -44,6 +44,30 @@ export interface PaymentStatusParams {
   totalPrice: number;
 }
 
+export interface OwnerApprovalParams {
+  to: string;
+  fullName: string;
+}
+
+export interface OwnerRejectionParams {
+  to: string;
+  fullName: string;
+  reason?: string;
+}
+
+export interface VenueApprovalParams {
+  to: string;
+  ownerName: string;
+  venueName: string;
+}
+
+export interface VenueRejectionParams {
+  to: string;
+  ownerName: string;
+  venueName: string;
+  reason?: string;
+}
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -84,6 +108,28 @@ Tổng tiền: ${currencyFormatter.format(params.totalPrice)} đ</p>`;
   notifyPaymentRefunded(params: PaymentStatusParams): Promise<void> {
     const html = `<p>Booking ngày ${params.date}, ${params.startTime} - ${params.endTime} (${currencyFormatter.format(params.totalPrice)} đ) đã được hoàn tiền.</p>`;
     return this.sendSafely(params.to, 'Xác nhận hoàn tiền', html);
+  }
+
+  notifyOwnerApproved(params: OwnerApprovalParams): Promise<void> {
+    const html = `<p>Chào ${params.fullName}, tài khoản chủ sân của bạn đã được duyệt. Bạn có thể đăng nhập và bắt đầu tạo chi nhánh.</p>`;
+    return this.sendSafely(params.to, 'Tài khoản chủ sân đã được duyệt', html);
+  }
+
+  notifyOwnerRejected(params: OwnerRejectionParams): Promise<void> {
+    const reasonHtml = params.reason ? `<p>Lý do: ${params.reason}</p>` : '';
+    const html = `<p>Chào ${params.fullName}, tài khoản chủ sân của bạn đã bị từ chối.</p>${reasonHtml}`;
+    return this.sendSafely(params.to, 'Tài khoản chủ sân đã bị từ chối', html);
+  }
+
+  notifyVenueApproved(params: VenueApprovalParams): Promise<void> {
+    const html = `<p>Chào ${params.ownerName}, chi nhánh "${params.venueName}" của bạn đã được duyệt và hiển thị công khai.</p>`;
+    return this.sendSafely(params.to, 'Chi nhánh đã được duyệt', html);
+  }
+
+  notifyVenueRejected(params: VenueRejectionParams): Promise<void> {
+    const reasonHtml = params.reason ? `<p>Lý do: ${params.reason}</p>` : '';
+    const html = `<p>Chào ${params.ownerName}, chi nhánh "${params.venueName}" của bạn đã bị từ chối.</p>${reasonHtml}`;
+    return this.sendSafely(params.to, 'Chi nhánh đã bị từ chối', html);
   }
 
   private async sendSafely(
