@@ -16,7 +16,7 @@ import { getSubmitErrorMessage } from "@/lib/error-message";
 const ROLE_HOME: Record<string, string> = {
   customer: "/me",
   owner: "/owner",
-  admin: "/admin/owners",
+  admin: "/admin/approvals",
 };
 
 export default function LoginPage() {

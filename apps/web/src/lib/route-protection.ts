@@ -5,7 +5,7 @@ export type Role = 'customer' | 'owner' | 'admin';
 const ROLE_HOME: Record<Role, string> = {
   customer: '/me',
   owner: '/owner',
-  admin: '/admin/owners',
+  admin: '/admin/approvals',
 };
 
 const PROTECTED_PREFIXES: { prefix: string; role: Role }[] = [

@@ -21,11 +21,11 @@ describe('resolveRedirect', () => {
   });
 
   it('lets a matching role through', () => {
-    expect(resolveRedirect('/admin/owners', makeToken('admin'))).toBeNull();
+    expect(resolveRedirect('/admin/approvals', makeToken('admin'))).toBeNull();
   });
 
   it('redirects a mismatched role to their own home', () => {
-    expect(resolveRedirect('/admin/owners', makeToken('customer'))).toBe('/me');
+    expect(resolveRedirect('/admin/approvals', makeToken('customer'))).toBe('/me');
   });
 
   it('redirects to /login when the token cannot be decoded', () => {
