@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
 import { User, UserRole, UserStatus } from './entities/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const mockRepository = () => ({
   create: jest.fn(),
@@ -11,23 +12,34 @@ const mockRepository = () => ({
   find: jest.fn(),
 });
 
+const mockNotificationsService = () => ({
+  notifyOwnerApproved: jest.fn().mockResolvedValue(undefined),
+  notifyOwnerRejected: jest.fn().mockResolvedValue(undefined),
+});
+
+async function buildTestingModule() {
+  const module: TestingModule = await Test.createTestingModule({
+    providers: [
+      UsersService,
+      { provide: getRepositoryToken(User), useFactory: mockRepository },
+      { provide: NotificationsService, useFactory: mockNotificationsService },
+    ],
+  }).compile();
+
+  return {
+    service: module.get(UsersService),
+    repo: module.get(getRepositoryToken(User)) as ReturnType<
+      typeof mockRepository
+    >,
+    notificationsService: module.get(NotificationsService) as ReturnType<
+      typeof mockNotificationsService
+    >,
+  };
+}
+
 describe('UsersService', () => {
-  let service: UsersService;
-  let repo: ReturnType<typeof mockRepository>;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        { provide: getRepositoryToken(User), useFactory: mockRepository },
-      ],
-    }).compile();
-
-    service = module.get(UsersService);
-    repo = module.get(getRepositoryToken(User));
-  });
-
   it('hashes the password and defaults status/role fields before saving', async () => {
+    const { service, repo } = await buildTestingModule();
     repo.create.mockImplementation((data) => data);
     repo.save.mockImplementation((data) =>
       Promise.resolve({ id: 'user-1', ...data }),
@@ -51,22 +63,8 @@ describe('UsersService', () => {
 });
 
 describe('UsersService.markVerified', () => {
-  let service: UsersService;
-  let repo: ReturnType<typeof mockRepository>;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        { provide: getRepositoryToken(User), useFactory: mockRepository },
-      ],
-    }).compile();
-
-    service = module.get(UsersService);
-    repo = module.get(getRepositoryToken(User));
-  });
-
   it('sets emailVerified and the given status', async () => {
+    const { service, repo } = await buildTestingModule();
     repo.findOne.mockResolvedValue({
       id: 'user-1',
       emailVerified: false,
@@ -82,25 +80,8 @@ describe('UsersService.markVerified', () => {
 });
 
 describe('UsersService owner approval', () => {
-  let service: UsersService;
-  let repo: ReturnType<typeof mockRepository> & { find: jest.Mock };
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        {
-          provide: getRepositoryToken(User),
-          useFactory: () => ({ ...mockRepository(), find: jest.fn() }),
-        },
-      ],
-    }).compile();
-
-    service = module.get(UsersService);
-    repo = module.get(getRepositoryToken(User));
-  });
-
   it('findPendingOwners returns owners awaiting approval', async () => {
+    const { service, repo } = await buildTestingModule();
     repo.find.mockResolvedValue([{ id: 'owner-1' }]);
 
     const result = await service.findPendingOwners();
@@ -111,9 +92,12 @@ describe('UsersService owner approval', () => {
     expect(result).toEqual([{ id: 'owner-1' }]);
   });
 
-  it('approveOwner activates a pending owner', async () => {
+  it('approveOwner activates a pending owner and sends an approval email', async () => {
+    const { service, repo, notificationsService } = await buildTestingModule();
     repo.findOne.mockResolvedValue({
       id: 'owner-1',
+      email: 'owner-1@test.com',
+      fullName: 'Owner One',
       role: UserRole.OWNER,
       status: UserStatus.PENDING_APPROVAL,
     });
@@ -122,9 +106,14 @@ describe('UsersService owner approval', () => {
     const result = await service.approveOwner('owner-1');
 
     expect(result.status).toBe(UserStatus.ACTIVE);
+    expect(notificationsService.notifyOwnerApproved).toHaveBeenCalledWith({
+      to: 'owner-1@test.com',
+      fullName: 'Owner One',
+    });
   });
 
   it('approveOwner rejects a user that is not pending approval', async () => {
+    const { service, repo } = await buildTestingModule();
     repo.findOne.mockResolvedValue({
       id: 'owner-1',
       role: UserRole.OWNER,
@@ -134,37 +123,34 @@ describe('UsersService owner approval', () => {
     await expect(service.approveOwner('owner-1')).rejects.toThrow();
   });
 
-  it('rejectOwner marks a pending owner as rejected', async () => {
+  it('rejectOwner marks a pending owner as rejected and sends a rejection email with the reason', async () => {
+    const { service, repo, notificationsService } = await buildTestingModule();
     repo.findOne.mockResolvedValue({
       id: 'owner-1',
+      email: 'owner-1@test.com',
+      fullName: 'Owner One',
       role: UserRole.OWNER,
       status: UserStatus.PENDING_APPROVAL,
     });
     repo.save.mockImplementation((data) => Promise.resolve(data));
 
-    const result = await service.rejectOwner('owner-1');
+    const result = await service.rejectOwner(
+      'owner-1',
+      'Thiếu giấy phép kinh doanh',
+    );
 
     expect(result.status).toBe(UserStatus.REJECTED);
+    expect(notificationsService.notifyOwnerRejected).toHaveBeenCalledWith({
+      to: 'owner-1@test.com',
+      fullName: 'Owner One',
+      reason: 'Thiếu giấy phép kinh doanh',
+    });
   });
 });
 
 describe('UsersService.updatePassword', () => {
-  let service: UsersService;
-  let repo: ReturnType<typeof mockRepository>;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        { provide: getRepositoryToken(User), useFactory: mockRepository },
-      ],
-    }).compile();
-
-    service = module.get(UsersService);
-    repo = module.get(getRepositoryToken(User));
-  });
-
   it('hashes and saves the new password', async () => {
+    const { service, repo } = await buildTestingModule();
     repo.findOne.mockResolvedValue({ id: 'user-1', passwordHash: 'old-hash' });
     repo.save.mockImplementation((data) => Promise.resolve(data));
 
@@ -179,22 +165,8 @@ describe('UsersService.updatePassword', () => {
 });
 
 describe('UsersService.updateProfile', () => {
-  let service: UsersService;
-  let repo: ReturnType<typeof mockRepository>;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        { provide: getRepositoryToken(User), useFactory: mockRepository },
-      ],
-    }).compile();
-
-    service = module.get(UsersService);
-    repo = module.get(getRepositoryToken(User));
-  });
-
   it('updates only the provided fields', async () => {
+    const { service, repo } = await buildTestingModule();
     repo.findOne.mockResolvedValue({
       id: 'user-1',
       fullName: 'Old Name',
@@ -213,22 +185,8 @@ describe('UsersService.updateProfile', () => {
 });
 
 describe('UsersService.findByIds', () => {
-  let service: UsersService;
-  let repo: ReturnType<typeof mockRepository>;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        { provide: getRepositoryToken(User), useFactory: mockRepository },
-      ],
-    }).compile();
-
-    service = module.get(UsersService);
-    repo = module.get(getRepositoryToken(User));
-  });
-
   it('queries users by a list of ids', async () => {
+    const { service, repo } = await buildTestingModule();
     repo.find.mockResolvedValue([{ id: 'owner-1' }, { id: 'owner-2' }]);
 
     const result = await service.findByIds(['owner-1', 'owner-2']);
@@ -237,6 +195,8 @@ describe('UsersService.findByIds', () => {
   });
 
   it('returns an empty array without querying when given no ids', async () => {
+    const { service, repo } = await buildTestingModule();
+
     const result = await service.findByIds([]);
 
     expect(result).toEqual([]);

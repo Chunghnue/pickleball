@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole, UserStatus } from './entities/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface CreateUserInput {
   email: string;
@@ -17,6 +18,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(input: CreateUserInput): Promise<User> {
@@ -68,13 +70,14 @@ export class UsersService {
     return this.transitionOwnerStatus(id, UserStatus.ACTIVE);
   }
 
-  rejectOwner(id: string): Promise<User> {
-    return this.transitionOwnerStatus(id, UserStatus.REJECTED);
+  rejectOwner(id: string, reason?: string): Promise<User> {
+    return this.transitionOwnerStatus(id, UserStatus.REJECTED, reason);
   }
 
   private async transitionOwnerStatus(
     id: string,
     nextStatus: UserStatus,
+    reason?: string,
   ): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { id } });
     if (!user || user.role !== UserRole.OWNER) {
@@ -86,7 +89,20 @@ export class UsersService {
       );
     }
     user.status = nextStatus;
-    return this.usersRepository.save(user);
+    const saved = await this.usersRepository.save(user);
+    if (nextStatus === UserStatus.ACTIVE) {
+      await this.notificationsService.notifyOwnerApproved({
+        to: saved.email,
+        fullName: saved.fullName,
+      });
+    } else {
+      await this.notificationsService.notifyOwnerRejected({
+        to: saved.email,
+        fullName: saved.fullName,
+        reason,
+      });
+    }
+    return saved;
   }
 
   async updatePassword(userId: string, newPassword: string): Promise<void> {

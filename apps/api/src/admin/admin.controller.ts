@@ -1,9 +1,10 @@
-import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
+import { RejectDto } from './dto/reject.dto';
 
 @Controller('admin/owners')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,7 +23,7 @@ export class AdminController {
   }
 
   @Post(':id/reject')
-  reject(@Param('id') id: string) {
-    return this.usersService.rejectOwner(id);
+  reject(@Param('id') id: string, @Body() dto: RejectDto) {
+    return this.usersService.rejectOwner(id, dto?.reason);
   }
 }

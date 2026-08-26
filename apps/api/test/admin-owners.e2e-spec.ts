@@ -15,6 +15,7 @@ describe('Admin owner approval (e2e)', () => {
   beforeEach(async () => {
     await clearDatabase(app);
     mockMailService.sendVerificationEmail.mockClear();
+    mockMailService.send.mockClear();
   });
 
   afterAll(async () => {
@@ -133,5 +134,45 @@ describe('Admin owner approval (e2e)', () => {
     await request(app.getHttpServer())
       .get('/admin/owners/pending')
       .expect(401);
+  });
+
+  it('sends an approval email when approving an owner', async () => {
+    await registerVerifiedOwner('approve-email@test.com');
+    const adminToken = await createAdminAndLogin();
+    const dataSource = app.get(DataSource);
+    const owner = await dataSource
+      .getRepository(User)
+      .findOneOrFail({ where: { email: 'approve-email@test.com' } });
+
+    await request(app.getHttpServer())
+      .post(`/admin/owners/${owner.id}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(201);
+
+    const call = mockMailService.send.mock.calls.find(
+      ([to]) => to === 'approve-email@test.com',
+    );
+    expect(call).toBeDefined();
+  });
+
+  it('sends a rejection email containing the reason when rejecting an owner', async () => {
+    await registerVerifiedOwner('reject-with-reason@test.com');
+    const adminToken = await createAdminAndLogin();
+    const dataSource = app.get(DataSource);
+    const owner = await dataSource
+      .getRepository(User)
+      .findOneOrFail({ where: { email: 'reject-with-reason@test.com' } });
+
+    await request(app.getHttpServer())
+      .post(`/admin/owners/${owner.id}/reject`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ reason: 'Thiếu giấy phép kinh doanh' })
+      .expect(201);
+
+    const call = mockMailService.send.mock.calls.find(
+      ([to]) => to === 'reject-with-reason@test.com',
+    );
+    expect(call).toBeDefined();
+    expect(call![2]).toContain('Thiếu giấy phép kinh doanh');
   });
 });
