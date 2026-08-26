@@ -8,6 +8,7 @@ const mockRepository = () => ({
   create: jest.fn(),
   save: jest.fn(),
   findOne: jest.fn(),
+  find: jest.fn(),
 });
 
 describe('UsersService', () => {
@@ -208,5 +209,37 @@ describe('UsersService.updateProfile', () => {
 
     expect(result.fullName).toBe('New Name');
     expect(result.phone).toBe('0900000000');
+  });
+});
+
+describe('UsersService.findByIds', () => {
+  let service: UsersService;
+  let repo: ReturnType<typeof mockRepository>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UsersService,
+        { provide: getRepositoryToken(User), useFactory: mockRepository },
+      ],
+    }).compile();
+
+    service = module.get(UsersService);
+    repo = module.get(getRepositoryToken(User));
+  });
+
+  it('queries users by a list of ids', async () => {
+    repo.find.mockResolvedValue([{ id: 'owner-1' }, { id: 'owner-2' }]);
+
+    const result = await service.findByIds(['owner-1', 'owner-2']);
+
+    expect(result).toEqual([{ id: 'owner-1' }, { id: 'owner-2' }]);
+  });
+
+  it('returns an empty array without querying when given no ids', async () => {
+    const result = await service.findByIds([]);
+
+    expect(result).toEqual([]);
+    expect(repo.find).not.toHaveBeenCalled();
   });
 });

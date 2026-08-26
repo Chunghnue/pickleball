@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole, UserStatus } from './entities/user.entity';
 
@@ -39,6 +39,13 @@ export class UsersService {
 
   findById(id: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { id } });
+  }
+
+  findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.usersRepository.find({ where: { id: In(ids) } });
   }
 
   async markVerified(userId: string, nextStatus: UserStatus): Promise<User> {
