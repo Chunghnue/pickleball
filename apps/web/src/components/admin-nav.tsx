@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/admin/approvals", label: "Chờ duyệt" },
   { href: "/admin/stats", label: "Thống kê" },
+  { href: "/admin/disputes", label: "Khiếu nại" },
 ];
 
 export function AdminNav() {
