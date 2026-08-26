@@ -213,6 +213,36 @@ describe('NotificationsService.notifyVenueRejected', () => {
   });
 });
 
+describe('NotificationsService.notifyDisputeRejected', () => {
+  it('includes the reason in the email when provided', async () => {
+    const { service, mailService } = await buildTestingModule();
+
+    await service.notifyDisputeRejected({
+      to: 'customer@test.com',
+      customerName: 'Nguyễn Văn A',
+      reason: 'Không đủ căn cứ hoàn tiền',
+    });
+
+    expect(mailService.send).toHaveBeenCalledWith(
+      'customer@test.com',
+      'Khiếu nại của bạn đã bị từ chối',
+      expect.stringContaining('Không đủ căn cứ hoàn tiền'),
+    );
+  });
+
+  it('omits the reason section when not provided', async () => {
+    const { service, mailService } = await buildTestingModule();
+
+    await service.notifyDisputeRejected({
+      to: 'customer@test.com',
+      customerName: 'Nguyễn Văn A',
+    });
+
+    const html = mailService.send.mock.calls[0][2];
+    expect(html).not.toContain('Lý do');
+  });
+});
+
 describe('NotificationsService best-effort error handling', () => {
   it('resolves without throwing when MailService.send rejects', async () => {
     const { service, mailService } = await buildTestingModule();

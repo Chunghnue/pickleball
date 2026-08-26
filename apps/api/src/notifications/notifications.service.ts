@@ -68,6 +68,12 @@ export interface VenueRejectionParams {
   reason?: string;
 }
 
+export interface DisputeRejectionParams {
+  to: string;
+  customerName: string;
+  reason?: string;
+}
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -130,6 +136,12 @@ Tổng tiền: ${currencyFormatter.format(params.totalPrice)} đ</p>`;
     const reasonHtml = params.reason ? `<p>Lý do: ${params.reason}</p>` : '';
     const html = `<p>Chào ${params.ownerName}, chi nhánh "${params.venueName}" của bạn đã bị từ chối.</p>${reasonHtml}`;
     return this.sendSafely(params.to, 'Chi nhánh đã bị từ chối', html);
+  }
+
+  notifyDisputeRejected(params: DisputeRejectionParams): Promise<void> {
+    const reasonHtml = params.reason ? `<p>Lý do: ${params.reason}</p>` : '';
+    const html = `<p>Chào ${params.customerName}, khiếu nại của bạn về một booking đã bị từ chối.</p>${reasonHtml}`;
+    return this.sendSafely(params.to, 'Khiếu nại của bạn đã bị từ chối', html);
   }
 
   private async sendSafely(
