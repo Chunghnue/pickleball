@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminNav } from "@/components/admin-nav";
 
 interface AdminStats {
   owners: { total: number; active: number; pendingApproval: number };
@@ -40,7 +39,6 @@ export default function AdminStatsPage() {
 
   return (
     <main className="mx-auto flex max-w-3xl flex-1 flex-col gap-6 p-8">
-      <AdminNav />
       <h1 className="text-2xl font-bold">Thống kê nền tảng</h1>
 
       {stats === null && <p>Đang tải...</p>}

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminNav } from "@/components/admin-nav";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 
 interface DisputeRow {
@@ -76,7 +75,6 @@ export default function AdminDisputesPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-1 flex-col gap-6 p-8">
-      <AdminNav />
       <h1 className="text-2xl font-bold">Khiếu nại</h1>
 
       {disputes === null && <p>Đang tải...</p>}

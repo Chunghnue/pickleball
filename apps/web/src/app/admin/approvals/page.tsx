@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminNav } from "@/components/admin-nav";
 
 interface PendingOwnerRow {
   type: "owner";
@@ -80,20 +79,9 @@ export default function AdminApprovalsPage() {
     loadPending();
   }
 
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
-  }
-
   return (
     <main className="mx-auto flex max-w-2xl flex-1 flex-col gap-6 p-8">
-      <AdminNav />
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Chờ duyệt</h1>
-        <Button variant="outline" onClick={handleLogout}>
-          Đăng xuất
-        </Button>
-      </div>
+      <h1 className="text-2xl font-bold">Chờ duyệt</h1>
 
       {rows === null && <p>Đang tải...</p>}
       {rows !== null && rows.length === 0 && (
