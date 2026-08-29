@@ -15,7 +15,7 @@ import { getSubmitErrorMessage } from "@/lib/error-message";
 
 const ROLE_HOME: Record<string, string> = {
   customer: "/me",
-  owner: "/owner",
+  owner: "/owner/dashboard",
   admin: "/admin/approvals",
 };
 

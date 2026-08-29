@@ -38,7 +38,7 @@ export function BranchSwitcher() {
 
   return (
     <Dialog>
-      <DialogTrigger className="flex w-full items-center gap-2 rounded-lg bg-blue-50 px-2 py-2 text-left text-sm font-medium text-blue-700 outline-none hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400">
+      <DialogTrigger className="flex w-full items-center gap-2 rounded-lg border bg-background px-2 py-2 text-left text-sm font-medium text-foreground outline-none hover:bg-muted">
         <BarChart3 className="size-4 shrink-0" />
         <span className="flex-1 truncate">{selectedLabel}</span>
         <ChevronRight className="size-4 shrink-0" />

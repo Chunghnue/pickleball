@@ -28,6 +28,10 @@ describe('resolveRedirect', () => {
     expect(resolveRedirect('/admin/approvals', makeToken('customer'))).toBe('/me');
   });
 
+  it('redirects an owner to /owner/dashboard when they hit a mismatched protected route', () => {
+    expect(resolveRedirect('/admin/approvals', makeToken('owner'))).toBe('/owner/dashboard');
+  });
+
   it('redirects to /login when the token cannot be decoded', () => {
     expect(resolveRedirect('/me', 'not-a-jwt')).toBe('/login?returnTo=%2Fme');
   });
