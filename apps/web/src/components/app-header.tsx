@@ -80,7 +80,7 @@ export function AppHeader({ accountHref, onToggleSidebar }: AppHeaderProps) {
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label="Thông báo"
-            className="relative flex size-8 items-center justify-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="relative flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground outline-none hover:bg-muted/80 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <Bell className="size-4" />
             <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500" />
