@@ -44,6 +44,8 @@ Layout mỗi card đổi từ `CardHeader`+`CardContent` xếp dọc sang `CardC
 
 Đổi `LineChart`/`Line` (recharts) sang `BarChart`/`Bar`: mỗi ngày trong `revenueByDay` là 1 cột màu `#2563eb`, `radius={[4, 4, 0, 0]}` (bo góc trên). Trục X/Y, tooltip, và logic empty-state "Chưa có dữ liệu" khi toàn bộ 30 ngày đều 0 giữ nguyên như bản đã duyệt trước — chỉ đổi loại mark từ đường sang cột.
 
+`CardTitle` thêm icon `BarChart3` (`lucide-react`) trước label, khớp ảnh mẫu (mọi tiêu đề card trong ảnh đều có icon nhỏ đứng trước — xem thêm §6, §7.2).
+
 ## 6. Doanh thu theo sân (`court-revenue-chart.tsx`)
 
 Đổi từ `BarChart layout="vertical"` sang `PieChart` với `Pie` (`innerRadius` để tạo donut, ví dụ `innerRadius={50} outerRadius={80}`). Mỗi sân trong `revenueByCourt` là 1 lát, màu lấy tuần tự từ palette cố định (lặp lại nếu nhiều hơn 5 sân):
@@ -54,7 +56,7 @@ const COURT_COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#db2777", "#0891b2"];
 
 Legend hiển thị bên dưới biểu đồ: chấm tròn màu tương ứng + tên sân (không dùng `<Legend>` tự động của recharts — tự render bằng `revenueByCourt.map()` để kiểm soát style khớp ảnh, giống cách `admin/stats` từng tự vẽ bar thay vì dùng component có sẵn). Giữ nguyên hành vi ẩn cả card khi `revenueByCourt` rỗng (đã duyệt trước đó).
 
-Card đổi tiêu đề icon từ không có sang `PieChart` (icon, khác với component `PieChart` của recharts — cần alias import để tránh trùng tên, ví dụ `import { PieChart as PieChartIcon } from "lucide-react"`).
+`CardTitle` thêm icon `PieChart` từ `lucide-react` trước label (khác với component `PieChart` của recharts đã import trong cùng file — cần alias import để tránh trùng tên, ví dụ `import { PieChart as PieChartIcon } from "lucide-react"`).
 
 ## 7. Bảng "Lịch đặt gần nhất"
 
@@ -69,6 +71,8 @@ Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 `Table` bọc ngoài bởi `<div className="overflow-x-auto">` (bảng có thể rộng hơn màn hình nhỏ). `TableHead` dùng style chữ hoa nhỏ màu `text-muted-foreground` (khớp "KHÁCH HÀNG", "SÂN"... trong ảnh). Component này **dùng chung được cho các module khác sau này** (Bookings, Customers...) — không giới hạn riêng cho Dashboard, nhưng phạm vi đợt này chỉ wiring nó vào `recent-bookings.tsx`.
 
 ### 7.2 `recent-bookings.tsx` viết lại dùng `Table`
+
+`CardTitle` thêm icon `Clock` (`lucide-react`) trước label "Lịch đặt gần nhất", khớp ảnh mẫu.
 
 5 cột: KHÁCH HÀNG (tên đậm + SĐT xám dưới), SÂN (chấm tròn nhỏ màu + tên sân — dùng chung `COURT_COLORS`/logic màu với biểu đồ donut ở §6 nếu cùng `courtId`, nhưng vì component này không có props `courts` đầy đủ như `court-revenue-chart.tsx`, dùng hash đơn giản từ `courtName` để chọn màu nhất quán trong danh sách, không cần khớp chính xác màu ở donut chart — 2 biểu đồ độc lập), THỜI GIAN (`startTime`–`endTime`), GIÁ (đậm, căn phải), TRẠNG THÁI (badge bo tròn, nền theo trạng thái).
 
