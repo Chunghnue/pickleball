@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LogOut, Moon, Sun } from "lucide-react";
+import { LogOut, Menu, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -10,14 +10,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatHeaderClock } from "@/lib/format-datetime";
+import { formatHeaderDate, formatHeaderTime } from "@/lib/format-datetime";
 
 interface AppHeaderProps {
   accountLabel: string;
   accountHref?: string;
+  onToggleSidebar: () => void;
 }
 
-export function AppHeader({ accountLabel, accountHref }: AppHeaderProps) {
+export function AppHeader({ accountLabel, accountHref, onToggleSidebar }: AppHeaderProps) {
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState(new Date());
   const [fullName, setFullName] = useState("");
@@ -46,7 +47,22 @@ export function AppHeader({ accountLabel, accountHref }: AppHeaderProps) {
 
   return (
     <header className="flex h-14 items-center justify-between border-b px-4">
-      <p className="text-sm text-muted-foreground">{mounted ? formatHeaderClock(now) : ""}</p>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-label="Ẩn/hiện thanh điều hướng"
+          onClick={onToggleSidebar}
+          className="flex size-8 items-center justify-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <Menu className="size-4" />
+        </button>
+        <div className="flex flex-col leading-tight">
+          <span className="text-sm font-semibold">{mounted ? formatHeaderDate(now) : ""}</span>
+          <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+            {mounted ? formatHeaderTime(now) : ""}
+          </span>
+        </div>
+      </div>
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -57,7 +73,7 @@ export function AppHeader({ accountLabel, accountHref }: AppHeaderProps) {
           {mounted && theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </button>
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white outline-none hover:bg-blue-700 focus-visible:ring-3 focus-visible:ring-ring/50">
             {initial}
           </DropdownMenuTrigger>
           <DropdownMenuContent>
