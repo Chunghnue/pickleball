@@ -11,7 +11,7 @@ import {
   getCurrentMonthRange,
   getLast30Days,
   getTodayRange,
-} from './admin-stats.utils';
+} from '../common/date-range.utils';
 
 export interface AdminStats {
   owners: { total: number; active: number; pendingApproval: number };

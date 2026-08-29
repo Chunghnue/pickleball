@@ -3,7 +3,7 @@ import {
   getCurrentMonthRange,
   getLast30Days,
   fillRevenueByDay,
-} from './admin-stats.utils';
+} from './date-range.utils';
 
 describe('getTodayRange', () => {
   it('returns [start of day, start of next day)', () => {
