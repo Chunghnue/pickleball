@@ -11,6 +11,7 @@ import { AdminModule } from './admin/admin.module';
 import { CourtsModule } from './courts/courts.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PaymentsModule } from './payments/payments.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DisputesModule } from './disputes/disputes.module';
 
@@ -38,6 +39,7 @@ import { DisputesModule } from './disputes/disputes.module';
     CourtsModule,
     BookingsModule,
     PaymentsModule,
+    DashboardModule,
     NotificationsModule,
     DisputesModule,
   ],
