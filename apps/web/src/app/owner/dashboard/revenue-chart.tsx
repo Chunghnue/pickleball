@@ -1,14 +1,15 @@
 "use client";
 
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface RevenueChartProps {
@@ -27,7 +28,8 @@ export function RevenueChart({ revenueByDay }: RevenueChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm text-muted-foreground">
+        <CardTitle className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <BarChart3 className="size-4" />
           Doanh thu 30 ngày gần nhất
         </CardTitle>
       </CardHeader>
@@ -40,7 +42,7 @@ export function RevenueChart({ revenueByDay }: RevenueChartProps) {
         {hasRevenue && (
           <div style={{ height: 256 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueByDay}>
+              <BarChart data={revenueByDay}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tickFormatter={shortDate} />
                 <YAxis
@@ -54,14 +56,8 @@ export function RevenueChart({ revenueByDay }: RevenueChartProps) {
                     "Doanh thu",
                   ]}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
+                <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         )}

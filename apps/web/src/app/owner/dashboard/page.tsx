@@ -3,6 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  BarChart3,
+  CalendarPlus,
+  MapPin,
+  Plus,
+  Settings,
+  UserPlus,
+} from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { getGreeting } from "@/lib/greeting";
 import type { BookingStatus } from "@/app/owner/venues/[id]/bookings-section";
@@ -32,11 +40,11 @@ interface DashboardSummary {
 }
 
 const QUICK_ACTIONS = [
-  { href: "/owner", label: "Quản lý sân" },
-  { href: "/owner/bookings", label: "Tạo lịch đặt" },
-  { href: "/owner/customers", label: "Thêm khách" },
-  { href: "/owner/revenue", label: "Báo cáo" },
-  { href: "/owner/settings", label: "Cài đặt" },
+  { href: "/owner", label: "Quản lý sân", icon: MapPin },
+  { href: "/owner/bookings", label: "Tạo lịch đặt", icon: CalendarPlus },
+  { href: "/owner/customers", label: "Thêm khách", icon: UserPlus },
+  { href: "/owner/revenue", label: "Báo cáo", icon: BarChart3 },
+  { href: "/owner/settings", label: "Cài đặt", icon: Settings },
 ];
 
 export default function OwnerDashboardPage() {
@@ -57,24 +65,29 @@ export default function OwnerDashboardPage() {
   }, [router]);
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-1 flex-col gap-6 p-8">
+    <main className="mx-auto flex max-w-5xl flex-1 flex-col gap-6 bg-muted/30 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{getGreeting(new Date())}</h1>
+        <h1 className="text-2xl font-bold">{getGreeting(new Date())} 👋</h1>
         <Link href="/owner/bookings" className={buttonVariants()}>
+          <Plus />
           Đặt sân mới
         </Link>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {QUICK_ACTIONS.map((action) => (
-          <Link
-            key={action.href}
-            href={action.href}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            {action.label}
-          </Link>
-        ))}
+        {QUICK_ACTIONS.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link
+              key={action.href}
+              href={action.href}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Icon />
+              {action.label}
+            </Link>
+          );
+        })}
       </div>
 
       {summary === null && <p>Đang tải...</p>}
@@ -87,8 +100,10 @@ export default function OwnerDashboardPage() {
             courts={summary.courts}
             newCustomersThisMonth={summary.newCustomersThisMonth}
           />
-          <RevenueChart revenueByDay={summary.revenueByDay} />
-          <CourtRevenueChart revenueByCourt={summary.revenueByCourt} />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <RevenueChart revenueByDay={summary.revenueByDay} />
+            <CourtRevenueChart revenueByCourt={summary.revenueByCourt} />
+          </div>
           <RecentBookings recentBookings={summary.recentBookings} />
         </>
       )}

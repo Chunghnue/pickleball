@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart as PieChartIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface CourtRevenueChartProps {
@@ -16,6 +9,7 @@ interface CourtRevenueChartProps {
 }
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN");
+const COURT_COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#db2777", "#0891b2"];
 
 export function CourtRevenueChart({ revenueByCourt }: CourtRevenueChartProps) {
   if (revenueByCourt.length === 0) {
@@ -25,29 +19,49 @@ export function CourtRevenueChart({ revenueByCourt }: CourtRevenueChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm text-muted-foreground">
+        <CardTitle className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <PieChartIcon className="size-4" />
           Doanh thu theo sân
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div style={{ height: Math.max(revenueByCourt.length * 48, 96) }}>
+        <div style={{ height: 220 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={revenueByCourt} layout="vertical" margin={{ left: 24 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                type="number"
-                tickFormatter={(value: number) => currencyFormatter.format(value)}
-              />
-              <YAxis type="category" dataKey="courtName" width={100} />
+            <PieChart>
+              <Pie
+                data={revenueByCourt}
+                dataKey="revenue"
+                nameKey="courtName"
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={2}
+              >
+                {revenueByCourt.map((entry, index) => (
+                  <Cell
+                    key={entry.courtId}
+                    fill={COURT_COLORS[index % COURT_COLORS.length]}
+                  />
+                ))}
+              </Pie>
               <Tooltip
                 formatter={(value) => [
                   `${currencyFormatter.format(Number(value))} đ`,
                   "Doanh thu",
                 ]}
               />
-              <Bar dataKey="revenue" fill="#2563eb" />
-            </BarChart>
+            </PieChart>
           </ResponsiveContainer>
+        </div>
+        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2">
+          {revenueByCourt.map((court, index) => (
+            <div key={court.courtId} className="flex items-center gap-1.5 text-sm">
+              <span
+                className="size-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: COURT_COLORS[index % COURT_COLORS.length] }}
+              />
+              <span className="text-muted-foreground">{court.courtName}</span>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
