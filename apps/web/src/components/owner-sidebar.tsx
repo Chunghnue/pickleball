@@ -7,14 +7,12 @@ import {
   CalendarDays,
   DollarSign,
   Eye,
-  LogOut,
   Settings,
   Tag,
   UserCog,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 const GROUPS = [
   {
@@ -44,11 +42,6 @@ const GROUPS = [
 
 export function OwnerSidebar() {
   const pathname = usePathname();
-
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
-  }
 
   return (
     <aside className="flex w-56 flex-col border-r p-4">
@@ -81,10 +74,6 @@ export function OwnerSidebar() {
           </div>
         ))}
       </nav>
-      <Button variant="outline" className="justify-start gap-2" onClick={handleLogout}>
-        <LogOut className="size-4" />
-        Đăng xuất
-      </Button>
     </aside>
   );
 }
