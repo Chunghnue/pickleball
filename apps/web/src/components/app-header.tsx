@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LogOut, Menu, Moon, Sun } from "lucide-react";
+import { Bell, CloudSun, LogOut, Menu, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -58,8 +58,12 @@ export function AppHeader({ accountLabel, accountHref, onToggleSidebar }: AppHea
         </button>
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-semibold">{mounted ? formatHeaderDate(now) : ""}</span>
-          <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-            {mounted ? formatHeaderTime(now) : ""}
+          <span className="flex items-center gap-1">
+            <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+              {mounted ? formatHeaderTime(now) : ""}
+            </span>
+            <CloudSun className="size-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">--°C</span>
           </span>
         </div>
       </div>
@@ -72,6 +76,18 @@ export function AppHeader({ accountLabel, accountHref, onToggleSidebar }: AppHea
         >
           {mounted && theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label="Thông báo"
+            className="relative flex size-8 items-center justify-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <Bell className="size-4" />
+            <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <div className="px-2 py-4 text-center text-sm text-muted-foreground">Chưa có thông báo</div>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white outline-none hover:bg-blue-700 focus-visible:ring-3 focus-visible:ring-ring/50">
             {initial}
