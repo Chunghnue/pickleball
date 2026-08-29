@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Venue {
@@ -44,23 +44,13 @@ export default function OwnerDashboardPage() {
       });
   }, [router]);
 
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
-  }
-
   return (
     <main className="mx-auto flex max-w-2xl flex-1 flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Sân của tôi</h1>
-        <div className="flex gap-2">
-          <Link href="/owner/venues/new" className={buttonVariants()}>
-            Thêm sân mới
-          </Link>
-          <Button variant="outline" onClick={handleLogout}>
-            Đăng xuất
-          </Button>
-        </div>
+        <Link href="/owner/venues/new" className={buttonVariants()}>
+          Thêm sân mới
+        </Link>
       </div>
 
       {venues === null && <p>Đang tải...</p>}

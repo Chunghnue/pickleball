@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { VenueInfoSection } from "./venue-info-section";
 import { VenueImagesSection } from "./venue-images-section";
 import { CourtsSection } from "./courts-section";
@@ -41,11 +40,6 @@ export default function OwnerVenueDetailPage() {
       .then((data) => setCourts(Array.isArray(data) ? data : []));
   }, [venue]);
 
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
-  }
-
   if (!venue) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
@@ -56,12 +50,7 @@ export default function OwnerVenueDetailPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-1 flex-col gap-6 p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{venue.name}</h1>
-        <Button variant="outline" onClick={handleLogout}>
-          Đăng xuất
-        </Button>
-      </div>
+      <h1 className="text-2xl font-bold">{venue.name}</h1>
 
       <VenueInfoSection venue={venue} onUpdated={setVenue} />
       <VenueImagesSection
