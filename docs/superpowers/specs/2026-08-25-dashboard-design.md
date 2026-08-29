@@ -1,7 +1,7 @@
 # Module: Dashboard (Tổng quan) — Thiết kế chi tiết
 
-**Ngày:** 2026-08-25
-**Trạng thái:** Chờ review
+**Ngày:** 2026-08-25 (cập nhật 2026-08-29 — sửa lại theo schema thực tế)
+**Trạng thái:** Đã duyệt
 **Thuộc kiến trúc tổng thể:** [2026-08-23-pickleball-platform-architecture-design.md](./2026-08-23-pickleball-platform-architecture-design.md)
 **Nguồn tham khảo:** [docs/spec/01-dashboard.md](../../spec/01-dashboard.md) (khảo sát UI sanbong.vn thực tế)
 
@@ -44,6 +44,7 @@ JWT, role `owner`. Nếu có `venueId`, phải thuộc sở hữu của owner đ
   ],
   "revenueByCourt": [
     { "courtId": "uuid", "courtName": "Sân 1", "revenue": 15000000 }
+    // mọi court trong phạm vi lọc đều xuất hiện, kể cả revenue = 0
   ],
   "recentBookings": [
     {
@@ -64,25 +65,25 @@ JWT, role `owner`. Nếu có `venueId`, phải thuộc sở hữu của owner đ
 
 ## 4. Định nghĩa từng số liệu
 
+**Lưu ý schema (đã xác minh lại 2026-08-29):** bảng `payments` **không có cột `amount`** — doanh thu lấy từ `bookings.total_price`, join sang `payments` để lọc theo trạng thái đã thanh toán (đúng cách `AdminStatsService` — `apps/api/src/admin/admin-stats.service.ts` — đã làm cho thống kê toàn nền tảng). Cột `customer_contact_id` chưa tồn tại (mới chỉ là đề xuất ở [2026-08-26-customers-module-design.md](./2026-08-26-customers-module-design.md)) và `bookings.customer_id` hiện đang `NOT NULL`, nên khái niệm "khách walk-in không tài khoản" chưa áp dụng được — bỏ hẳn nhánh này khỏi Dashboard, sẽ bổ sung lại nếu/khi module Customers triển khai.
+
 | Số liệu | Định nghĩa |
 |---|---|
 | `todayBookingsCount` | Số dòng `bookings` có `createdAt` nằm trong ngày hôm nay (giờ server), thuộc court của venue trong phạm vi lọc. Tính cả booking đã bị huỷ trong ngày (phản ánh đúng "phát sinh trong ngày", không phải "đang active"). |
-| `todayRevenue` | Tổng `payments.amount` với `status = 'paid'` và `paidAt` nằm trong ngày hôm nay, join qua `booking → court → venue` để lọc theo owner/venue. |
+| `todayRevenue` | Tổng `bookings.total_price`, inner join `payments` (`booking.id::text = payment.booking_id`) với `payments.status = 'paid'` và `payments.paid_at` nằm trong ngày hôm nay, giới hạn `bookings.court_id` thuộc venue trong phạm vi lọc. |
 | `courts.active` / `courts.total` | Đếm `courts.isActive = true` / tổng số `courts`, trong các venue thuộc phạm vi lọc (không lọc theo `venue.status` — venue `pending_approval`/`rejected` không có court nào hiển thị public nhưng vẫn tính vào dashboard của owner). |
-| `newCustomersThisMonth` | Nhóm theo định danh khách — `customerId` nếu có, ngược lại `customerContactId` (xem [2026-08-26-customers-module-design.md](./2026-08-26-customers-module-design.md) §4, `bookings.customer_id` có thể null với booking walk-in) — lấy `MIN(createdAt)` mỗi khách; đếm số khách có `MIN(createdAt)` nằm trong tháng hiện tại. Nghĩa là "khách đặt sân lần đầu tại (các) venue này trong tháng này" — không suy ra từ toàn hệ thống, chỉ trong phạm vi venue của owner này. |
-| `revenueByDay` | 30 ngày gần nhất (kể cả hôm nay), mỗi ngày = tổng `payments.amount` với `status='paid'`, nhóm theo `DATE(paidAt)`. Ngày không có thanh toán trả về `revenue: 0` (không bỏ qua ngày). |
-| `revenueByCourt` | Tổng `payments.amount` (`status='paid'`, không giới hạn thời gian — toàn bộ lịch sử) nhóm theo `court_id`, join `courts` lấy tên. Sắp giảm dần theo revenue. |
-| `recentBookings` | 10 booking mới nhất theo `createdAt desc`, thuộc phạm vi lọc, kèm tên/SĐT khách và tên sân (join `courts`). Tên/SĐT khách lấy từ `users` nếu `customerId` có giá trị, ngược lại lấy từ `customer_contacts` qua `customerContactId` (booking walk-in). |
+| `newCustomersThisMonth` | Nhóm theo `bookings.customer_id`, lấy `MIN(createdAt)` mỗi khách (giới hạn bookings thuộc venue trong phạm vi lọc); đếm số khách có `MIN(createdAt)` nằm trong tháng hiện tại. Nghĩa là "khách đặt sân lần đầu tại (các) venue này trong tháng này" — không suy ra từ toàn hệ thống, chỉ trong phạm vi venue của owner này. |
+| `revenueByDay` | 30 ngày gần nhất (kể cả hôm nay), mỗi ngày = tổng `bookings.total_price` (cùng join `payments` như `todayRevenue`), nhóm theo `TO_CHAR(payments.paid_at, 'YYYY-MM-DD')`. Ngày không có thanh toán trả về `revenue: 0` (không bỏ qua ngày) — tái dùng `fillRevenueByDay`/`getLast30Days` từ `admin-stats.utils`. |
+| `revenueByCourt` | Bắt đầu từ danh sách `courts` trong phạm vi lọc (không phải từ `payments`), `LEFT JOIN` sang tổng `bookings.total_price` đã thanh toán (`status='paid'`, toàn bộ lịch sử, không giới hạn thời gian) theo `court_id`. Court chưa có doanh thu vẫn xuất hiện với `revenue: 0`. Sắp giảm dần theo revenue. |
+| `recentBookings` | 10 booking mới nhất theo `createdAt desc`, thuộc phạm vi lọc, join `users` (qua `customer_id`, luôn có giá trị) lấy tên/SĐT khách, join `courts` lấy tên sân. |
 
 "Ngày hôm nay" / "tháng hiện tại" dùng giờ hệ thống server (không có khái niệm timezone theo owner ở MVP — nhất quán với cách `bookings.date` đã được xử lý ở module Bookings).
 
 ## 5. Truy vấn & hiệu năng
 
-Đây là module đầu tiên cần các phép `SUM`/`COUNT`/`GROUP BY` thật sự (`todayRevenue`, `revenueByDay`, `revenueByCourt`, `newCustomersThisMonth`). Các module trước (Bookings, Payments, Courts) chỉ dùng repository pattern (`find`/`findOne`/`save`) vì không cần tổng hợp.
+Toàn bộ entity trong codebase hiện tại (Booking, Payment, Court, Venue, User) **không khai báo quan hệ TypeORM** (`@ManyToOne`/`@OneToOne`) — join giữa các bảng luôn thực hiện thủ công qua cột FK thô trong `QueryBuilder` (ví dụ `booking.id::text = payment.booking_id`). Dashboard tiếp tục theo đúng quy ước này, không thêm decorator quan hệ mới.
 
-**Quyết định:** dùng TypeORM `QueryBuilder` (`createQueryBuilder`, `getRawMany`/`getRawOne`) cho riêng các query tổng hợp trong `DashboardService`. Đây là điểm khác biệt có chủ đích so với quy ước hiện tại — tổng hợp qua `find()` rồi cộng dồn bằng JS sẽ phải tải toàn bộ bảng `payments`/`bookings` vào bộ nhớ mỗi lần gọi dashboard, không phù hợp kể cả ở quy mô MVP khi dữ liệu tăng dần theo thời gian.
-
-Tất cả các query đều lọc theo `venueId IN (...)` (danh sách venue thuộc owner, hoặc 1 venue nếu có `?venueId=`) ngay từ điều kiện `WHERE`/`JOIN` đầu tiên — không tải dữ liệu ngoài phạm vi rồi lọc sau.
+`AdminStatsService` (`apps/api/src/admin/admin-stats.service.ts`) đã là tiền lệ cho các query tổng hợp kiểu này ở phạm vi toàn nền tảng — dùng TypeORM `QueryBuilder` (`createQueryBuilder`, `getRawMany`/`getRawOne`) cho `SUM`/`COUNT`/`GROUP BY`, thay vì tải toàn bộ bảng qua `find()` rồi cộng dồn bằng JS. `DashboardService` áp dụng lại đúng pattern này, chỉ khác ở chỗ mọi query đều lọc thêm theo `venueId IN (...)` (danh sách venue thuộc owner, hoặc 1 venue nếu có `?venueId=`) ngay từ điều kiện `WHERE`/`JOIN` đầu tiên — không tải dữ liệu ngoài phạm vi rồi lọc sau. Có thể tái dùng trực tiếp `getTodayRange`/`getCurrentMonthRange`/`getLast30Days`/`fillRevenueByDay` từ `admin-stats.utils`.
 
 ## 6. Validation
 
@@ -92,7 +93,7 @@ Tất cả các query đều lọc theo `venueId IN (...)` (danh sách venue thu
 
 ## 7. Testing
 
-- **Unit:** tính đúng ranh giới "hôm nay"/"tháng này" (boundary: 23:59:59 hôm qua vs 00:00:00 hôm nay); `newCustomersThisMonth` không đếm trùng khách có nhiều booking trong tháng; `revenueByDay` trả đủ 30 ngày kể cả ngày revenue = 0.
+- **Unit:** tính đúng ranh giới "hôm nay"/"tháng này" (boundary: 23:59:59 hôm qua vs 00:00:00 hôm nay); `newCustomersThisMonth` không đếm trùng khách có nhiều booking trong tháng; `revenueByDay` trả đủ 30 ngày kể cả ngày revenue = 0; `revenueByCourt` trả đủ mọi court trong phạm vi lọc kể cả court chưa có doanh thu.
 - **E2E:** dựng fixture (venue + court + bookings + payments ở nhiều ngày/nhiều trạng thái) rồi gọi `GET /dashboard/summary`, assert từng field khớp số liệu kỳ vọng; test `?venueId=` lọc đúng khi owner có nhiều venue; test 404 khi truyền `venueId` không thuộc owner; test 403 khi gọi bằng tài khoản `customer`.
 
 ## 8. Ngoài phạm vi
