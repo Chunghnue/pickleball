@@ -73,14 +73,14 @@ export function AppHeader({ accountHref, onToggleSidebar }: AppHeaderProps) {
           type="button"
           aria-label="Đổi giao diện sáng/tối"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground outline-none hover:bg-muted/80 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground outline-none hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           {mounted && theme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label="Thông báo"
-            className="relative flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground outline-none hover:bg-muted/80 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="relative flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground outline-none hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <Bell className="size-4" />
             <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500" />
