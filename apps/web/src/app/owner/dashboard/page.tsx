@@ -65,7 +65,7 @@ export default function OwnerDashboardPage() {
   }, [router]);
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-1 flex-col gap-6 bg-muted/30 p-8">
+    <main className="flex w-full flex-1 flex-col gap-6 bg-muted/30 p-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{getGreeting(new Date())} 👋</h1>
         <Link href="/owner/bookings" className={buttonVariants()}>
