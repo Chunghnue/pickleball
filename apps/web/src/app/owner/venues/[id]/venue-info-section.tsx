@@ -25,6 +25,7 @@ export function VenueInfoSection({ venue, onUpdated }: VenueInfoSectionProps) {
       address: venue.address,
       city: venue.city,
       description: venue.description ?? "",
+      phone: venue.phone ?? "",
     },
   });
 
@@ -102,6 +103,10 @@ export function VenueInfoSection({ venue, onUpdated }: VenueInfoSectionProps) {
           <div className="space-y-2">
             <Label htmlFor="description">Mô tả</Label>
             <Input id="description" {...form.register("description")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Số điện thoại</Label>
+            <Input id="phone" {...form.register("phone")} />
           </div>
           <Button type="submit" disabled={form.formState.isSubmitting}>
             Lưu thay đổi

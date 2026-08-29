@@ -49,6 +49,7 @@ export const updateVenueSchema = z.object({
   address: z.string().min(1, 'Vui lòng nhập địa chỉ').optional(),
   city: z.string().min(1, 'Vui lòng nhập thành phố').optional(),
   description: z.string().optional(),
+  phone: z.string().optional(),
 });
 export type UpdateVenueInput = z.infer<typeof updateVenueSchema>;
 

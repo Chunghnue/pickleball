@@ -19,6 +19,7 @@ export interface Venue {
   address: string;
   city: string;
   description: string | null;
+  phone: string | null;
   status: "pending_approval" | "active" | "rejected";
   images: VenueImage[];
 }
