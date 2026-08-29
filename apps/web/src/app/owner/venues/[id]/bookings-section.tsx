@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 import type { Court } from "./types";
 
-type BookingStatus = "confirmed" | "cancelled" | "completed";
+export type BookingStatus = "confirmed" | "cancelled" | "completed";
 type PaymentStatus = "unpaid" | "paid" | "refunded";
 
 interface OwnerBooking {
@@ -26,7 +26,7 @@ interface OwnerBooking {
   paymentNote: string | null;
 }
 
-const STATUS_LABEL: Record<BookingStatus, string> = {
+export const STATUS_LABEL: Record<BookingStatus, string> = {
   confirmed: "Đã xác nhận",
   cancelled: "Đã huỷ",
   completed: "Hoàn thành",
