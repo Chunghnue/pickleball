@@ -27,7 +27,7 @@ Tài liệu `docs/spec/01-dashboard.md` mô tả sanbong.vn — nền tảng đa
 GET /dashboard/summary?venueId=<uuid, optional>
 ```
 
-JWT, role `owner`. Nếu có `venueId`, phải thuộc sở hữu của owner đang đăng nhập (dùng lại pattern `getOwnedVenueOrThrow` đã có ở `venues.service.ts`) — nếu không thuộc, trả **404**. Nếu không truyền `venueId`, tổng hợp trên toàn bộ venue owner sở hữu.
+JWT, role `owner`. Nếu có `venueId`, dùng lại nguyên trạng `venuesService.getOwnedVenueOrThrow(ownerId, venueId)` đã có ở `venues.service.ts` — venue không tồn tại → **404**, venue tồn tại nhưng thuộc owner khác → **403** (đúng hành vi hiện tại của helper này, đã dùng thống nhất ở các module khác, xem `venues.service.spec.ts:147`). Nếu không truyền `venueId`, tổng hợp trên toàn bộ venue owner sở hữu.
 
 **Response:**
 
@@ -88,13 +88,13 @@ Toàn bộ entity trong codebase hiện tại (Booking, Payment, Court, Venue, U
 ## 6. Validation
 
 - Role khác `owner` → 403.
-- `venueId` (nếu truyền) không thuộc owner đang đăng nhập → 404 (tái dùng pattern `getOwnedVenueOrThrow`).
+- `venueId` (nếu truyền) không tồn tại → 404; tồn tại nhưng thuộc owner khác → 403 (tái dùng nguyên trạng `getOwnedVenueOrThrow`, không viết logic riêng).
 - Owner chưa có venue nào → trả về summary với toàn bộ số liệu = 0 / mảng rỗng (không lỗi).
 
 ## 7. Testing
 
 - **Unit:** tính đúng ranh giới "hôm nay"/"tháng này" (boundary: 23:59:59 hôm qua vs 00:00:00 hôm nay); `newCustomersThisMonth` không đếm trùng khách có nhiều booking trong tháng; `revenueByDay` trả đủ 30 ngày kể cả ngày revenue = 0; `revenueByCourt` trả đủ mọi court trong phạm vi lọc kể cả court chưa có doanh thu.
-- **E2E:** dựng fixture (venue + court + bookings + payments ở nhiều ngày/nhiều trạng thái) rồi gọi `GET /dashboard/summary`, assert từng field khớp số liệu kỳ vọng; test `?venueId=` lọc đúng khi owner có nhiều venue; test 404 khi truyền `venueId` không thuộc owner; test 403 khi gọi bằng tài khoản `customer`.
+- **E2E:** dựng fixture (venue + court + bookings + payments ở nhiều ngày/nhiều trạng thái) rồi gọi `GET /dashboard/summary`, assert từng field khớp số liệu kỳ vọng; test `?venueId=` lọc đúng khi owner có nhiều venue; test 404 khi truyền `venueId` không tồn tại; test 403 khi truyền `venueId` thuộc owner khác; test 403 khi gọi bằng tài khoản `customer`.
 
 ## 8. Ngoài phạm vi
 
