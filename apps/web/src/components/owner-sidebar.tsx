@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  Building2,
   CalendarDays,
   Eye,
   IdCard,
@@ -42,7 +41,7 @@ const GROUPS = [
   {
     label: "Hệ thống",
     links: [
-      { href: "/owner/branches", label: "Chi nhánh", icon: Building2 },
+      { href: "/owner/branches", label: "Chi nhánh", icon: BarChart3 },
       { href: "/owner/accounts", label: "Tài khoản", icon: IdCard },
       { href: "/owner/settings", label: "Cài đặt", icon: Settings },
     ],
