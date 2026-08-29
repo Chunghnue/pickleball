@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, ClipboardCheck, LogOut, MessageSquareWarning } from "lucide-react";
+import { BarChart3, ClipboardCheck, MessageSquareWarning } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 const LINKS = [
   { href: "/admin/approvals", label: "Chờ duyệt", icon: ClipboardCheck },
@@ -14,11 +13,6 @@ const LINKS = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
-  }
 
   return (
     <aside className="flex w-56 flex-col border-r p-4">
@@ -44,10 +38,6 @@ export function AdminSidebar() {
           );
         })}
       </nav>
-      <Button variant="outline" className="justify-start gap-2" onClick={handleLogout}>
-        <LogOut className="size-4" />
-        Đăng xuất
-      </Button>
     </aside>
   );
 }
