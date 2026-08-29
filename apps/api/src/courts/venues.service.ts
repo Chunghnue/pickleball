@@ -25,7 +25,8 @@ export class VenuesService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  create(ownerId: string, dto: CreateVenueDto): Promise<Venue> {
+  async create(ownerId: string, dto: CreateVenueDto): Promise<Venue> {
+    const existingCount = await this.venuesRepository.count({ where: { ownerId } });
     const venue = this.venuesRepository.create({
       ownerId,
       name: dto.name,
@@ -33,6 +34,7 @@ export class VenuesService {
       city: dto.city,
       description: dto.description ?? null,
       status: VenueStatus.PENDING_APPROVAL,
+      isDefault: existingCount === 0,
     });
     return this.venuesRepository.save(venue);
   }
@@ -58,6 +60,7 @@ export class VenuesService {
     if (dto.cancellationCutoffHours !== undefined) {
       venue.cancellationCutoffHours = dto.cancellationCutoffHours;
     }
+    if (dto.phone !== undefined) venue.phone = dto.phone;
     return this.venuesRepository.save(venue);
   }
 

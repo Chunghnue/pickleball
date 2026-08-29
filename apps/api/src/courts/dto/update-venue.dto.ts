@@ -25,4 +25,8 @@ export class UpdateVenueDto {
   @Min(0)
   @Max(72)
   cancellationCutoffHours?: number;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
 }

@@ -42,6 +42,12 @@ export class Venue {
   @Column({ name: 'cancellation_cutoff_hours', type: 'int', default: 2 })
   cancellationCutoffHours: number;
 
+  @Column({ name: 'is_default', default: false })
+  isDefault: boolean;
+
+  @Column({ nullable: true, type: 'varchar' })
+  phone: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

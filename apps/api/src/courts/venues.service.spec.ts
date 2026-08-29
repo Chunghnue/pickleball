@@ -11,6 +11,7 @@ const mockVenuesRepository = () => ({
   save: jest.fn(),
   findOne: jest.fn(),
   find: jest.fn(),
+  count: jest.fn(),
 });
 
 const mockVenueImagesRepository = () => ({
@@ -77,6 +78,50 @@ describe('VenuesService.create', () => {
 
     expect(result.ownerId).toBe('owner-1');
     expect(result.status).toBe(VenueStatus.PENDING_APPROVAL);
+  });
+});
+
+describe('VenuesService.create — isDefault', () => {
+  it("sets isDefault true for the owner's first venue", async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(0);
+    venuesRepo.create.mockImplementation((data) => data);
+    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-1', ...data }));
+
+    const result = await service.create('owner-1', {
+      name: 'ABC Pickleball',
+      address: '123 Le Loi',
+      city: 'Ho Chi Minh',
+    });
+
+    expect(result.isDefault).toBe(true);
+  });
+
+  it('sets isDefault false when the owner already has a venue', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(1);
+    venuesRepo.create.mockImplementation((data) => data);
+    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-2', ...data }));
+
+    const result = await service.create('owner-1', {
+      name: 'XYZ Pickleball',
+      address: '456 Le Loi',
+      city: 'Ho Chi Minh',
+    });
+
+    expect(result.isDefault).toBe(false);
+  });
+});
+
+describe('VenuesService.update — phone', () => {
+  it('sets phone when provided', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.update('owner-1', 'venue-1', { phone: '0368886999' });
+
+    expect(result.phone).toBe('0368886999');
   });
 });
 
