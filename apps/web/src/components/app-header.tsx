@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, CloudSun, LogOut, Menu, Moon, Sun } from "lucide-react";
+import { Bell, CloudSun, LogOut, Menu, Moon, Sun, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -13,15 +13,15 @@ import {
 import { formatHeaderDate, formatHeaderTime } from "@/lib/format-datetime";
 
 interface AppHeaderProps {
-  accountLabel: string;
   accountHref?: string;
   onToggleSidebar: () => void;
 }
 
-export function AppHeader({ accountLabel, accountHref, onToggleSidebar }: AppHeaderProps) {
+export function AppHeader({ accountHref, onToggleSidebar }: AppHeaderProps) {
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState(new Date());
   const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState("");
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -35,6 +35,7 @@ export function AppHeader({ accountLabel, accountHref, onToggleSidebar }: AppHea
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.fullName) setFullName(data.fullName);
+        if (data?.role) setRole(data.role);
       });
   }, []);
 
@@ -93,15 +94,28 @@ export function AppHeader({ accountLabel, accountHref, onToggleSidebar }: AppHea
             {initial}
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">{fullName || "..."}</p>
-              <p className="text-xs text-muted-foreground">{accountLabel}</p>
+            <div className="px-3 py-2">
+              <p className="text-sm font-semibold">{fullName || "..."}</p>
+              <p className="text-xs font-medium text-muted-foreground">{role.toUpperCase()}</p>
             </div>
             <div className="my-1 h-px bg-border" />
             {accountHref ? (
-              <DropdownMenuItem render={<Link href={accountHref}>Thông tin tài khoản</Link>} />
+              <>
+                <DropdownMenuItem
+                  render={
+                    <Link href={accountHref}>
+                      <User className="size-4" />
+                      Thông tin tài khoản
+                    </Link>
+                  }
+                />
+                <div className="my-1 h-px bg-border" />
+              </>
             ) : null}
-            <DropdownMenuItem onClick={handleLogout}>
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="text-red-600 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-600 dark:text-red-400 dark:data-[highlighted]:bg-red-950/40 dark:data-[highlighted]:text-red-400"
+            >
               <LogOut className="size-4" />
               Đăng xuất
             </DropdownMenuItem>

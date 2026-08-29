@@ -7,12 +7,11 @@ const STORAGE_KEY = "sidebar-collapsed";
 
 interface AppShellProps {
   sidebar: React.ReactNode;
-  accountLabel: string;
   accountHref?: string;
   children: React.ReactNode;
 }
 
-export function AppShell({ sidebar, accountLabel, accountHref, children }: AppShellProps) {
+export function AppShell({ sidebar, accountHref, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -33,11 +32,7 @@ export function AppShell({ sidebar, accountLabel, accountHref, children }: AppSh
     <div className="flex min-h-full">
       {!collapsed && sidebar}
       <div className="flex flex-1 flex-col">
-        <AppHeader
-          accountLabel={accountLabel}
-          accountHref={accountHref}
-          onToggleSidebar={toggleSidebar}
-        />
+        <AppHeader accountHref={accountHref} onToggleSidebar={toggleSidebar} />
         <div className="flex-1">{children}</div>
       </div>
     </div>
