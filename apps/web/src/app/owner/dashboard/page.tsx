@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  BarChart3,
   CalendarPlus,
   MapPin,
   Plus,
   Settings,
+  TrendingUp,
   UserPlus,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { getGreeting } from "@/lib/greeting";
 import type { BookingStatus } from "@/app/owner/venues/[id]/bookings-section";
 import { StatCards } from "./stat-cards";
@@ -40,11 +41,36 @@ interface DashboardSummary {
 }
 
 const QUICK_ACTIONS = [
-  { href: "/owner", label: "Quản lý sân", icon: MapPin },
-  { href: "/owner/bookings", label: "Tạo lịch đặt", icon: CalendarPlus },
-  { href: "/owner/customers", label: "Thêm khách", icon: UserPlus },
-  { href: "/owner/revenue", label: "Báo cáo", icon: BarChart3 },
-  { href: "/owner/settings", label: "Cài đặt", icon: Settings },
+  {
+    href: "/owner",
+    label: "Quản lý sân",
+    icon: MapPin,
+    color: "text-blue-600 dark:text-blue-400",
+  },
+  {
+    href: "/owner/bookings",
+    label: "Tạo lịch đặt",
+    icon: CalendarPlus,
+    color: "text-green-600 dark:text-green-400",
+  },
+  {
+    href: "/owner/customers",
+    label: "Thêm khách",
+    icon: UserPlus,
+    color: "text-violet-600 dark:text-violet-400",
+  },
+  {
+    href: "/owner/revenue",
+    label: "Báo cáo",
+    icon: TrendingUp,
+    color: "text-amber-600 dark:text-amber-400",
+  },
+  {
+    href: "/owner/settings",
+    label: "Cài đặt",
+    icon: Settings,
+    color: "text-muted-foreground",
+  },
 ];
 
 export default function OwnerDashboardPage() {
@@ -74,16 +100,19 @@ export default function OwnerDashboardPage() {
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3">
         {QUICK_ACTIONS.map((action) => {
           const Icon = action.icon;
           return (
             <Link
               key={action.href}
               href={action.href}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "h-11 gap-2 rounded-full px-4 text-sm font-medium",
+              )}
             >
-              <Icon />
+              <Icon className={cn("size-4", action.color)} />
               {action.label}
             </Link>
           );
