@@ -6,6 +6,12 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export enum CourtStatus {
+  ACTIVE = 'active',
+  MAINTENANCE = 'maintenance',
+  CLOSED = 'closed',
+}
+
 @Entity('courts')
 export class Court {
   @PrimaryGeneratedColumn('uuid')
@@ -38,8 +44,21 @@ export class Court {
   @Column({ name: 'slot_duration_minutes', type: 'int' })
   slotDurationMinutes: number;
 
-  @Column({ name: 'is_active', default: true })
-  isActive: boolean;
+  @Column({
+    type: 'enum',
+    enum: CourtStatus,
+    default: CourtStatus.ACTIVE,
+  })
+  status: CourtStatus;
+
+  @Column({ nullable: true, type: 'varchar' })
+  description: string | null;
+
+  @Column({ nullable: true, type: 'int' })
+  capacity: number | null;
+
+  @Column({ name: 'display_order', type: 'int', default: 0 })
+  displayOrder: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
