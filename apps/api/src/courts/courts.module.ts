@@ -3,6 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Venue } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
 import { Court } from './entities/court.entity';
+import { CourtImage } from './entities/court-image.entity';
+import { Booking } from '../bookings/entities/booking.entity';
 import { VenuesService } from './venues.service';
 import { CourtsService } from './courts.service';
 import { VenuesController } from './venues.controller';
@@ -12,7 +14,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Venue, VenueImage, Court]),
+    TypeOrmModule.forFeature([Venue, VenueImage, Court, CourtImage, Booking]),
     UsersModule,
     NotificationsModule,
   ],
