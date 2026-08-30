@@ -1,5 +1,5 @@
 import {
-  IsBoolean,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -10,6 +10,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { TIME_PATTERN } from '../time.util';
+import { CourtStatus } from '../entities/court.entity';
 
 export class UpdateCourtDto {
   @IsOptional()
@@ -37,6 +38,19 @@ export class UpdateCourtDto {
   slotDurationMinutes?: number;
 
   @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  capacity?: number;
+
+  @IsOptional()
+  @IsInt()
+  displayOrder?: number;
+
+  @IsOptional()
+  @IsEnum(CourtStatus)
+  status?: CourtStatus;
 }

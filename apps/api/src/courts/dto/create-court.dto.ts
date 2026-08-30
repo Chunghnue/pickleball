@@ -1,4 +1,13 @@
-import { IsInt, IsNumber, IsString, Matches, Max, Min, MinLength } from 'class-validator';
+import {
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { TIME_PATTERN } from '../time.util';
 
 export class CreateCourtDto {
@@ -20,4 +29,17 @@ export class CreateCourtDto {
   @Min(15)
   @Max(240)
   slotDurationMinutes: number;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  capacity?: number;
+
+  @IsOptional()
+  @IsInt()
+  displayOrder?: number;
 }
