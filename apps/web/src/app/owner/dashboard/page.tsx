@@ -94,8 +94,14 @@ export default function OwnerDashboardPage() {
     <main className="flex w-full flex-1 flex-col gap-6 bg-muted/30 p-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{getGreeting(new Date())} 👋</h1>
-        <Link href="/owner/bookings" className={buttonVariants()}>
-          <Plus />
+        <Link
+          href="/owner/bookings"
+          className={cn(
+            buttonVariants(),
+            "h-11 gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700",
+          )}
+        >
+          <Plus className="size-4" />
           Đặt sân mới
         </Link>
       </div>
