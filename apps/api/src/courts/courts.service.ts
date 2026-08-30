@@ -1,24 +1,42 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Court } from './entities/court.entity';
+import { In, Repository } from 'typeorm';
+import { unlink } from 'fs/promises';
+import { basename, join } from 'path';
+import { Court, CourtStatus } from './entities/court.entity';
+import { CourtImage } from './entities/court-image.entity';
+import { Booking } from '../bookings/entities/booking.entity';
 import { VenuesService } from './venues.service';
 import { CreateCourtDto } from './dto/create-court.dto';
 import { UpdateCourtDto } from './dto/update-court.dto';
 import { generateSlots, Slot } from './slot-generator';
 import { timeToMinutes } from './time.util';
+import { getUploadsDir } from './court-image-upload.config';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export interface CourtWithImages extends Court {
+  images: CourtImage[];
+}
+
+export interface CourtWithVenueName extends CourtWithImages {
+  venueName: string;
+}
 
 @Injectable()
 export class CourtsService {
   constructor(
     @InjectRepository(Court)
     private readonly courtsRepository: Repository<Court>,
+    @InjectRepository(CourtImage)
+    private readonly courtImagesRepository: Repository<CourtImage>,
+    @InjectRepository(Booking)
+    private readonly bookingsRepository: Repository<Booking>,
     private readonly venuesService: VenuesService,
   ) {}
 
@@ -36,7 +54,10 @@ export class CourtsService {
       openTime: dto.openTime,
       closeTime: dto.closeTime,
       slotDurationMinutes: dto.slotDurationMinutes,
-      isActive: true,
+      description: dto.description ?? null,
+      capacity: dto.capacity ?? null,
+      displayOrder: dto.displayOrder ?? 0,
+      status: CourtStatus.ACTIVE,
     });
     return this.courtsRepository.save(court);
   }
@@ -44,9 +65,45 @@ export class CourtsService {
   async findByVenueForOwner(
     ownerId: string,
     venueId: string,
-  ): Promise<Court[]> {
+  ): Promise<CourtWithImages[]> {
     await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
-    return this.courtsRepository.find({ where: { venueId } });
+    const courts = await this.courtsRepository.find({ where: { venueId } });
+    return this.attachImages(courts);
+  }
+
+  async findAllForOwner(ownerId: string): Promise<CourtWithVenueName[]> {
+    const venues = await this.venuesService.findMineByOwner(ownerId);
+    if (venues.length === 0) {
+      return [];
+    }
+    const venueNameById = new Map(venues.map((venue) => [venue.id, venue.name]));
+    const courts = await this.courtsRepository.find({
+      where: { venueId: In(venues.map((venue) => venue.id)) },
+    });
+    const withImages = await this.attachImages(courts);
+    return withImages.map((court) => ({
+      ...court,
+      venueName: venueNameById.get(court.venueId) ?? '',
+    }));
+  }
+
+  private async attachImages(courts: Court[]): Promise<CourtWithImages[]> {
+    if (courts.length === 0) {
+      return [];
+    }
+    const images = await this.courtImagesRepository.find({
+      where: { courtId: In(courts.map((court) => court.id)) },
+    });
+    const imagesByCourtId = new Map<string, CourtImage[]>();
+    for (const image of images) {
+      const list = imagesByCourtId.get(image.courtId) ?? [];
+      list.push(image);
+      imagesByCourtId.set(image.courtId, list);
+    }
+    return courts.map((court) => ({
+      ...court,
+      images: imagesByCourtId.get(court.id) ?? [],
+    }));
   }
 
   async update(
@@ -73,14 +130,75 @@ export class CourtsService {
     if (dto.slotDurationMinutes !== undefined) {
       court.slotDurationMinutes = dto.slotDurationMinutes;
     }
-    if (dto.isActive !== undefined) court.isActive = dto.isActive;
+    if (dto.description !== undefined) court.description = dto.description;
+    if (dto.capacity !== undefined) court.capacity = dto.capacity;
+    if (dto.displayOrder !== undefined) court.displayOrder = dto.displayOrder;
+    if (dto.status !== undefined) court.status = dto.status;
 
     return this.courtsRepository.save(court);
   }
 
+  async remove(ownerId: string, venueId: string, courtId: string): Promise<void> {
+    await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
+    const court = await this.courtsRepository.findOne({
+      where: { id: courtId, venueId },
+    });
+    if (!court) {
+      throw new NotFoundException(`Court ${courtId} không tồn tại`);
+    }
+    const bookingCount = await this.bookingsRepository.count({
+      where: { courtId },
+    });
+    if (bookingCount > 0) {
+      throw new ConflictException(
+        'Sân đã có lịch sử đặt sân, hãy chuyển sang trạng thái Tạm đóng thay vì xóa',
+      );
+    }
+    await this.courtImagesRepository.delete({ courtId });
+    await this.courtsRepository.remove(court);
+  }
+
+  async addImage(
+    ownerId: string,
+    venueId: string,
+    courtId: string,
+    file: Express.Multer.File,
+  ): Promise<CourtImage> {
+    await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
+    const court = await this.courtsRepository.findOne({
+      where: { id: courtId, venueId },
+    });
+    if (!court) {
+      throw new NotFoundException(`Court ${courtId} không tồn tại`);
+    }
+    const image = this.courtImagesRepository.create({
+      courtId,
+      url: `/uploads/courts/${courtId}/${file.filename}`,
+    });
+    return this.courtImagesRepository.save(image);
+  }
+
+  async removeImage(
+    ownerId: string,
+    venueId: string,
+    courtId: string,
+    imageId: string,
+  ): Promise<void> {
+    await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
+    const image = await this.courtImagesRepository.findOne({
+      where: { id: imageId, courtId },
+    });
+    if (!image) {
+      throw new NotFoundException(`Ảnh ${imageId} không tồn tại`);
+    }
+    const filePath = join(getUploadsDir(), 'courts', courtId, basename(image.url));
+    await unlink(filePath).catch(() => undefined);
+    await this.courtImagesRepository.remove(image);
+  }
+
   findActiveByVenue(venueId: string): Promise<Court[]> {
     return this.courtsRepository.find({
-      where: { venueId, isActive: true },
+      where: { venueId, status: CourtStatus.ACTIVE },
     });
   }
 
@@ -104,7 +222,7 @@ export class CourtsService {
     }
 
     const court = await this.courtsRepository.findOne({
-      where: { id: courtId, isActive: true },
+      where: { id: courtId, status: CourtStatus.ACTIVE },
     });
     if (!court) {
       throw new NotFoundException(`Court ${courtId} không tồn tại`);

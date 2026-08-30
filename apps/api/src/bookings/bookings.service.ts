@@ -13,7 +13,7 @@ import { Booking, BookingStatus } from './entities/booking.entity';
 import { BookingSlot } from './entities/booking-slot.entity';
 import { CourtsService } from '../courts/courts.service';
 import { VenuesService } from '../courts/venues.service';
-import { Court } from '../courts/entities/court.entity';
+import { Court, CourtStatus } from '../courts/entities/court.entity';
 import { Venue, VenueStatus } from '../courts/entities/venue.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { generateBookingSlotStarts } from './booking-slot-generator';
@@ -67,7 +67,7 @@ export class BookingsService {
     }
 
     const court = await this.courtsService.findByIdOrThrow(dto.courtId);
-    if (!court.isActive) {
+    if (court.status !== CourtStatus.ACTIVE) {
       throw new NotFoundException(`Court ${dto.courtId} không tồn tại`);
     }
     const venue = await this.venuesService.findByIdOrThrow(court.venueId);

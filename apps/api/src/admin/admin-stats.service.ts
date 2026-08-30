@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { And, LessThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { User, UserRole, UserStatus } from '../users/entities/user.entity';
 import { Venue, VenueStatus } from '../courts/entities/venue.entity';
-import { Court } from '../courts/entities/court.entity';
+import { Court, CourtStatus } from '../courts/entities/court.entity';
 import { Booking } from '../bookings/entities/booking.entity';
 import { Payment, PaymentStatus } from '../payments/entities/payment.entity';
 import {
@@ -72,7 +72,7 @@ export class AdminStatsService {
         where: { status: VenueStatus.PENDING_APPROVAL },
       }),
       this.courtsRepository.count(),
-      this.courtsRepository.count({ where: { isActive: true } }),
+      this.courtsRepository.count({ where: { status: CourtStatus.ACTIVE } }),
       this.bookingsRepository.count({
         where: { createdAt: And(MoreThanOrEqual(todayStart), LessThan(todayEnd)) },
       }),

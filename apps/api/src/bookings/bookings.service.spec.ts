@@ -7,6 +7,7 @@ import { BookingSlot } from './entities/booking-slot.entity';
 import { CourtsService } from '../courts/courts.service';
 import { VenuesService } from '../courts/venues.service';
 import { VenueStatus } from '../courts/entities/venue.entity';
+import { CourtStatus } from '../courts/entities/court.entity';
 import { UsersService } from '../users/users.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
@@ -137,7 +138,7 @@ describe('BookingsService.create', () => {
     id: 'court-1',
     venueId: 'venue-1',
     name: 'Sân 1',
-    isActive: true,
+    status: CourtStatus.ACTIVE,
     openTime: '08:00',
     closeTime: '20:00',
     slotDurationMinutes: 60,
@@ -271,7 +272,7 @@ describe('BookingsService.create', () => {
     const { service, courtsService, venuesService } = await buildTestingModule();
     courtsService.findByIdOrThrow.mockResolvedValue({
       ...ACTIVE_COURT,
-      isActive: false,
+      status: CourtStatus.CLOSED,
     });
     venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
 

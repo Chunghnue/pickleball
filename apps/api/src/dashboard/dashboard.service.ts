@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { And, In, LessThan, MoreThanOrEqual, Repository } from 'typeorm';
-import { Court } from '../courts/entities/court.entity';
+import { Court, CourtStatus } from '../courts/entities/court.entity';
 import { Booking } from '../bookings/entities/booking.entity';
 import { Payment, PaymentStatus } from '../payments/entities/payment.entity';
 import { VenuesService } from '../courts/venues.service';
@@ -167,7 +167,7 @@ export class DashboardService {
       todayBookingsCount,
       todayRevenue,
       courts: {
-        active: courts.filter((court) => court.isActive).length,
+        active: courts.filter((court) => court.status === CourtStatus.ACTIVE).length,
         total: courts.length,
       },
       newCustomersThisMonth: newCustomerRows.length,
