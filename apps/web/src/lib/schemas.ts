@@ -74,8 +74,13 @@ export const createCourtSchema = z.object({
     .int('Phải là số nguyên')
     .min(15, 'Tối thiểu 15 phút')
     .max(240, 'Tối đa 240 phút'),
+  description: z.string().optional(),
+  capacity: z.coerce.number().int('Phải là số nguyên').min(1, 'Phải lớn hơn 0').optional(),
+  displayOrder: z.coerce.number().int('Phải là số nguyên').optional(),
 });
 export type CreateCourtInput = z.infer<typeof createCourtSchema>;
+
+export const courtStatusValues = ['active', 'maintenance', 'closed'] as const;
 
 export const updateCourtSchema = z.object({
   name: z.string().min(1, 'Vui lòng nhập tên sân').optional(),
@@ -94,6 +99,9 @@ export const updateCourtSchema = z.object({
     .min(15, 'Tối thiểu 15 phút')
     .max(240, 'Tối đa 240 phút')
     .optional(),
-  isActive: z.boolean().optional(),
+  description: z.string().optional(),
+  capacity: z.coerce.number().int('Phải là số nguyên').min(1, 'Phải lớn hơn 0').optional(),
+  displayOrder: z.coerce.number().int('Phải là số nguyên').optional(),
+  status: z.enum(courtStatusValues).optional(),
 });
 export type UpdateCourtInput = z.infer<typeof updateCourtSchema>;

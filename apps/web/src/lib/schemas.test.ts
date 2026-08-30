@@ -216,6 +216,26 @@ describe('createCourtSchema', () => {
       createCourtSchema.safeParse({ ...valid, slotDurationMinutes: 300 }).success,
     ).toBe(false);
   });
+
+  it('accepts optional description/capacity/displayOrder', () => {
+    const result = createCourtSchema.safeParse({
+      ...valid,
+      description: 'Sân ngoài trời',
+      capacity: '8',
+      displayOrder: '2',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.capacity).toBe(8);
+      expect(result.data.displayOrder).toBe(2);
+    }
+  });
+
+  it('rejects a capacity of 0', () => {
+    expect(
+      createCourtSchema.safeParse({ ...valid, capacity: 0 }).success,
+    ).toBe(false);
+  });
 });
 
 describe('updateCourtSchema', () => {
@@ -223,8 +243,22 @@ describe('updateCourtSchema', () => {
     expect(updateCourtSchema.safeParse({}).success).toBe(true);
   });
 
-  it('accepts isActive alone', () => {
-    expect(updateCourtSchema.safeParse({ isActive: false }).success).toBe(true);
+  it('accepts status alone', () => {
+    expect(
+      updateCourtSchema.safeParse({ status: 'maintenance' }).success,
+    ).toBe(true);
+  });
+
+  it('rejects a status outside the enum', () => {
+    expect(
+      updateCourtSchema.safeParse({ status: 'archived' }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a displayOrder that is not an integer', () => {
+    expect(
+      updateCourtSchema.safeParse({ displayOrder: 1.5 }).success,
+    ).toBe(false);
   });
 
   it('rejects an out-of-range slotDurationMinutes when provided', () => {
