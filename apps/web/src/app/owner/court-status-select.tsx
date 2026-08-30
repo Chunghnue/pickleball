@@ -32,6 +32,7 @@ export function CourtStatusSelect({ id, value, onChange, disabled }: CourtStatus
       value={value}
       onValueChange={(next) => onChange(next as Court["status"])}
       disabled={disabled}
+      modal={false}
     >
       <Select.Trigger
         id={id}
@@ -46,7 +47,7 @@ export function CourtStatusSelect({ id, value, onChange, disabled }: CourtStatus
         </Select.Icon>
       </Select.Trigger>
       <Select.Portal>
-        <Select.Positioner className="z-50 outline-none" sideOffset={4}>
+        <Select.Positioner className="z-[60] outline-none" sideOffset={4}>
           <Select.Popup className="w-[var(--anchor-width)] overflow-hidden rounded-lg border bg-popover py-1 shadow-lg outline-none">
             <Select.List>
               {STATUS_OPTIONS.map((option) => {
