@@ -103,16 +103,26 @@ export function CourtActions({ court, venues, onUpdated, onDeleted }: CourtActio
             </Button>
           }
         />
-        <DialogContent className="max-w-sm">
-          <DialogTitle>Xóa sân &quot;{court.name}&quot;?</DialogTitle>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Hành động này không thể hoàn tác.
-          </p>
-          <div className="mt-4 flex justify-end gap-2">
-            <DialogClose className="rounded-lg border px-2.5 py-1.5 text-sm">
+        <DialogContent className="max-w-sm p-6">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <Trash2 className="size-11 text-muted-foreground/70" strokeWidth={1.25} />
+            <DialogTitle className="text-base font-semibold">
+              Xóa sân <span className="text-blue-600">{court.name}</span>?
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Dữ liệu sân và lịch đặt liên quan sẽ không thể khôi phục.
+            </p>
+          </div>
+          <div className="mt-5 flex gap-3">
+            <DialogClose className="flex-1 rounded-lg border bg-muted/60 px-4 py-2 text-sm font-medium hover:bg-muted">
               Hủy
             </DialogClose>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex-1 gap-1.5 bg-red-600 text-white hover:bg-red-700"
+            >
+              <Trash2 className="size-4" />
               Xóa
             </Button>
           </div>
