@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import type { z } from "zod";
@@ -23,6 +23,7 @@ import {
   type UpdateCourtInput,
 } from "@/lib/schemas";
 import { getSubmitErrorMessage } from "@/lib/error-message";
+import { CourtStatusSelect } from "./court-status-select";
 import type { Court, CourtImage } from "./types";
 
 interface VenueOption {
@@ -45,12 +46,6 @@ interface CourtFormDialogEditProps {
   mode: "edit";
   court: Court;
 }
-
-const STATUS_OPTIONS: { value: Court["status"]; label: string }[] = [
-  { value: "active", label: "Hoạt động" },
-  { value: "maintenance", label: "Bảo trì" },
-  { value: "closed", label: "Tạm đóng" },
-];
 
 const SELECT_CLASS =
   "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-60";
@@ -261,17 +256,24 @@ export function CourtFormDialog(
             <div className="space-y-1.5">
               <Label htmlFor="court-status">Trạng thái</Label>
               {isEdit ? (
-                <select id="court-status" className={SELECT_CLASS} {...form.register("status")}>
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="status"
+                  control={form.control}
+                  render={({ field }) => (
+                    <CourtStatusSelect
+                      id="court-status"
+                      value={field.value ?? "active"}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
               ) : (
-                <select id="court-status" value="active" disabled className={SELECT_CLASS}>
-                  <option value="active">Hoạt động</option>
-                </select>
+                <CourtStatusSelect
+                  id="court-status"
+                  value="active"
+                  onChange={() => undefined}
+                  disabled
+                />
               )}
             </div>
           </div>
