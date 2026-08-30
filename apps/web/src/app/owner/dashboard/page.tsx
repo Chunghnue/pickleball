@@ -109,7 +109,7 @@ export default function OwnerDashboardPage() {
               href={action.href}
               className={cn(
                 buttonVariants({ variant: "outline" }),
-                "h-11 gap-2 rounded-full px-4 text-sm font-medium",
+                "h-11 gap-2 rounded-xl px-4 text-sm font-medium",
               )}
             >
               <Icon className={cn("size-4", action.color)} />
