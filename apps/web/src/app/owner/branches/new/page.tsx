@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createVenueSchema, type CreateVenueInput } from "@/lib/schemas";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 
-export default function NewVenuePage() {
+export default function NewBranchPage() {
   const router = useRouter();
   const form = useForm<CreateVenueInput>({
     resolver: zodResolver(createVenueSchema),
@@ -32,7 +32,7 @@ export default function NewVenuePage() {
     }
 
     toast.success("Đã tạo địa điểm, đang chờ admin duyệt");
-    router.push(`/owner/venues/${data.id}`);
+    router.push(`/owner/branches/${data.id}`);
   }
 
   const { errors } = form.formState;
@@ -41,7 +41,7 @@ export default function NewVenuePage() {
     <main className="flex flex-1 items-center justify-center p-8">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Thêm sân mới</CardTitle>
+          <CardTitle>Thêm chi nhánh mới</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
