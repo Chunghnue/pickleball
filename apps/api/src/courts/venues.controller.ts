@@ -42,6 +42,13 @@ export class VenuesController {
     return this.venuesService.findMineByOwner(user.userId);
   }
 
+  @Get('mine/courts')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.OWNER)
+  findAllMineCourts(@CurrentUser() user: AuthenticatedUser) {
+    return this.courtsService.findAllForOwner(user.userId);
+  }
+
   @Get('mine/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.OWNER)

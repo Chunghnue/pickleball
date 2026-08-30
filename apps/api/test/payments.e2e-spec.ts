@@ -5,7 +5,7 @@ import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
-import { Court } from '../src/courts/entities/court.entity';
+import { Court, CourtStatus } from '../src/courts/entities/court.entity';
 
 describe('Payments (e2e)', () => {
   let app: INestApplication;
@@ -73,7 +73,7 @@ describe('Payments (e2e)', () => {
         openTime: '08:00',
         closeTime: '20:00',
         slotDurationMinutes: 60,
-        isActive: true,
+        status: CourtStatus.ACTIVE,
       }),
     );
     return { venueId: venue.id, courtId: court.id };

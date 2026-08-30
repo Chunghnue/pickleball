@@ -5,7 +5,7 @@ import request from 'supertest';
 import { createTestApp, clearDatabase } from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
-import { Court } from '../src/courts/entities/court.entity';
+import { Court, CourtStatus } from '../src/courts/entities/court.entity';
 import { Booking, BookingStatus } from '../src/bookings/entities/booking.entity';
 import { Payment, PaymentStatus } from '../src/payments/entities/payment.entity';
 
@@ -113,7 +113,7 @@ describe('Admin platform stats (e2e)', () => {
         openTime: '08:00',
         closeTime: '20:00',
         slotDurationMinutes: 60,
-        isActive: true,
+        status: CourtStatus.ACTIVE,
       }),
     );
     await courtsRepo.save(
@@ -124,7 +124,7 @@ describe('Admin platform stats (e2e)', () => {
         openTime: '08:00',
         closeTime: '20:00',
         slotDurationMinutes: 60,
-        isActive: false,
+        status: CourtStatus.CLOSED,
       }),
     );
 
