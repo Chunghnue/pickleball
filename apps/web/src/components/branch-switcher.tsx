@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BarChart3, Check, ChevronRight, LayoutGrid, MapPin, Phone, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ALL_BRANCHES_ID, useBranch } from "@/lib/branch-context";
 import {
   Dialog,
   DialogClose,
@@ -19,11 +20,9 @@ interface Venue {
   isDefault: boolean;
 }
 
-const ALL_BRANCHES_ID = "all";
-
 export function BranchSwitcher() {
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [selectedId, setSelectedId] = useState(ALL_BRANCHES_ID);
+  const { selectedVenueId, setSelectedVenueId } = useBranch();
 
   useEffect(() => {
     fetch("/api/venues/mine")
@@ -32,9 +31,9 @@ export function BranchSwitcher() {
   }, []);
 
   const selectedLabel =
-    selectedId === ALL_BRANCHES_ID
+    selectedVenueId === ALL_BRANCHES_ID
       ? "Tất cả chi nhánh"
-      : (venues.find((v) => v.id === selectedId)?.name ?? "Tất cả chi nhánh");
+      : (venues.find((v) => v.id === selectedVenueId)?.name ?? "Tất cả chi nhánh");
 
   return (
     <Dialog>
@@ -55,10 +54,10 @@ export function BranchSwitcher() {
         </div>
         <div className="flex flex-col gap-2 p-4">
           <DialogClose
-            onClick={() => setSelectedId(ALL_BRANCHES_ID)}
+            onClick={() => setSelectedVenueId(ALL_BRANCHES_ID)}
             className={cn(
               "flex items-center gap-3 rounded-lg border p-3 text-left",
-              selectedId === ALL_BRANCHES_ID ? "border-blue-500 bg-blue-50" : "border-border",
+              selectedVenueId === ALL_BRANCHES_ID ? "border-blue-500 bg-blue-50" : "border-border",
             )}
           >
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
@@ -68,7 +67,7 @@ export function BranchSwitcher() {
               <span className="block text-sm font-semibold">Tất cả chi nhánh</span>
               <span className="block text-xs text-muted-foreground">Xem dữ liệu tổng hợp</span>
             </span>
-            {selectedId === ALL_BRANCHES_ID ? (
+            {selectedVenueId === ALL_BRANCHES_ID ? (
               <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
                 <Check className="size-3" />
               </span>
@@ -77,10 +76,10 @@ export function BranchSwitcher() {
           {venues.map((venue) => (
             <DialogClose
               key={venue.id}
-              onClick={() => setSelectedId(venue.id)}
+              onClick={() => setSelectedVenueId(venue.id)}
               className={cn(
                 "flex items-center gap-3 rounded-lg border p-3 text-left",
-                selectedId === venue.id ? "border-blue-500 bg-blue-50" : "border-border",
+                selectedVenueId === venue.id ? "border-blue-500 bg-blue-50" : "border-border",
               )}
             >
               <span
@@ -107,7 +106,7 @@ export function BranchSwitcher() {
                   </span>
                 ) : null}
               </span>
-              {selectedId === venue.id ? (
+              {selectedVenueId === venue.id ? (
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
                   <Check className="size-3" />
                 </span>
