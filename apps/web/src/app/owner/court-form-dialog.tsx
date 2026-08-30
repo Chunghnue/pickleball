@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import type { z } from "zod";
+import { Check, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +51,13 @@ const STATUS_OPTIONS: { value: Court["status"]; label: string }[] = [
   { value: "maintenance", label: "Bảo trì" },
   { value: "closed", label: "Tạm đóng" },
 ];
+
+const SELECT_CLASS =
+  "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-60";
+
+function RequiredMark() {
+  return <span className="text-destructive">*</span>;
+}
 
 export function CourtFormDialog(
   props: CourtFormDialogProps | CourtFormDialogEditProps,
@@ -123,129 +131,202 @@ export function CourtFormDialog(
   }
 
   const { errors } = form.formState;
+  const formId = isEdit ? `court-form-edit-${court!.id}` : "court-form-create";
 
   return (
     <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
       <DialogTrigger render={trigger} />
-      <DialogContent className="max-w-md">
-        <DialogTitle>{isEdit ? "Sửa sân" : "Thêm sân mới"}</DialogTitle>
+      <DialogContent className="max-w-lg gap-0 p-0">
+        <div className="flex items-center justify-between border-b px-6 py-4">
+          <DialogTitle className="text-lg font-semibold">
+            {isEdit ? "Sửa sân" : "Thêm sân mới"}
+          </DialogTitle>
+          <DialogClose
+            className="text-muted-foreground outline-none hover:text-foreground"
+            aria-label="Đóng"
+          >
+            <X className="size-5" />
+          </DialogClose>
+        </div>
+
         <form
+          id={formId}
           onSubmit={form.handleSubmit(onSubmit)}
-          className="mt-4 flex max-h-[70vh] flex-col gap-4 overflow-y-auto"
+          className="flex max-h-[65vh] flex-col gap-5 overflow-y-auto px-6 py-5"
         >
-          <div className="space-y-2">
-            <Label htmlFor="court-venue">Chi nhánh</Label>
-            <select
-              id="court-venue"
-              value={venueId}
-              onChange={(event) => setVenueId(event.target.value)}
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none"
-            >
-              <option value="" disabled>
-                Chọn chi nhánh
-              </option>
-              {venues.map((venue) => (
-                <option key={venue.id} value={venue.id}>
-                  {venue.name}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="court-venue">
+                Chi nhánh <RequiredMark />
+              </Label>
+              <select
+                id="court-venue"
+                value={venueId}
+                onChange={(event) => setVenueId(event.target.value)}
+                className={SELECT_CLASS}
+              >
+                <option value="" disabled>
+                  -- Chọn chi nhánh --
                 </option>
-              ))}
+                {venues.map((venue) => (
+                  <option key={venue.id} value={venue.id}>
+                    {venue.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="court-name">
+                Tên sân <RequiredMark />
+              </Label>
+              <Input
+                id="court-name"
+                placeholder="VD: Sân A1"
+                aria-invalid={!!errors.name}
+                {...form.register("name")}
+              />
+              {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="court-sport">
+              Loại môn thể thao <RequiredMark />
+            </Label>
+            <select id="court-sport" value="pickleball" disabled className={SELECT_CLASS}>
+              <option value="pickleball">Pickleball</option>
             </select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="court-name">Tên sân</Label>
-            <Input id="court-name" aria-invalid={!!errors.name} {...form.register("name")} />
-            {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="court-price">Giá/giờ (VNĐ)</Label>
-            <Input
-              id="court-price"
-              type="number"
-              step="1000"
-              aria-invalid={!!errors.pricePerHour}
-              {...form.register("pricePerHour")}
-            />
-            {errors.pricePerHour && (
-              <p className="text-sm text-destructive">{errors.pricePerHour.message}</p>
-            )}
-          </div>
-          <div className="flex gap-4">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="court-open">Giờ mở cửa</Label>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="court-open">
+                Giờ mở cửa <RequiredMark />
+              </Label>
               <Input id="court-open" type="time" {...form.register("openTime")} />
               {errors.openTime && (
                 <p className="text-sm text-destructive">{errors.openTime.message}</p>
               )}
             </div>
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="court-close">Giờ đóng cửa</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="court-close">
+                Giờ đóng cửa <RequiredMark />
+              </Label>
               <Input id="court-close" type="time" {...form.register("closeTime")} />
               {errors.closeTime && (
                 <p className="text-sm text-destructive">{errors.closeTime.message}</p>
               )}
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="court-slot">Độ dài khung giờ (phút)</Label>
-            <Input id="court-slot" type="number" {...form.register("slotDurationMinutes")} />
-            {errors.slotDurationMinutes && (
-              <p className="text-sm text-destructive">{errors.slotDurationMinutes.message}</p>
-            )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="court-price">
+                Giá/giờ (VNĐ) <RequiredMark />
+              </Label>
+              <Input
+                id="court-price"
+                type="number"
+                step="1000"
+                aria-invalid={!!errors.pricePerHour}
+                {...form.register("pricePerHour")}
+              />
+              {errors.pricePerHour && (
+                <p className="text-sm text-destructive">{errors.pricePerHour.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="court-slot">
+                Độ dài khung giờ (phút) <RequiredMark />
+              </Label>
+              <Input id="court-slot" type="number" {...form.register("slotDurationMinutes")} />
+              {errors.slotDurationMinutes && (
+                <p className="text-sm text-destructive">{errors.slotDurationMinutes.message}</p>
+              )}
+            </div>
           </div>
-          <div className="flex gap-4">
-            <div className="flex-1 space-y-2">
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1.5">
               <Label htmlFor="court-capacity">Sức chứa</Label>
               <Input id="court-capacity" type="number" {...form.register("capacity")} />
               {errors.capacity && (
                 <p className="text-sm text-destructive">{errors.capacity.message}</p>
               )}
             </div>
-            <div className="flex-1 space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="court-order">Thứ tự</Label>
               <Input id="court-order" type="number" {...form.register("displayOrder")} />
             </div>
-          </div>
-          {isEdit && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="court-status">Trạng thái</Label>
-              <select
-                id="court-status"
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none"
-                {...form.register("status")}
-              >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              {isEdit ? (
+                <select id="court-status" className={SELECT_CLASS} {...form.register("status")}>
+                  {STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <select id="court-status" value="active" disabled className={SELECT_CLASS}>
+                  <option value="active">Hoạt động</option>
+                </select>
+              )}
             </div>
-          )}
-          <div className="space-y-2">
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="court-description">Mô tả sân</Label>
             <textarea
               id="court-description"
               rows={3}
+              placeholder="Cỏ nhân tạo, đèn chiếu sáng, sàn gỗ..."
               className="w-full rounded-lg border border-input bg-transparent p-2.5 text-sm outline-none"
               {...form.register("description")}
             />
           </div>
-          {isEdit && (
+
+          {isEdit ? (
             <CourtImagesField
               venueId={venueId}
               courtId={court!.id}
               initialImages={court!.images}
             />
+          ) : (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Ảnh sân (tối đa 5MB/ảnh, JPG/PNG/WEBP)</Label>
+                <span className="text-xs text-muted-foreground">0 ảnh</span>
+              </div>
+              <div
+                className="flex size-20 flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-muted-foreground opacity-60"
+                title="Lưu sân trước khi thêm ảnh"
+              >
+                <Plus className="size-5" />
+                <span className="text-xs">Thêm ảnh</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Lưu sân trước, sau đó mở lại để thêm ảnh.
+              </p>
+            </div>
           )}
-          <div className="flex justify-end gap-2 pt-2">
-            <DialogClose className="rounded-lg border px-2.5 py-1.5 text-sm">
-              Hủy
-            </DialogClose>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              Lưu sân
-            </Button>
-          </div>
         </form>
+
+        <div className="flex justify-end gap-2 border-t px-6 py-4">
+          <DialogClose className="rounded-lg border px-4 py-2 text-sm font-medium">
+            Hủy
+          </DialogClose>
+          <Button
+            type="submit"
+            form={formId}
+            disabled={form.formState.isSubmitting}
+            className="gap-1.5 bg-blue-600 text-white hover:bg-blue-700"
+          >
+            <Check className="size-4" />
+            Lưu sân
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -295,32 +376,40 @@ function CourtImagesField({ venueId, courtId, initialImages }: CourtImagesFieldP
   }
 
   return (
-    <div className="space-y-2">
-      <Label>Ảnh sân</Label>
-      {images.length === 0 && (
-        <p className="text-sm text-muted-foreground">Chưa có ảnh nào.</p>
-      )}
-      <ul className="flex flex-wrap gap-2">
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label>Ảnh sân (tối đa 5MB/ảnh, JPG/PNG/WEBP)</Label>
+        <span className="text-xs text-muted-foreground">{images.length} ảnh</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
         {images.map((image) => (
-          <li key={image.id} className="relative">
-            <img src={image.url} alt="" className="size-16 rounded object-cover" />
+          <div key={image.id} className="relative">
+            <img src={image.url} alt="" className="size-20 rounded-lg object-cover" />
             <button
               type="button"
               onClick={() => handleRemove(image.id)}
-              className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground"
+              className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground"
               aria-label="Xóa ảnh"
             >
-              ×
+              <X className="size-3" />
             </button>
-          </li>
+          </div>
         ))}
-      </ul>
-      <input
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        onChange={handleUpload}
-        disabled={uploading}
-      />
+        <label
+          className="flex size-20 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-muted-foreground hover:border-foreground hover:text-foreground"
+          aria-disabled={uploading}
+        >
+          <Plus className="size-5" />
+          <span className="text-xs">Thêm ảnh</span>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleUpload}
+            disabled={uploading}
+            className="hidden"
+          />
+        </label>
+      </div>
     </div>
   );
 }

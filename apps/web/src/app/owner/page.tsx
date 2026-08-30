@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Grid3x3, List, Plus, Search, Volleyball } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { ALL_BRANCHES_ID, useBranch } from "@/lib/branch-context";
 import { CourtMetrics } from "./court-metrics";
 import { CourtTable } from "./court-table";
@@ -25,6 +28,7 @@ export default function OwnerCourtsPage() {
   const [courts, setCourts] = useState<(Court | CourtWithVenueName)[] | null>(null);
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [sportTab, setSportTab] = useState<"all" | "pickleball">("all");
 
   useEffect(() => {
     const stored = localStorage.getItem(VIEW_STORAGE_KEY);
@@ -74,6 +78,9 @@ export default function OwnerCourtsPage() {
     );
   }, [courts, search]);
 
+  const total = courts?.length ?? 0;
+  const activeCount = courts?.filter((court) => court.status === "active").length ?? 0;
+
   function handleCourtCreated(court: Court) {
     setCourts((previous) => (previous ? [...previous, court] : [court]));
   }
@@ -93,14 +100,24 @@ export default function OwnerCourtsPage() {
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Danh sách sân</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Quản lý sân</h1>
+          <p className="text-sm text-muted-foreground">
+            Tổng cộng {total} sân · {activeCount} hoạt động
+          </p>
+        </div>
         {venues.length > 0 && (
           <CourtFormDialog
             mode="create"
             venues={venues}
             defaultVenueId={selectedVenueId === ALL_BRANCHES_ID ? undefined : selectedVenueId}
             onSaved={handleCourtCreated}
-            trigger={<Button>+ Thêm sân mới</Button>}
+            trigger={
+              <Button className="h-10 gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">
+                <Plus className="size-4" />
+                Thêm sân mới
+              </Button>
+            }
           />
         )}
       </div>
@@ -117,44 +134,91 @@ export default function OwnerCourtsPage() {
 
       {courts && <CourtMetrics courts={courts} />}
 
-      <div className="flex items-center justify-between gap-4">
-        <input
-          type="text"
-          placeholder="Tìm theo tên hoặc mô tả..."
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          className="h-9 max-w-sm flex-1 rounded-md border bg-background px-3 text-sm outline-none"
-        />
-        <div className="flex gap-1 rounded-md border p-1">
-          <button
-            type="button"
-            onClick={() => changeViewMode("table")}
-            className={`rounded px-2 py-1 text-sm ${viewMode === "table" ? "bg-muted font-medium" : ""}`}
-          >
-            Bảng
-          </button>
-          <button
-            type="button"
-            onClick={() => changeViewMode("grid")}
-            className={`rounded px-2 py-1 text-sm ${viewMode === "grid" ? "bg-muted font-medium" : ""}`}
-          >
-            Lưới
-          </button>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setSportTab("all")}
+              className={cn(
+                "rounded-full px-4 py-1.5 text-sm font-medium",
+                sportTab === "all"
+                  ? "bg-blue-600 text-white"
+                  : "border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              Tất cả ({total})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSportTab("pickleball")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium",
+                sportTab === "pickleball"
+                  ? "bg-blue-600 text-white"
+                  : "border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              <Volleyball className="size-3.5 text-pink-500" />
+              Pickleball ({total})
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Tìm tên sân, mô tả..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="h-10 w-full rounded-lg border bg-muted/40 pl-9 pr-3 text-sm outline-none"
+              />
+            </div>
+            <div className="flex h-10 gap-1 rounded-lg border p-1">
+              <button
+                type="button"
+                onClick={() => changeViewMode("grid")}
+                aria-label="Dạng lưới"
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-md",
+                  viewMode === "grid" ? "bg-blue-600 text-white" : "text-muted-foreground",
+                )}
+              >
+                <Grid3x3 className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => changeViewMode("table")}
+                aria-label="Dạng bảng"
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-md",
+                  viewMode === "table" ? "bg-blue-600 text-white" : "text-muted-foreground",
+                )}
+              >
+                <List className="size-4" />
+              </button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {courts === null && <p>Đang tải...</p>}
       {courts !== null && filteredCourts.length === 0 && (
         <p className="text-muted-foreground">Không tìm thấy sân nào.</p>
       )}
       {courts !== null && filteredCourts.length > 0 && viewMode === "table" && (
-        <CourtTable
-          courts={filteredCourts}
-          venues={venues}
-          showVenueColumn={selectedVenueId === ALL_BRANCHES_ID}
-          onUpdated={handleCourtUpdated}
-          onDeleted={handleCourtDeleted}
-        />
+        <Card>
+          <CardContent className="p-0">
+            <CourtTable
+              courts={filteredCourts}
+              venues={venues}
+              showVenueColumn={selectedVenueId === ALL_BRANCHES_ID}
+              onUpdated={handleCourtUpdated}
+              onDeleted={handleCourtDeleted}
+            />
+          </CardContent>
+        </Card>
       )}
       {courts !== null && filteredCourts.length > 0 && viewMode === "grid" && (
         <CourtGrid

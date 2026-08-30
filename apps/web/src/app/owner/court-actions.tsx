@@ -27,6 +27,13 @@ interface CourtActionsProps {
   onDeleted: (courtId: string) => void;
 }
 
+const VIEW_CLASS =
+  "border-teal-300 text-teal-600 hover:bg-teal-50 dark:border-teal-800 dark:text-teal-400 dark:hover:bg-teal-950/40";
+const EDIT_CLASS =
+  "border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/40";
+const DELETE_CLASS =
+  "border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40";
+
 export function CourtActions({ court, venues, onUpdated, onDeleted }: CourtActionsProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -57,10 +64,12 @@ export function CourtActions({ court, venues, onUpdated, onDeleted }: CourtActio
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1.5">
       <Button
         variant="outline"
         size="icon-sm"
+        className={VIEW_CLASS}
+        nativeButton={false}
         render={<Link href={`/owner/pricing?courtId=${court.id}`} aria-label="Xem bảng giá" />}
       >
         <Eye className="size-3.5" />
@@ -71,7 +80,12 @@ export function CourtActions({ court, venues, onUpdated, onDeleted }: CourtActio
         venues={venues}
         onSaved={onUpdated}
         trigger={
-          <Button variant="outline" size="icon-sm" aria-label="Sửa sân">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            className={EDIT_CLASS}
+            aria-label="Sửa sân"
+          >
             <Pencil className="size-3.5" />
           </Button>
         }
@@ -79,7 +93,12 @@ export function CourtActions({ court, venues, onUpdated, onDeleted }: CourtActio
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogTrigger
           render={
-            <Button variant="destructive" size="icon-sm" aria-label="Xóa sân">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              className={DELETE_CLASS}
+              aria-label="Xóa sân"
+            >
               <Trash2 className="size-3.5" />
             </Button>
           }
