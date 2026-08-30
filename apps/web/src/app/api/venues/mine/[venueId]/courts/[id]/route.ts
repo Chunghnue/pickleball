@@ -19,3 +19,17 @@ export async function PATCH(
   }
   return toNextResponse(upstream);
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ venueId: string; id: string }> },
+) {
+  const { venueId, id } = await params;
+  const upstream = await fetchApi(`/venues/mine/${venueId}/courts/${id}`, {
+    method: 'DELETE',
+  });
+  if (upstream.status === 401) {
+    await clearAuthCookies();
+  }
+  return toNextResponse(upstream);
+}

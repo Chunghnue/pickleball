@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -53,6 +54,17 @@ export class CourtsController {
     @Body() dto: UpdateCourtDto,
   ) {
     return this.courtsService.update(user.userId, venueId, id, dto);
+  }
+
+  @Delete('venues/mine/:venueId/courts/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.OWNER)
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('venueId') venueId: string,
+    @Param('id') id: string,
+  ) {
+    return this.courtsService.remove(user.userId, venueId, id);
   }
 
   @Get('courts/:id/slots')
