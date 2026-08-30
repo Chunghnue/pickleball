@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { VenueInfoSection } from "./venue-info-section";
 import { VenueImagesSection } from "./venue-images-section";
-import { CourtsSection } from "./courts-section";
 import { BookingsSection } from "./bookings-section";
-import type { Court, Venue } from "./types";
+import type { Court, Venue } from "../../types";
 
-export default function OwnerVenueDetailPage() {
+export default function OwnerBranchDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [venue, setVenue] = useState<Venue | null>(null);
@@ -18,11 +17,11 @@ export default function OwnerVenueDetailPage() {
     fetch(`/api/venues/mine/${params.id}`)
       .then(async (res) => {
         if (res.status === 401) {
-          router.push(`/login?returnTo=%2Fowner%2Fvenues%2F${params.id}`);
+          router.push(`/login?returnTo=%2Fowner%2Fbranches%2F${params.id}`);
           return null;
         }
         if (res.status === 404) {
-          router.push("/owner");
+          router.push("/owner/branches");
           return null;
         }
         return (await res.json()) as Venue;
@@ -58,16 +57,7 @@ export default function OwnerVenueDetailPage() {
         images={venue.images}
         onImagesChanged={(images) => setVenue({ ...venue, images })}
       />
-      {courts && (
-        <>
-          <CourtsSection
-            venueId={venue.id}
-            courts={courts}
-            onCourtsChanged={setCourts}
-          />
-          <BookingsSection venueId={venue.id} courts={courts} />
-        </>
-      )}
+      {courts && <BookingsSection venueId={venue.id} courts={courts} />}
     </main>
   );
 }

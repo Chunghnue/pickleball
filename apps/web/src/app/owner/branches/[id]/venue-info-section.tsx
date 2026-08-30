@@ -10,7 +10,7 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { updateVenueSchema, type UpdateVenueInput } from "@/lib/schemas";
 import { getSubmitErrorMessage } from "@/lib/error-message";
-import type { Venue } from "./types";
+import type { Venue } from "../../types";
 
 interface VenueInfoSectionProps {
   venue: Venue;

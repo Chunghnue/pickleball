@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { STATUS_LABEL, type BookingStatus } from "@/app/owner/venues/[id]/bookings-section";
+import { STATUS_LABEL, type BookingStatus } from "@/app/owner/branches/[id]/bookings-section";
 
 interface RecentBooking {
   id: string;

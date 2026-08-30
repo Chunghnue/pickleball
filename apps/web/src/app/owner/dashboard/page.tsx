@@ -14,7 +14,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getGreeting } from "@/lib/greeting";
-import type { BookingStatus } from "@/app/owner/venues/[id]/bookings-section";
+import type { BookingStatus } from "@/app/owner/branches/[id]/bookings-section";
 import { StatCards } from "./stat-cards";
 import { RevenueChart } from "./revenue-chart";
 import { CourtRevenueChart } from "./court-revenue-chart";

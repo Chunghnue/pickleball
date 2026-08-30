@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSubmitErrorMessage } from "@/lib/error-message";
-import type { Court } from "./types";
+import type { Court } from "../../types";
 
 export type BookingStatus = "confirmed" | "cancelled" | "completed";
 type PaymentStatus = "unpaid" | "paid" | "refunded";
