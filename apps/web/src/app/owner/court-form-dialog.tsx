@@ -96,6 +96,27 @@ export function CourtFormDialog(
   const [venueId, setVenueId] = useState(
     isEdit ? court!.venueId : defaultVenueId ?? "",
   );
+  const [pendingImages, setPendingImages] = useState<{ file: File; url: string }[]>([]);
+
+  function addPendingImage(file: File) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Chỉ chấp nhận ảnh JPG/PNG/WEBP");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ảnh tối đa 5MB");
+      return;
+    }
+    setPendingImages((previous) => [...previous, { file, url: URL.createObjectURL(file) }]);
+  }
+
+  function removePendingImage(index: number) {
+    setPendingImages((previous) => {
+      const target = previous[index];
+      if (target) URL.revokeObjectURL(target.url);
+      return previous.filter((_, i) => i !== index);
+    });
+  }
 
   async function onSubmit(values: CreateCourtInput | UpdateCourtInput) {
     if (!venueId) {
@@ -117,8 +138,34 @@ export function CourtFormDialog(
       return;
     }
 
+    let savedCourt = data as Court;
+
+    if (!isEdit && pendingImages.length > 0) {
+      const uploadedImages: CourtImage[] = [];
+      for (const pending of pendingImages) {
+        const formData = new FormData();
+        formData.append("file", pending.file);
+        const uploadResponse = await fetch(
+          `/api/venues/mine/${venueId}/courts/${savedCourt.id}/images`,
+          { method: "POST", body: formData },
+        );
+        const uploadData = await uploadResponse.json().catch(() => null);
+        if (uploadResponse.ok) {
+          uploadedImages.push(uploadData as CourtImage);
+        }
+      }
+      if (uploadedImages.length < pendingImages.length) {
+        toast.error(
+          `Đã tạo sân nhưng chỉ tải lên được ${uploadedImages.length}/${pendingImages.length} ảnh`,
+        );
+      }
+      savedCourt = { ...savedCourt, images: uploadedImages };
+      pendingImages.forEach((pending) => URL.revokeObjectURL(pending.url));
+      setPendingImages([]);
+    }
+
     toast.success(isEdit ? "Đã lưu thay đổi" : "Đã thêm sân");
-    onSaved(data as Court);
+    onSaved(savedCourt);
     if (!isEdit) {
       form.reset();
     }
@@ -299,17 +346,39 @@ export function CourtFormDialog(
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Ảnh sân (tối đa 5MB/ảnh, JPG/PNG/WEBP)</Label>
-                <span className="text-xs text-muted-foreground">0 ảnh</span>
+                <span className="text-xs text-muted-foreground">{pendingImages.length} ảnh</span>
               </div>
-              <div
-                className="flex size-20 flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-muted-foreground opacity-60"
-                title="Lưu sân trước khi thêm ảnh"
-              >
-                <Plus className="size-5" />
-                <span className="text-xs">Thêm ảnh</span>
+              <div className="flex flex-wrap gap-2">
+                {pendingImages.map((image, index) => (
+                  <div key={image.url} className="relative">
+                    <img src={image.url} alt="" className="size-20 rounded-lg object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePendingImage(index)}
+                      className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground"
+                      aria-label="Xóa ảnh"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+                <label className="flex size-20 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-muted-foreground hover:border-foreground hover:text-foreground">
+                  <Plus className="size-5" />
+                  <span className="text-xs">Thêm ảnh</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (file) addPendingImage(file);
+                    }}
+                    className="hidden"
+                  />
+                </label>
               </div>
               <p className="text-xs text-muted-foreground">
-                Lưu sân trước, sau đó mở lại để thêm ảnh.
+                Ảnh sẽ được tải lên ngay sau khi bạn lưu sân.
               </p>
             </div>
           )}
