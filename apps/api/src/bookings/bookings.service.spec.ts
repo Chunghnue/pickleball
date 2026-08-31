@@ -13,6 +13,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
+import { buildBookingCode } from './booking-code.util';
 
 const mockBookingsRepository = () => {
   const queryBuilder = {
@@ -576,12 +577,36 @@ describe('BookingsService.findByVenueForOwner', () => {
         customerId: 'customer-1',
         customerName: 'Nguyễn Văn A',
         customerPhone: '0900000000',
+        bookingCode: buildBookingCode('booking-1'),
         paymentStatus: PaymentStatus.UNPAID,
         paymentNote: null,
         paidAt: null,
         refundedAt: null,
       },
     ]);
+  });
+
+  it('resolves customer name/phone from customer_contacts for walk-in bookings', async () => {
+    const { service, bookingsRepo, courtsService, customerContactsService, paymentsService } =
+      await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
+    bookingsRepo.find.mockResolvedValue([
+      { id: 'booking-2', customerId: null, customerContactId: 'contact-1' },
+    ]);
+    customerContactsService.findById.mockResolvedValue({
+      id: 'contact-1',
+      fullName: 'Khách vãng lai',
+      phone: '0922222222',
+    });
+    paymentsService.findByBookingId.mockResolvedValue(null);
+
+    const result = await service.findByVenueForOwner('owner-1', 'venue-1', {});
+
+    expect(result[0]).toMatchObject({
+      customerName: 'Khách vãng lai',
+      customerPhone: '0922222222',
+      bookingCode: buildBookingCode('booking-2'),
+    });
   });
 
   it('filters to a single court when courtId is provided', async () => {

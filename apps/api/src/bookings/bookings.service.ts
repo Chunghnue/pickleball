@@ -24,6 +24,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
+import { buildBookingCode } from './booking-code.util';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const UNIQUE_VIOLATION_CODE = '23505';
@@ -38,6 +39,7 @@ type BookingWithCourtInfo = Booking & { courtName: string; venueName: string } &
 type BookingWithCustomerInfo = Booking & {
   customerName: string;
   customerPhone: string | null;
+  bookingCode: string;
 } & PaymentInfo;
 
 @Injectable()
@@ -294,17 +296,30 @@ export class BookingsService {
 
     return Promise.all(
       bookings.map(async (booking) => {
-        const customer = booking.customerId
-          ? await this.usersService.findById(booking.customerId)
-          : null;
+        const { name, phone } = await this.resolveCustomerDisplay(booking);
         const withPayment = await this.attachPaymentInfo(booking);
         return {
           ...withPayment,
-          customerName: customer?.fullName ?? 'Không rõ',
-          customerPhone: customer?.phone ?? null,
+          customerName: name,
+          customerPhone: phone,
+          bookingCode: buildBookingCode(booking.id),
         };
       }),
     );
+  }
+
+  private async resolveCustomerDisplay(
+    booking: Booking,
+  ): Promise<{ name: string; phone: string | null }> {
+    if (booking.customerId) {
+      const customer = await this.usersService.findById(booking.customerId);
+      return { name: customer?.fullName ?? 'Không rõ', phone: customer?.phone ?? null };
+    }
+    if (booking.customerContactId) {
+      const contact = await this.customerContactsService.findById(booking.customerContactId);
+      return { name: contact?.fullName ?? 'Không rõ', phone: contact?.phone ?? null };
+    }
+    return { name: 'Không rõ', phone: null };
   }
 
   async cancelByOwner(
