@@ -14,6 +14,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DisputesModule } from './disputes/disputes.module';
+import { CustomerContactsModule } from './customer-contacts/customer-contacts.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { DisputesModule } from './disputes/disputes.module';
     DashboardModule,
     NotificationsModule,
     DisputesModule,
+    CustomerContactsModule,
   ],
   controllers: [AppController],
   providers: [
