@@ -7,6 +7,7 @@ import { WeekDayNav } from "./week-day-nav";
 import { StatusBar } from "./status-bar";
 import { BookingGrid } from "./booking-grid";
 import { QuickBookDialog } from "./quick-book-dialog";
+import { BookingDetailDialog } from "./booking-detail-dialog";
 import type { Court } from "../types";
 import type { OwnerBooking } from "./types";
 
@@ -110,6 +111,7 @@ export default function OwnerBookingsPage() {
   const [quickBook, setQuickBook] = useState<{ courtId?: string; hour?: string; max?: number } | null>(
     null,
   );
+  const [detail, setDetail] = useState<OwnerBooking | null>(null);
 
   function handleCellClick(
     court: Court,
@@ -132,7 +134,11 @@ export default function OwnerBookingsPage() {
         gridBookings,
       );
       setQuickBook({ courtId: court.id, hour, max });
+      return;
     }
+    if (state === "unavailable") return;
+    const found = bookings.find((b) => bookingIds.includes(b.id));
+    if (found) setDetail(found);
   }
 
   return (
@@ -179,6 +185,18 @@ export default function OwnerBookingsPage() {
         onCreated={() => {
           setQuickBook(null);
           loadBookings();
+        }}
+      />
+
+      <BookingDetailDialog
+        open={detail !== null}
+        onOpenChange={(open) => !open && setDetail(null)}
+        venueId={venueId}
+        booking={detail}
+        court={courts.find((c) => c.id === detail?.courtId) ?? null}
+        onUpdated={(updated) => {
+          setDetail(updated);
+          setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)));
         }}
       />
     </main>
