@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { STATUS_LABEL, type BookingStatus } from "@/app/owner/branches/[id]/bookings-section";
+import type { BookingStatus } from "@/app/owner/bookings/types";
 
 interface RecentBooking {
   id: string;
@@ -44,6 +44,12 @@ const STATUS_BADGE_CLASS: Record<BookingStatus, string> = {
   confirmed: "bg-blue-600 text-white",
   cancelled: "bg-red-600 text-white",
   completed: "bg-green-600 text-white",
+};
+
+const STATUS_LABEL: Record<BookingStatus, string> = {
+  confirmed: "Đã xác nhận",
+  cancelled: "Đã huỷ",
+  completed: "Hoàn thành",
 };
 
 export function RecentBookings({ recentBookings }: RecentBookingsProps) {

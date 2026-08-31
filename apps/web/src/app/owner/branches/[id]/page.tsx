@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { VenueInfoSection } from "./venue-info-section";
 import { VenueImagesSection } from "./venue-images-section";
-import { BookingsSection } from "./bookings-section";
 import type { Court, Venue } from "../../types";
 
 export default function OwnerBranchDetailPage() {
@@ -57,7 +56,6 @@ export default function OwnerBranchDetailPage() {
         images={venue.images}
         onImagesChanged={(images) => setVenue({ ...venue, images })}
       />
-      {courts && <BookingsSection venueId={venue.id} courts={courts} />}
     </main>
   );
 }
