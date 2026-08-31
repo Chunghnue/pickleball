@@ -21,8 +21,11 @@ export class Booking {
   @Column({ name: 'court_id' })
   courtId: string;
 
-  @Column({ name: 'customer_id' })
-  customerId: string;
+  @Column({ name: 'customer_id', nullable: true, type: 'varchar' })
+  customerId: string | null;
+
+  @Column({ name: 'customer_contact_id', nullable: true, type: 'varchar' })
+  customerContactId: string | null;
 
   @Column({ type: 'date' })
   date: string;

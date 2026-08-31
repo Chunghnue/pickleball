@@ -231,7 +231,9 @@ export class BookingsService {
 
     return Promise.all(
       bookings.map(async (booking) => {
-        const customer = await this.usersService.findById(booking.customerId);
+        const customer = booking.customerId
+          ? await this.usersService.findById(booking.customerId)
+          : null;
         const withPayment = await this.attachPaymentInfo(booking);
         return {
           ...withPayment,
@@ -339,16 +341,18 @@ export class BookingsService {
       return savedBooking;
     });
 
-    const customer = await this.usersService.findById(booking.customerId);
-    await this.notificationsService.notifyBookingCancelled({
-      to: customer?.email ?? '',
-      venueName: venue.name,
-      courtName: court.name,
-      date: booking.date,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      cancelledBy: cancelledBy === booking.customerId ? 'customer' : 'owner',
-    });
+    if (booking.customerId) {
+      const customer = await this.usersService.findById(booking.customerId);
+      await this.notificationsService.notifyBookingCancelled({
+        to: customer?.email ?? '',
+        venueName: venue.name,
+        courtName: court.name,
+        date: booking.date,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        cancelledBy: cancelledBy === booking.customerId ? 'customer' : 'owner',
+      });
+    }
 
     return saved;
   }

@@ -65,14 +65,16 @@ export class PaymentsService {
     if (note !== undefined) payment.note = note;
     const saved = await this.paymentsRepository.save(payment);
 
-    const customer = await this.usersService.findById(booking.customerId);
-    await this.notificationsService.notifyPaymentConfirmed({
-      to: customer?.email ?? '',
-      date: booking.date,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      totalPrice: booking.totalPrice,
-    });
+    if (booking.customerId) {
+      const customer = await this.usersService.findById(booking.customerId);
+      await this.notificationsService.notifyPaymentConfirmed({
+        to: customer?.email ?? '',
+        date: booking.date,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        totalPrice: booking.totalPrice,
+      });
+    }
 
     return saved;
   }
@@ -117,14 +119,16 @@ export class PaymentsService {
     if (note !== undefined) payment.note = note;
     const saved = await this.paymentsRepository.save(payment);
 
-    const customer = await this.usersService.findById(booking.customerId);
-    await this.notificationsService.notifyPaymentRefunded({
-      to: customer?.email ?? '',
-      date: booking.date,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      totalPrice: booking.totalPrice,
-    });
+    if (booking.customerId) {
+      const customer = await this.usersService.findById(booking.customerId);
+      await this.notificationsService.notifyPaymentRefunded({
+        to: customer?.email ?? '',
+        date: booking.date,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        totalPrice: booking.totalPrice,
+      });
+    }
 
     return saved;
   }
