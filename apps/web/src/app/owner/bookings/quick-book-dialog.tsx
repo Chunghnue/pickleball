@@ -235,8 +235,8 @@ export function QuickBookDialog({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="VD: Cần thuê áo đấu..."
-              rows={2}
-              className="w-full rounded-lg border border-input bg-transparent p-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+              rows={1}
+              className="h-11 w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring"
             />
           </div>
 
