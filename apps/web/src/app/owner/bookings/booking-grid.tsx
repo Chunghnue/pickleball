@@ -44,27 +44,32 @@ export function BookingGrid({ courts, bookings, now, onCellClick }: BookingGridP
 
   return (
     <div className="overflow-x-auto">
-      <table className="border-collapse text-sm">
+      <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="bg-muted/40">
+          <tr>
             <th className="w-16 border-b p-2 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               Giờ
             </th>
-            {courts.map((court) => (
-              <th key={court.id} className="w-44 border-b p-2 text-left">
-                <span className="inline-flex items-center gap-1.5 font-semibold">
-                  <span className="size-2 shrink-0 rounded-full bg-pink-500" />
-                  {court.name}
-                </span>
-              </th>
-            ))}
+            <th colSpan={courts.length} className="border-b p-2 text-left">
+              <div className="flex flex-wrap gap-6">
+                {courts.map((court) => (
+                  <span
+                    key={court.id}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold"
+                  >
+                    <span className="size-2 shrink-0 rounded-full bg-pink-500" />
+                    {court.name}
+                  </span>
+                ))}
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
           {hours.map((hour) => (
             <tr key={hour}>
               <td
-                className={`border-b p-2 ${
+                className={`w-16 border-b p-2 ${
                   isCurrentHour(hour, now)
                     ? "font-semibold text-blue-600"
                     : "text-muted-foreground"
