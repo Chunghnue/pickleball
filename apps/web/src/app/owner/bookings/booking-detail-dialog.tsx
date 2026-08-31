@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Clock, Phone, User, X } from "lucide-react";
+import { Banknote, Clock, Phone, Undo2, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -157,15 +157,39 @@ export function BookingDetailDialog({
             <p className="text-sm text-muted-foreground">Ghi chú: {booking.note}</p>
           )}
 
-          <div className="flex flex-col gap-2 border-t pt-3 text-sm">
-            <p>
-              <span className="text-muted-foreground"># Mã booking: </span>
-              <span className="font-semibold">{booking.bookingCode}</span>
-            </p>
-            <p className="text-muted-foreground">
-              {PAYMENT_STATUS_LABEL[booking.paymentStatus]}
-              {booking.paymentNote ? ` · ${booking.paymentNote}` : ""}
-            </p>
+          <p className="border-t pt-3 text-sm">
+            <span className="text-muted-foreground"># Mã booking: </span>
+            <span className="font-semibold">{booking.bookingCode}</span>
+          </p>
+
+          <div className="flex items-center justify-between rounded-lg border px-4 py-3 text-sm">
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <Banknote className="size-4 shrink-0" />
+              <span>
+                {PAYMENT_STATUS_LABEL[booking.paymentStatus]}
+                {booking.paymentNote ? ` · ${booking.paymentNote}` : ""}
+              </span>
+            </span>
+            {!showPaymentNote && booking.paymentStatus === "unpaid" && (
+              <Button
+                size="sm"
+                onClick={() => setShowPaymentNote("pay")}
+                className="h-8 gap-1.5 rounded-lg bg-green-600 px-3 text-white hover:bg-green-700"
+              >
+                <Banknote className="size-3.5" />
+                Đã nhận tiền
+              </Button>
+            )}
+            {!showPaymentNote && booking.paymentStatus === "paid" && (
+              <Button
+                size="sm"
+                onClick={() => setShowPaymentNote("refund")}
+                className="h-8 gap-1.5 rounded-lg border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:bg-transparent dark:text-amber-400 dark:hover:bg-amber-950/40"
+              >
+                <Undo2 className="size-3.5" />
+                Hoàn tiền
+              </Button>
+            )}
           </div>
 
           {showPaymentNote && (
@@ -183,16 +207,6 @@ export function BookingDetailDialog({
                 Thôi
               </Button>
             </div>
-          )}
-          {!showPaymentNote && booking.paymentStatus === "unpaid" && (
-            <Button size="sm" variant="outline" onClick={() => setShowPaymentNote("pay")}>
-              Đã nhận tiền
-            </Button>
-          )}
-          {!showPaymentNote && booking.paymentStatus === "paid" && (
-            <Button size="sm" variant="outline" onClick={() => setShowPaymentNote("refund")}>
-              Đánh dấu đã hoàn tiền
-            </Button>
           )}
         </div>
 
