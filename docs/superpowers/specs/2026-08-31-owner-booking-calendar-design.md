@@ -14,6 +14,8 @@
 
 Xây trang `/owner/bookings` ("Đặt lịch", hiện là `ComingSoon`) thành lưới lịch đặt sân trực quan (giờ × sân) cho một chi nhánh, theo đúng khảo sát UI ở `docs/spec/03-dat-lich.md`: owner xem toàn bộ booking trong ngày dưới dạng lưới, đặt sân nhanh (kể cả cho khách vãng lai chưa có tài khoản), xem chi tiết/huỷ booking. Trang này **thay thế hoàn toàn** khu vực danh sách booking dạng list hiện có ở `/owner/branches/[id]` (`bookings-section.tsx`).
 
+**Bổ sung sau rà soát:** `bookings-section.tsx` hiện là nơi duy nhất owner đánh dấu booking đã thanh toán/hoàn tiền (`POST .../payment/mark-paid`, `mark-refunded`, đã có sẵn ở backend, không đổi). `docs/spec/03-dat-lich.md` không đề cập thanh toán, nhưng xoá section list mà không mang tính năng này theo thì owner mất khả năng thao tác — `booking-detail-dialog` (§5) phải hiển thị trạng thái thanh toán + 2 nút thao tác này, y hệt hành vi cũ, chỉ đổi chỗ hiển thị.
+
 Vì lưới cần khách vãng lai (đặt hộ không cần tài khoản) và cần phân biệt slot thuộc lịch cố định, phạm vi gộp thêm phần backend tối thiểu của hai module vốn đang ở trạng thái "Chờ review" chưa code (Customers, Recurring Schedules), thay vì chờ chúng được brainstorm/duyệt riêng:
 
 - **Customers (tối thiểu):** bảng `customer_contacts`, sửa `bookings` (`customer_id` nullable, thêm `customer_contact_id`), endpoint `POST /venues/mine/:venueId/bookings`.
@@ -136,7 +138,7 @@ POST /api/venues/mine/[venueId]/recurring-schedules/[id]/cancel       -> POST ..
   - 201 → toast, đóng dialog, refetch bookings.
   - 409 → toast "Khung giờ vừa được đặt", refetch, giữ dialog mở để owner chọn giờ khác.
 
-**Click ô đã đặt/đang chơi/cố định** → mở `booking-detail-dialog` (ô có >1 booking giao thì hiện booking đầu tiên theo giờ bắt đầu — trường hợp hiếm): tên sân, ngày, tên khách + SĐT, badge trạng thái, khung giờ, mã booking (`bookingCode`). Nút "Huỷ lịch" gọi `POST /api/venues/mine/[venueId]/bookings/[id]/cancel` (endpoint owner-cancel đã có, không đổi) — huỷ **đúng occurrence này**, không đụng tới lịch cố định nếu có; huỷ cả lịch cố định (mọi occurrence tương lai) là thao tác khác, thuộc trang Bảng giá sau này.
+**Click ô đã đặt/đang chơi/cố định** → mở `booking-detail-dialog` (ô có >1 booking giao thì hiện booking đầu tiên theo giờ bắt đầu — trường hợp hiếm): tên sân, ngày, tên khách + SĐT, badge trạng thái, khung giờ, mã booking (`bookingCode`), trạng thái thanh toán + ghi chú (`paymentStatus`/`paymentNote`, đã có sẵn trong response `GET .../bookings`). Nút "Huỷ lịch" gọi `POST /api/venues/mine/[venueId]/bookings/[id]/cancel` (endpoint owner-cancel đã có, không đổi) — huỷ **đúng occurrence này**, không đụng tới lịch cố định nếu có; huỷ cả lịch cố định (mọi occurrence tương lai) là thao tác khác, thuộc trang Bảng giá sau này. Khi `paymentStatus === 'unpaid'` hiện nút "Đã nhận tiền" (kèm ô ghi chú tuỳ chọn) gọi `POST /api/venues/mine/[venueId]/bookings/[id]/payment/mark-paid`; khi `'paid'` hiện nút "Đánh dấu đã hoàn tiền" gọi `.../payment/mark-refunded` — nguyên trạng 2 endpoint đã có, chỉ chuyển UI từ `bookings-section.tsx` sang dialog này.
 
 **Thẻ trạng thái tổng quan:** đếm trên toàn bộ ô (giờ × sân active) của ngày đang xem. "Đã đặt" gộp cả ô đỏ/hồng và ô tím "Cố định" (cùng bản chất là slot đã có khách, khác màu chỉ để phân biệt nguồn gốc); "Đang chơi", "Trống" đếm riêng theo đúng trạng thái ô. Lấp đầy % = (Đã đặt + Đang chơi) / tổng số ô.
 
