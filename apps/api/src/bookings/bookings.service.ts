@@ -180,6 +180,25 @@ export class BookingsService {
     }
   }
 
+  async cancelFutureOccurrences(scheduleId: string, cancelledBy: string): Promise<void> {
+    const today = new Date().toISOString().slice(0, 10);
+    await this.dataSource.transaction(async (manager) => {
+      const bookings = await manager.find(Booking, {
+        where: { recurringScheduleId: scheduleId, status: BookingStatus.CONFIRMED },
+      });
+      for (const booking of bookings) {
+        if (booking.date < today) {
+          continue;
+        }
+        booking.status = BookingStatus.CANCELLED;
+        booking.cancelledAt = new Date();
+        booking.cancelledBy = cancelledBy;
+        await manager.save(booking);
+        await manager.delete(BookingSlot, { bookingId: booking.id });
+      }
+    });
+  }
+
   async createForOwner(
     ownerId: string,
     venueId: string,

@@ -874,3 +874,45 @@ describe('BookingsService.createForOwner', () => {
     ).rejects.toThrow('Court court-1 không tồn tại');
   });
 });
+
+describe('BookingsService.cancelFutureOccurrences', () => {
+  const FIXED_NOW = new Date('2026-08-24T10:00:00Z');
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(FIXED_NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('cancels only confirmed future occurrences of the schedule and frees their slots', async () => {
+    const { service, dataSource } = await buildTestingModule();
+    const futureBooking = {
+      id: 'booking-future',
+      date: '2026-08-25',
+      status: BookingStatus.CONFIRMED,
+    };
+    const pastBooking = {
+      id: 'booking-past',
+      date: '2026-08-01',
+      status: BookingStatus.CONFIRMED,
+    };
+    const manager = {
+      find: jest.fn().mockResolvedValue([futureBooking, pastBooking]),
+      save: jest.fn((data: unknown) => Promise.resolve(data)),
+      delete: jest.fn(),
+    };
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    await service.cancelFutureOccurrences('schedule-1', 'owner-1');
+
+    expect(manager.find).toHaveBeenCalledWith(Booking, {
+      where: { recurringScheduleId: 'schedule-1', status: BookingStatus.CONFIRMED },
+    });
+    expect(futureBooking.status).toBe(BookingStatus.CANCELLED);
+    expect(manager.delete).toHaveBeenCalledWith(BookingSlot, { bookingId: 'booking-future' });
+    expect(manager.delete).not.toHaveBeenCalledWith(BookingSlot, { bookingId: 'booking-past' });
+    expect(pastBooking.status).toBe(BookingStatus.CONFIRMED);
+  });
+});
