@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Pointer, RefreshCw, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBranch, ALL_BRANCHES_ID } from "@/lib/branch-context";
@@ -73,14 +74,20 @@ export default function OwnerBookingsPage() {
       .then((data) => setCourts(Array.isArray(data) ? data : []));
   }, [venueId]);
 
-  const loadBookings = useCallback(() => {
-    if (!venueId) return;
-    setRefreshing(true);
-    fetch(`/api/venues/mine/${venueId}/bookings?date=${selectedDate}`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => setBookings(Array.isArray(data) ? data : []))
-      .finally(() => setRefreshing(false));
-  }, [venueId, selectedDate]);
+  const loadBookings = useCallback(
+    (showToast?: boolean) => {
+      if (!venueId) return;
+      setRefreshing(true);
+      fetch(`/api/venues/mine/${venueId}/bookings?date=${selectedDate}`, { cache: "no-store" })
+        .then((res) => res.json())
+        .then((data) => {
+          setBookings(Array.isArray(data) ? data : []);
+          if (showToast) toast.success("Đã cập nhật!");
+        })
+        .finally(() => setRefreshing(false));
+    },
+    [venueId, selectedDate],
+  );
 
   useEffect(() => {
     loadCourts();
@@ -210,7 +217,7 @@ export default function OwnerBookingsPage() {
             type="button"
             variant="outline"
             size="icon"
-            onClick={loadBookings}
+            onClick={() => loadBookings(true)}
             disabled={refreshing}
             aria-label="Làm mới"
             className="size-10 rounded-xl border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950/40"
