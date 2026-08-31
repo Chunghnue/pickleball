@@ -5,16 +5,15 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { timeColumnTransformer } from '../time-column.transformer';
+import { timeColumnTransformer } from '../../bookings/time-column.transformer';
 
-export enum BookingStatus {
-  CONFIRMED = 'confirmed',
+export enum RecurringScheduleStatus {
+  ACTIVE = 'active',
   CANCELLED = 'cancelled',
-  COMPLETED = 'completed',
 }
 
-@Entity('bookings')
-export class Booking {
+@Entity('recurring_schedules')
+export class RecurringSchedule {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -27,11 +26,8 @@ export class Booking {
   @Column({ name: 'customer_contact_id', nullable: true, type: 'varchar' })
   customerContactId: string | null;
 
-  @Column({ name: 'recurring_schedule_id', nullable: true, type: 'varchar' })
-  recurringScheduleId: string | null;
-
-  @Column({ type: 'date' })
-  date: string;
+  @Column({ name: 'day_of_week', type: 'int' })
+  dayOfWeek: number;
 
   @Column({
     name: 'start_time',
@@ -48,7 +44,7 @@ export class Booking {
   endTime: string;
 
   @Column({
-    name: 'total_price',
+    name: 'price_per_session',
     type: 'numeric',
     precision: 10,
     scale: 2,
@@ -57,20 +53,36 @@ export class Booking {
       from: (value: string) => parseFloat(value),
     },
   })
-  totalPrice: number;
+  pricePerSession: number;
+
+  @Column({
+    name: 'discount_percent',
+    type: 'numeric',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: number | null) => value,
+      from: (value: string | null) => (value === null ? null : parseFloat(value)),
+    },
+  })
+  discountPercent: number | null;
+
+  @Column({ name: 'valid_from', type: 'date' })
+  validFrom: string;
+
+  @Column({ name: 'valid_to', type: 'date' })
+  validTo: string;
+
+  @Column({ nullable: true, type: 'varchar' })
+  note: string | null;
 
   @Column({
     type: 'enum',
-    enum: BookingStatus,
-    default: BookingStatus.CONFIRMED,
+    enum: RecurringScheduleStatus,
+    default: RecurringScheduleStatus.ACTIVE,
   })
-  status: BookingStatus;
-
-  @Column({ name: 'cancelled_at', type: 'timestamp', nullable: true })
-  cancelledAt: Date | null;
-
-  @Column({ name: 'cancelled_by', nullable: true, type: 'varchar' })
-  cancelledBy: string | null;
+  status: RecurringScheduleStatus;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
