@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBranch, ALL_BRANCHES_ID } from "@/lib/branch-context";
+import { buildHourAxis, computeCellState } from "@/lib/booking-grid";
 import { WeekDayNav } from "./week-day-nav";
+import { StatusBar } from "./status-bar";
+import { BookingGrid } from "./booking-grid";
 import type { Court } from "../types";
 import type { OwnerBooking } from "./types";
 
@@ -69,6 +72,40 @@ export default function OwnerBookingsPage() {
     return () => clearInterval(interval);
   }, [loadBookings]);
 
+  const now = selectedDate === todayString() ? new Date() : null;
+
+  const counts = useMemo(() => {
+    const activeCourts = courts.filter((c) => c.status === "active");
+    const hours = buildHourAxis(
+      activeCourts.map((c) => ({ id: c.id, status: c.status, openTime: c.openTime, closeTime: c.closeTime })),
+    );
+    const gridBookings = bookings.map((b) => ({
+      id: b.id,
+      courtId: b.courtId,
+      startTime: b.startTime,
+      endTime: b.endTime,
+      status: b.status,
+      recurringScheduleId: b.recurringScheduleId,
+    }));
+    let empty = 0;
+    let booked = 0;
+    let playing = 0;
+    for (const court of activeCourts) {
+      for (const hour of hours) {
+        const { state } = computeCellState(
+          { id: court.id, status: court.status, openTime: court.openTime, closeTime: court.closeTime },
+          hour,
+          gridBookings,
+          now,
+        );
+        if (state === "empty") empty += 1;
+        else if (state === "playing") playing += 1;
+        else if (state === "booked" || state === "recurring") booked += 1;
+      }
+    }
+    return { empty, booked, playing, total: empty + booked + playing };
+  }, [courts, bookings, now]);
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-8">
       <div className="flex items-center justify-between">
@@ -90,9 +127,16 @@ export default function OwnerBookingsPage() {
 
       <WeekDayNav selectedDate={selectedDate} onSelectDate={setSelectedDate} />
 
-      <p className="text-sm text-muted-foreground">
-        {courts.length} sân · {bookings.length} lịch đặt ngày {selectedDate}
-      </p>
+      <StatusBar
+        bookedCount={counts.booked}
+        emptyCount={counts.empty}
+        playingCount={counts.playing}
+        totalCount={counts.total}
+        onRefresh={loadBookings}
+        onQuickBook={() => {}}
+      />
+
+      <BookingGrid courts={courts} bookings={bookings} now={now} onCellClick={() => {}} />
     </main>
   );
 }

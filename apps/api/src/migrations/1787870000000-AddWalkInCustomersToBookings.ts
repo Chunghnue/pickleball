@@ -16,7 +16,7 @@ export class AddWalkInCustomersToBookings1787870000000
       `ALTER TABLE "bookings" ALTER COLUMN "customer_id" DROP NOT NULL`,
     );
     await queryRunner.query(
-      `ALTER TABLE "bookings" ADD "customer_contact_id" character varying`,
+      `ALTER TABLE "bookings" ADD "customer_contact_id" uuid`,
     );
     await queryRunner.query(
       `ALTER TABLE "bookings" ADD CONSTRAINT "FK_bookings_customer_contact_id" FOREIGN KEY ("customer_contact_id") REFERENCES "customer_contacts"("id") ON DELETE RESTRICT`,

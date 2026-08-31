@@ -24,10 +24,10 @@ export class Booking {
   @Column({ name: 'customer_id', nullable: true, type: 'varchar' })
   customerId: string | null;
 
-  @Column({ name: 'customer_contact_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'customer_contact_id', nullable: true, type: 'uuid' })
   customerContactId: string | null;
 
-  @Column({ name: 'recurring_schedule_id', nullable: true, type: 'varchar' })
+  @Column({ name: 'recurring_schedule_id', nullable: true, type: 'uuid' })
   recurringScheduleId: string | null;
 
   @Column({ type: 'date' })
