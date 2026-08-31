@@ -48,6 +48,7 @@ export default function OwnerBookingsPage() {
     null,
   );
   const [detail, setDetail] = useState<OwnerBooking | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetch("/api/venues/mine")
@@ -74,9 +75,11 @@ export default function OwnerBookingsPage() {
 
   const loadBookings = useCallback(() => {
     if (!venueId) return;
-    fetch(`/api/venues/mine/${venueId}/bookings?date=${selectedDate}`)
+    setRefreshing(true);
+    fetch(`/api/venues/mine/${venueId}/bookings?date=${selectedDate}`, { cache: "no-store" })
       .then((res) => res.json())
-      .then((data) => setBookings(Array.isArray(data) ? data : []));
+      .then((data) => setBookings(Array.isArray(data) ? data : []))
+      .finally(() => setRefreshing(false));
   }, [venueId, selectedDate]);
 
   useEffect(() => {
@@ -208,10 +211,11 @@ export default function OwnerBookingsPage() {
             variant="outline"
             size="icon"
             onClick={loadBookings}
+            disabled={refreshing}
             aria-label="Làm mới"
             className="size-10 rounded-xl border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950/40"
           >
-            <RefreshCw className="size-4" />
+            <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
           </Button>
           <Button
             type="button"
