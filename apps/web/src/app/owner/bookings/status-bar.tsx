@@ -1,54 +1,55 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, ClipboardList, Circle } from "lucide-react";
 
 interface StatusBarProps {
   bookedCount: number;
   emptyCount: number;
   playingCount: number;
   totalCount: number;
-  onRefresh: () => void;
-  onQuickBook: () => void;
 }
 
-export function StatusBar({
-  bookedCount,
-  emptyCount,
-  playingCount,
-  totalCount,
-  onRefresh,
-  onQuickBook,
-}: StatusBarProps) {
+function Pill({
+  icon: Icon,
+  iconClassName,
+  children,
+}: {
+  icon: typeof ClipboardList;
+  iconClassName: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-sm">
+      <Icon className={`size-4 ${iconClassName}`} />
+      <span>{children}</span>
+    </div>
+  );
+}
+
+export function StatusBar({ bookedCount, emptyCount, playingCount, totalCount }: StatusBarProps) {
   const fillRate =
     totalCount > 0 ? Math.round(((bookedCount + playingCount) / totalCount) * 100) : 0;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4">
-      <div className="flex flex-wrap gap-6 text-sm">
-        <div>
-          <p className="text-muted-foreground">Đã đặt</p>
-          <p className="text-lg font-semibold">{bookedCount}</p>
+    <div className="flex flex-wrap items-center gap-3">
+      <Pill icon={ClipboardList} iconClassName="text-muted-foreground">
+        <b className="font-semibold">{bookedCount}</b> đã đặt
+      </Pill>
+      <Pill icon={CheckCircle2} iconClassName="text-green-600">
+        <b className="font-semibold">{emptyCount}</b> trống
+      </Pill>
+      <Pill icon={Circle} iconClassName="text-purple-600">
+        <b className="font-semibold">{playingCount}</b> đang chơi
+      </Pill>
+      <div className="flex items-center gap-3 rounded-full border bg-background px-4 py-2 text-sm">
+        <span className="text-muted-foreground">Lấp đầy</span>
+        <div className="h-2 w-40 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-blue-600 transition-all"
+            style={{ width: `${fillRate}%` }}
+          />
         </div>
-        <div>
-          <p className="text-muted-foreground">Trống</p>
-          <p className="text-lg font-semibold">{emptyCount}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Đang chơi</p>
-          <p className="text-lg font-semibold">{playingCount}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Lấp đầy</p>
-          <p className="text-lg font-semibold">{fillRate}%</p>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" onClick={onRefresh}>
-          Làm mới
-        </Button>
-        <Button type="button" onClick={onQuickBook}>
-          ⚡ Đặt nhanh
-        </Button>
+        <span className="font-semibold">{fillRate}%</span>
       </div>
     </div>
   );

@@ -1,8 +1,15 @@
 "use client";
 
+import { MapPin } from "lucide-react";
 import { buildHourAxis, computeCellState, type CellState } from "@/lib/booking-grid";
 import type { Court } from "../types";
 import type { OwnerBooking } from "./types";
+
+function isCurrentHour(hour: string, now: Date | null): boolean {
+  if (!now) return false;
+  const [h] = hour.split(":").map(Number);
+  return now.getHours() === h;
+}
 
 interface BookingGridProps {
   courts: Court[];
@@ -40,11 +47,16 @@ export function BookingGrid({ courts, bookings, now, onCellClick }: BookingGridP
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr>
-            <th className="w-16 border-b p-2 text-left" />
+          <tr className="bg-muted/40">
+            <th className="w-16 border-b p-2 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Giờ
+            </th>
             {courts.map((court) => (
               <th key={court.id} className="border-b p-2 text-left font-medium">
-                {court.name}
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="size-3.5 text-rose-500" />
+                  {court.name}
+                </span>
               </th>
             ))}
           </tr>
@@ -52,7 +64,18 @@ export function BookingGrid({ courts, bookings, now, onCellClick }: BookingGridP
         <tbody>
           {hours.map((hour) => (
             <tr key={hour}>
-              <td className="border-b p-2 text-muted-foreground">{hour}</td>
+              <td
+                className={`border-b p-2 ${
+                  isCurrentHour(hour, now)
+                    ? "font-semibold text-blue-600"
+                    : "text-muted-foreground"
+                }`}
+              >
+                <span className="flex items-center gap-1">
+                  {hour}
+                  {isCurrentHour(hour, now) && <span className="size-1.5 rounded-full bg-blue-500" />}
+                </span>
+              </td>
               {courts.map((court) => {
                 const gridCourt = {
                   id: court.id,

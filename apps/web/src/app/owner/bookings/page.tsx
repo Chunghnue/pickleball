@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { RefreshCw, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useBranch, ALL_BRANCHES_ID } from "@/lib/branch-context";
 import { buildHourAxis, computeCellState, computeMaxConsecutiveHours } from "@/lib/booking-grid";
 import { WeekDayNav } from "./week-day-nav";
@@ -17,13 +19,38 @@ interface VenueOption {
 }
 
 const POLL_INTERVAL_MS = 60_000;
+const WEEKDAY_FULL = [
+  "Thứ Hai",
+  "Thứ Ba",
+  "Thứ Tư",
+  "Thứ Năm",
+  "Thứ Sáu",
+  "Thứ Bảy",
+  "Chủ Nhật",
+];
+
+function formatDateValue(date: Date): string {
+  const y = date.getFullYear();
+  const m = (date.getMonth() + 1).toString().padStart(2, "0");
+  const d = date.getDate().toString().padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parsePageDate(value: string): Date {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 
 function todayString(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = (now.getMonth() + 1).toString().padStart(2, "0");
-  const d = now.getDate().toString().padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  return formatDateValue(new Date());
+}
+
+function formatHeaderDate(value: string): string {
+  const date = parsePageDate(value);
+  const dayIndex = (date.getDay() + 6) % 7;
+  const dd = date.getDate().toString().padStart(2, "0");
+  const mm = (date.getMonth() + 1).toString().padStart(2, "0");
+  return `${WEEKDAY_FULL[dayIndex]}, ${dd}/${mm}/${date.getFullYear()}`;
 }
 
 export default function OwnerBookingsPage() {
@@ -33,6 +60,10 @@ export default function OwnerBookingsPage() {
   const [courts, setCourts] = useState<Court[]>([]);
   const [bookings, setBookings] = useState<OwnerBooking[]>([]);
   const [selectedDate, setSelectedDate] = useState(todayString());
+  const [quickBook, setQuickBook] = useState<{ courtId?: string; hour?: string; max?: number } | null>(
+    null,
+  );
+  const [detail, setDetail] = useState<OwnerBooking | null>(null);
 
   useEffect(() => {
     fetch("/api/venues/mine")
@@ -74,10 +105,38 @@ export default function OwnerBookingsPage() {
     return () => clearInterval(interval);
   }, [loadBookings]);
 
+  function shiftDate(deltaDays: number) {
+    setSelectedDate((current) => {
+      const date = parsePageDate(current);
+      date.setDate(date.getDate() + deltaDays);
+      return formatDateValue(date);
+    });
+  }
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target ? ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) : false;
+      if (isTyping || quickBook !== null || detail !== null) return;
+      if (event.key === "ArrowLeft") {
+        shiftDate(-1);
+      } else if (event.key === "ArrowRight") {
+        shiftDate(1);
+      } else if (event.key.toLowerCase() === "t") {
+        setSelectedDate(todayString());
+      } else if (event.key.toLowerCase() === "n") {
+        setQuickBook({});
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickBook, detail]);
+
   const now = selectedDate === todayString() ? new Date() : null;
+  const activeCourts = courts.filter((c) => c.status === "active");
 
   const counts = useMemo(() => {
-    const activeCourts = courts.filter((c) => c.status === "active");
     const hours = buildHourAxis(
       activeCourts.map((c) => ({ id: c.id, status: c.status, openTime: c.openTime, closeTime: c.closeTime })),
     );
@@ -106,12 +165,8 @@ export default function OwnerBookingsPage() {
       }
     }
     return { empty, booked, playing, total: empty + booked + playing };
-  }, [courts, bookings, now]);
-
-  const [quickBook, setQuickBook] = useState<{ courtId?: string; hour?: string; max?: number } | null>(
-    null,
-  );
-  const [detail, setDetail] = useState<OwnerBooking | null>(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCourts, bookings, now]);
 
   function handleCellClick(
     court: Court,
@@ -143,33 +198,74 @@ export default function OwnerBookingsPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Đặt lịch</h1>
-        {venues && venues.length > 1 && (
-          <select
-            value={venueId}
-            onChange={(e) => setVenueId(e.target.value)}
-            className="h-9 rounded-lg border px-2.5 text-sm"
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Lịch đặt sân</h1>
+          <p className="text-sm text-muted-foreground">
+            {formatHeaderDate(selectedDate)} · {activeCourts.length} sân
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {venues && venues.length > 1 && (
+            <select
+              value={venueId}
+              onChange={(e) => setVenueId(e.target.value)}
+              className="h-9 rounded-lg border px-2.5 text-sm"
+            >
+              {venues.map((venue) => (
+                <option key={venue.id} value={venue.id}>
+                  {venue.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={loadBookings}
+            aria-label="Làm mới"
           >
-            {venues.map((venue) => (
-              <option key={venue.id} value={venue.id}>
-                {venue.name}
-              </option>
-            ))}
-          </select>
-        )}
+            <RefreshCw className="size-4" />
+          </Button>
+          <Button type="button" onClick={() => setQuickBook({})} className="gap-1.5">
+            <Zap className="size-4" />
+            Đặt nhanh
+          </Button>
+        </div>
       </div>
-
-      <WeekDayNav selectedDate={selectedDate} onSelectDate={setSelectedDate} />
 
       <StatusBar
         bookedCount={counts.booked}
         emptyCount={counts.empty}
         playingCount={counts.playing}
         totalCount={counts.total}
-        onRefresh={loadBookings}
-        onQuickBook={() => setQuickBook({})}
       />
+
+      <WeekDayNav
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+        courtCount={activeCourts.length}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span>
+            Click ô <span className="font-medium text-green-600">trống</span> để đặt
+          </span>
+          <Kbd>←</Kbd>
+          <Kbd>→</Kbd>
+          <span>chuyển ngày</span>
+          <Kbd>T</Kbd>
+          <span>hôm nay</span>
+          <Kbd>N</Kbd>
+          <span>đặt nhanh</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <RefreshCw className="size-3.5" />
+          <span>Tự cập nhật mỗi 60s</span>
+        </div>
+      </div>
 
       <BookingGrid courts={courts} bookings={bookings} now={now} onCellClick={handleCellClick} />
 
@@ -200,5 +296,13 @@ export default function OwnerBookingsPage() {
         }}
       />
     </main>
+  );
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium">
+      {children}
+    </kbd>
   );
 }
