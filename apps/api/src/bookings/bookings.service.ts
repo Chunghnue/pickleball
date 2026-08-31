@@ -16,12 +16,14 @@ import { VenuesService } from '../courts/venues.service';
 import { Court, CourtStatus } from '../courts/entities/court.entity';
 import { Venue, VenueStatus } from '../courts/entities/venue.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateOwnerBookingDto } from './dto/create-owner-booking.dto';
 import { generateBookingSlotStarts } from './booking-slot-generator';
 import { Slot } from '../courts/slot-generator';
 import { UsersService } from '../users/users.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const UNIQUE_VIOLATION_CODE = '23505';
@@ -51,6 +53,7 @@ export class BookingsService {
     @Inject(forwardRef(() => PaymentsService))
     private readonly paymentsService: PaymentsService,
     private readonly notificationsService: NotificationsService,
+    private readonly customerContactsService: CustomerContactsService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
@@ -173,6 +176,44 @@ export class BookingsService {
       }
       throw error;
     }
+  }
+
+  async createForOwner(
+    ownerId: string,
+    venueId: string,
+    dto: CreateOwnerBookingDto,
+  ): Promise<Booking> {
+    const venue = await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
+    const court = await this.courtsService.findByIdOrThrow(dto.courtId);
+    if (court.venueId !== venueId) {
+      throw new NotFoundException(`Court ${dto.courtId} không tồn tại`);
+    }
+
+    const customerRef = await this.customerContactsService.resolveSelector(ownerId, dto);
+
+    const { booking } = await this.createBookingRecord({
+      courtId: dto.courtId,
+      date: dto.date,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      ...customerRef,
+    });
+
+    if (customerRef.customerId) {
+      const customer = await this.usersService.findById(customerRef.customerId);
+      await this.notificationsService.notifyBookingConfirmed({
+        to: customer?.email ?? '',
+        customerName: customer?.fullName ?? '',
+        venueName: venue.name,
+        courtName: court.name,
+        date: dto.date,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        totalPrice: booking.totalPrice,
+      });
+    }
+
+    return booking;
   }
 
   async findMineByCustomer(customerId: string): Promise<BookingWithCourtInfo[]> {

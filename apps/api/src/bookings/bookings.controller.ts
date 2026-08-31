@@ -15,6 +15,7 @@ import type { AuthenticatedUser } from '../auth/decorators/current-user.decorato
 import { UserRole } from '../users/entities/user.entity';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateOwnerBookingDto } from './dto/create-owner-booking.dto';
 
 @Controller()
 export class BookingsController {
@@ -67,6 +68,17 @@ export class BookingsController {
       date,
       courtId,
     });
+  }
+
+  @Post('venues/mine/:venueId/bookings')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.OWNER)
+  createForVenue(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('venueId') venueId: string,
+    @Body() dto: CreateOwnerBookingDto,
+  ) {
+    return this.bookingsService.createForOwner(user.userId, venueId, dto);
   }
 
   @Post('venues/mine/:venueId/bookings/:id/cancel')

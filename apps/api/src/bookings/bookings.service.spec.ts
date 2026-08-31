@@ -12,6 +12,7 @@ import { UsersService } from '../users/users.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
 
 const mockBookingsRepository = () => {
   const queryBuilder = {
@@ -59,6 +60,11 @@ const mockNotificationsService = () => ({
   notifyNewBookingForOwner: jest.fn().mockResolvedValue(undefined),
 });
 
+const mockCustomerContactsService = () => ({
+  resolveSelector: jest.fn(),
+  findById: jest.fn(),
+});
+
 function buildMockManager() {
   return {
     create: jest.fn((_entity: unknown, data: unknown) => data),
@@ -92,6 +98,7 @@ async function buildTestingModule() {
       { provide: UsersService, useFactory: mockUsersService },
       { provide: PaymentsService, useFactory: mockPaymentsService },
       { provide: NotificationsService, useFactory: mockNotificationsService },
+      { provide: CustomerContactsService, useFactory: mockCustomerContactsService },
       { provide: DataSource, useFactory: mockDataSource },
     ],
   }).compile();
@@ -118,6 +125,9 @@ async function buildTestingModule() {
     >,
     notificationsService: module.get(NotificationsService) as ReturnType<
       typeof mockNotificationsService
+    >,
+    customerContactsService: module.get(CustomerContactsService) as ReturnType<
+      typeof mockCustomerContactsService
     >,
     dataSource: module.get(DataSource) as ReturnType<typeof mockDataSource>,
   };
@@ -718,5 +728,124 @@ describe('BookingsService.findByIdOrThrow', () => {
     await expect(service.findByIdOrThrow('booking-1')).rejects.toThrow(
       'Booking booking-1 không tồn tại',
     );
+  });
+});
+
+describe('BookingsService.createForOwner', () => {
+  const FIXED_TODAY = new Date('2026-08-24T12:00:00Z');
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(FIXED_TODAY);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const ACTIVE_COURT = {
+    id: 'court-1',
+    venueId: 'venue-1',
+    name: 'Sân 1',
+    status: CourtStatus.ACTIVE,
+    openTime: '08:00',
+    closeTime: '20:00',
+    slotDurationMinutes: 60,
+    pricePerHour: 100000,
+  };
+  const ACTIVE_VENUE = {
+    id: 'venue-1',
+    name: 'Venue A',
+    ownerId: 'owner-1',
+    status: VenueStatus.ACTIVE,
+  };
+
+  it('creates a walk-in booking via newCustomer and skips the customer email', async () => {
+    const {
+      service,
+      courtsService,
+      venuesService,
+      customerContactsService,
+      dataSource,
+      notificationsService,
+    } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
+    venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    customerContactsService.resolveSelector.mockResolvedValue({
+      customerContactId: 'contact-1',
+    });
+    const manager = buildMockManager();
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    const result = await service.createForOwner('owner-1', 'venue-1', {
+      courtId: 'court-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '10:00',
+      newCustomer: { fullName: 'Khách vãng lai', phone: '0911111111' },
+    });
+
+    expect(customerContactsService.resolveSelector).toHaveBeenCalledWith('owner-1', {
+      courtId: 'court-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '10:00',
+      newCustomer: { fullName: 'Khách vãng lai', phone: '0911111111' },
+    });
+    expect(result.customerContactId).toBe('contact-1');
+    expect(result.totalPrice).toBe(200000);
+    expect(notificationsService.notifyBookingConfirmed).not.toHaveBeenCalled();
+  });
+
+  it('sends the confirmation email when the resolved customer is a registered user', async () => {
+    const {
+      service,
+      courtsService,
+      venuesService,
+      usersService,
+      customerContactsService,
+      dataSource,
+      notificationsService,
+    } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
+    venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    customerContactsService.resolveSelector.mockResolvedValue({ customerId: 'customer-1' });
+    usersService.findById.mockResolvedValue({
+      id: 'customer-1',
+      email: 'customer@test.com',
+      fullName: 'Nguyễn Văn A',
+    });
+    const manager = buildMockManager();
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    await service.createForOwner('owner-1', 'venue-1', {
+      courtId: 'court-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      customerId: 'customer-1',
+    });
+
+    expect(notificationsService.notifyBookingConfirmed).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'customer@test.com' }),
+    );
+    expect(notificationsService.notifyNewBookingForOwner).not.toHaveBeenCalled();
+  });
+
+  it('throws NotFoundException when the court does not belong to the venue', async () => {
+    const { service, courtsService, venuesService } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    courtsService.findByIdOrThrow.mockResolvedValue({ ...ACTIVE_COURT, venueId: 'other-venue' });
+
+    await expect(
+      service.createForOwner('owner-1', 'venue-1', {
+        courtId: 'court-1',
+        date: '2026-08-25',
+        startTime: '08:00',
+        endTime: '09:00',
+        customerId: 'customer-1',
+      }),
+    ).rejects.toThrow('Court court-1 không tồn tại');
   });
 });

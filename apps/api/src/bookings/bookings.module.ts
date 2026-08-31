@@ -8,12 +8,14 @@ import { CourtsModule } from '../courts/courts.module';
 import { UsersModule } from '../users/users.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { CustomerContactsModule } from '../customer-contacts/customer-contacts.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Booking, BookingSlot]),
     CourtsModule,
     UsersModule,
+    CustomerContactsModule,
     forwardRef(() => PaymentsModule),
     NotificationsModule,
   ],
