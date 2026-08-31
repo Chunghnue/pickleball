@@ -5,6 +5,7 @@ import { Pointer, RefreshCw, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBranch, ALL_BRANCHES_ID } from "@/lib/branch-context";
 import { buildHourAxis, computeCellState, computeMaxConsecutiveHours } from "@/lib/booking-grid";
+import { formatHeaderDate } from "@/lib/format-datetime";
 import { WeekDayNav } from "./week-day-nav";
 import { StatusBar } from "./status-bar";
 import { BookingGrid } from "./booking-grid";
@@ -19,15 +20,6 @@ interface VenueOption {
 }
 
 const POLL_INTERVAL_MS = 60_000;
-const WEEKDAY_FULL = [
-  "Thứ Hai",
-  "Thứ Ba",
-  "Thứ Tư",
-  "Thứ Năm",
-  "Thứ Sáu",
-  "Thứ Bảy",
-  "Chủ Nhật",
-];
 
 function formatDateValue(date: Date): string {
   const y = date.getFullYear();
@@ -43,14 +35,6 @@ function parsePageDate(value: string): Date {
 
 function todayString(): string {
   return formatDateValue(new Date());
-}
-
-function formatHeaderDate(value: string): string {
-  const date = parsePageDate(value);
-  const dayIndex = (date.getDay() + 6) % 7;
-  const dd = date.getDate().toString().padStart(2, "0");
-  const mm = (date.getMonth() + 1).toString().padStart(2, "0");
-  return `${WEEKDAY_FULL[dayIndex]}, ${dd}/${mm}/${date.getFullYear()}`;
 }
 
 export default function OwnerBookingsPage() {
@@ -202,7 +186,7 @@ export default function OwnerBookingsPage() {
         <div>
           <h1 className="text-2xl font-bold">Lịch đặt sân</h1>
           <p className="text-sm text-muted-foreground">
-            {formatHeaderDate(selectedDate)} · {activeCourts.length} sân
+            {formatHeaderDate(parsePageDate(selectedDate))} · {activeCourts.length} sân
           </p>
         </div>
         <div className="flex items-center gap-2">

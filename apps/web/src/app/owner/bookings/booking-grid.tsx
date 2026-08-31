@@ -18,11 +18,15 @@ interface BookingGridProps {
 }
 
 const STATE_CLASS: Record<CellState, string> = {
-  empty: "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-950 dark:text-green-300",
-  booked: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
-  playing: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
-  recurring: "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300",
-  unavailable: "bg-muted text-muted-foreground cursor-not-allowed",
+  empty:
+    "border border-dashed border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950 dark:text-green-300",
+  booked:
+    "border border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300",
+  playing:
+    "border border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300",
+  recurring:
+    "border border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-300",
+  unavailable: "border border-transparent bg-muted text-muted-foreground cursor-not-allowed",
 };
 
 export function BookingGrid({ courts, bookings, now, onCellClick }: BookingGridProps) {
@@ -88,16 +92,29 @@ export function BookingGrid({ courts, bookings, now, onCellClick }: BookingGridP
                   closeTime: court.closeTime,
                 };
                 const { state, bookingIds } = computeCellState(gridCourt, hour, gridBookings, now);
-                const badge = bookingIds.length > 1 ? ` ${bookingIds.length}` : "";
+                const occupantLabel =
+                  bookingIds.length === 1
+                    ? (bookings.find((b) => b.id === bookingIds[0])?.customerName ?? "")
+                    : bookingIds.length > 1
+                      ? String(bookingIds.length)
+                      : "";
                 return (
                   <td key={court.id} className="border-b p-1">
                     <button
                       type="button"
                       disabled={state === "unavailable"}
                       onClick={() => onCellClick(court, hour, state, bookingIds)}
-                      className={`flex h-10 w-full items-center justify-center rounded-md text-xs font-medium ${STATE_CLASS[state]}`}
+                      className={`flex h-12 w-full items-center justify-center gap-1 rounded-md px-2 text-xs font-medium ${STATE_CLASS[state]}`}
                     >
-                      {state === "empty" ? "+" : state === "unavailable" ? "" : `🔒${badge}`}
+                      {state === "empty" ? (
+                        "+"
+                      ) : state === "unavailable" ? (
+                        ""
+                      ) : (
+                        <>
+                          🔒 <span className="truncate">{occupantLabel}</span>
+                        </>
+                      )}
                     </button>
                   </td>
                 );

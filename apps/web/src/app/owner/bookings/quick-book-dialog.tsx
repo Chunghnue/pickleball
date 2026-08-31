@@ -117,10 +117,10 @@ export function QuickBookDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
-        <div className="flex items-center justify-between bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
+        <div className="flex items-center justify-between bg-gradient-to-r from-emerald-600 to-green-400 px-6 py-4">
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-white">
             <Zap className="size-5 fill-white text-white" />
-            Đặt sân nhanh
+            {isPrefilled && selectedCourt ? `${selectedCourt.name} – ${startTime}` : "Đặt sân nhanh"}
           </DialogTitle>
           <DialogClose
             className="text-white/80 outline-none hover:text-white"
