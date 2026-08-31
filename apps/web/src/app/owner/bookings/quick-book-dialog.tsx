@@ -241,11 +241,11 @@ export function QuickBookDialog({
           </div>
 
           <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/30">
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <Receipt className="size-4 text-green-700 dark:text-green-400" />
+            <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Receipt className="size-4 text-muted-foreground" />
               Tổng tiền dự tính
             </span>
-            <span className="text-lg font-bold text-green-700 dark:text-green-400">
+            <span className="text-lg font-bold text-green-700 underline decoration-2 underline-offset-2 dark:text-green-400">
               {estimatedTotal.toLocaleString("vi-VN")}đ
             </span>
           </div>
