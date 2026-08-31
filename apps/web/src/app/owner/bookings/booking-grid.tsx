@@ -1,6 +1,5 @@
 "use client";
 
-import { MapPin } from "lucide-react";
 import { buildHourAxis, computeCellState, type CellState } from "@/lib/booking-grid";
 import type { Court } from "../types";
 import type { OwnerBooking } from "./types";
@@ -52,9 +51,9 @@ export function BookingGrid({ courts, bookings, now, onCellClick }: BookingGridP
               Giờ
             </th>
             {courts.map((court) => (
-              <th key={court.id} className="border-b p-2 text-left font-medium">
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="size-3.5 text-rose-500" />
+              <th key={court.id} className="border-b p-2 text-left">
+                <span className="inline-flex items-center gap-1.5 font-semibold">
+                  <span className="size-2 shrink-0 rounded-full bg-pink-500" />
                   {court.name}
                 </span>
               </th>
