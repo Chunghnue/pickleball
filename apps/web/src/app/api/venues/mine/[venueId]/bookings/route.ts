@@ -18,3 +18,20 @@ export async function GET(
   }
   return toNextResponse(upstream);
 }
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ venueId: string }> },
+) {
+  const { venueId } = await params;
+  const body = await request.json();
+  const upstream = await fetchApi(`/venues/mine/${venueId}/bookings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (upstream.status === 401) {
+    await clearAuthCookies();
+  }
+  return toNextResponse(upstream);
+}
