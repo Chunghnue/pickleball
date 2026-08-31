@@ -1,4 +1,4 @@
-import { IsString, Matches, MinLength } from 'class-validator';
+import { IsOptional, IsString, Matches, MinLength } from 'class-validator';
 import { TIME_PATTERN } from '../../courts/time.util';
 import { CustomerSelectorDto } from '../../customer-contacts/dto/customer-selector.dto';
 
@@ -17,4 +17,8 @@ export class CreateOwnerBookingDto extends CustomerSelectorDto {
 
   @Matches(TIME_PATTERN, { message: 'endTime phải theo định dạng HH:mm' })
   endTime: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
 }

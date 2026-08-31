@@ -66,6 +66,9 @@ export class Booking {
   })
   status: BookingStatus;
 
+  @Column({ nullable: true, type: 'varchar' })
+  note: string | null;
+
   @Column({ name: 'cancelled_at', type: 'timestamp', nullable: true })
   cancelledAt: Date | null;
 

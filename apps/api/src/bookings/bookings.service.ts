@@ -105,6 +105,7 @@ export class BookingsService {
     customerContactId?: string;
     recurringScheduleId?: string;
     totalPriceOverride?: number;
+    note?: string;
   }): Promise<{ booking: Booking; court: Court; venue: Venue }> {
     if (!DATE_PATTERN.test(params.date)) {
       throw new BadRequestException('date phải theo định dạng YYYY-MM-DD');
@@ -152,6 +153,7 @@ export class BookingsService {
           endTime: params.endTime,
           totalPrice,
           status: BookingStatus.CONFIRMED,
+          note: params.note ?? null,
         });
         const saved = await manager.save(entity);
 
@@ -217,6 +219,7 @@ export class BookingsService {
       date: dto.date,
       startTime: dto.startTime,
       endTime: dto.endTime,
+      note: dto.note,
       ...customerRef,
     });
 

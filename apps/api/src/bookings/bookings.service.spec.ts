@@ -822,6 +822,28 @@ describe('BookingsService.createForOwner', () => {
     expect(notificationsService.notifyBookingConfirmed).not.toHaveBeenCalled();
   });
 
+  it('persists the note when provided', async () => {
+    const { service, courtsService, venuesService, customerContactsService, dataSource } =
+      await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
+    venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    customerContactsService.resolveSelector.mockResolvedValue({ customerContactId: 'contact-1' });
+    const manager = buildMockManager();
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    const result = await service.createForOwner('owner-1', 'venue-1', {
+      courtId: 'court-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      note: 'Cần thuê áo đấu',
+      newCustomer: { fullName: 'Khách vãng lai', phone: '0911111111' },
+    });
+
+    expect(result.note).toBe('Cần thuê áo đấu');
+  });
+
   it('sends the confirmation email when the resolved customer is a registered user', async () => {
     const {
       service,

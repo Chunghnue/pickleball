@@ -109,6 +109,7 @@ export function BookingDetailDialog({
           </p>
           <p>Trạng thái: {STATUS_LABEL[booking.status]}</p>
           <p>Mã booking: {booking.bookingCode}</p>
+          {booking.note && <p className="text-muted-foreground">Ghi chú: {booking.note}</p>}
           <p>
             {PAYMENT_STATUS_LABEL[booking.paymentStatus]}
             {booking.paymentNote ? ` · ${booking.paymentNote}` : ""}

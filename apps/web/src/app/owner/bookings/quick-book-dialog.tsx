@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Check, Phone, Receipt, User, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +53,7 @@ export function QuickBookDialog({
   const [duration, setDuration] = useState(1);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -61,6 +63,7 @@ export function QuickBookDialog({
     setDuration(Math.min(2, maxDurationHours ?? 8));
     setFullName("");
     setPhone("");
+    setNote("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialCourtId, initialHour, maxDurationHours]);
 
@@ -94,6 +97,7 @@ export function QuickBookDialog({
         date,
         startTime,
         endTime,
+        note: note.trim() || undefined,
         newCustomer: { fullName: fullName.trim(), phone: phone.trim() },
       }),
     });
@@ -112,38 +116,81 @@ export function QuickBookDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-0 p-0">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <DialogTitle className="text-lg font-semibold">Đặt sân nhanh</DialogTitle>
+      <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
+        <div className="flex items-center justify-between bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+            <Zap className="size-5 fill-white text-white" />
+            Đặt sân nhanh
+          </DialogTitle>
           <DialogClose
-            className="text-muted-foreground outline-none hover:text-foreground"
+            className="text-white/80 outline-none hover:text-white"
             aria-label="Đóng"
           >
-            ✕
+            <X className="size-5" />
           </DialogClose>
         </div>
 
         <div className="flex flex-col gap-4 px-6 py-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="qb-name">
+                Tên khách hàng <span className="text-destructive">*</span>
+              </Label>
+              <div className="flex items-center gap-2 rounded-lg border border-input px-2.5">
+                <User className="size-4 shrink-0 text-muted-foreground" />
+                <Input
+                  id="qb-name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Nguyễn Văn A"
+                  className="h-9 border-0 px-0 focus-visible:ring-0"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="qb-phone">
+                Số điện thoại <span className="text-destructive">*</span>
+              </Label>
+              <div className="flex items-center gap-2 rounded-lg border border-input px-2.5">
+                <Phone className="size-4 shrink-0 text-muted-foreground" />
+                <Input
+                  id="qb-phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="0901 234 567"
+                  className="h-9 border-0 px-0 focus-visible:ring-0"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-1.5">
-            <Label htmlFor="qb-court">Sân *</Label>
-            <select
-              id="qb-court"
-              value={courtId}
-              onChange={(e) => setCourtId(e.target.value)}
-              disabled={isPrefilled}
-              className={SELECT_CLASS}
-            >
-              {activeCourts.map((court) => (
-                <option key={court.id} value={court.id}>
-                  {court.name}
-                </option>
-              ))}
-            </select>
+            <Label htmlFor="qb-court">
+              Sân <span className="text-destructive">*</span>
+            </Label>
+            <div className="relative">
+              <span className="pointer-events-none absolute top-1/2 left-2.5 flex -translate-y-1/2 items-center">
+                <span className="size-2 rounded-full bg-pink-500" />
+              </span>
+              <select
+                id="qb-court"
+                value={courtId}
+                onChange={(e) => setCourtId(e.target.value)}
+                disabled={isPrefilled}
+                className={`${SELECT_CLASS} pl-6`}
+              >
+                {activeCourts.map((court) => (
+                  <option key={court.id} value={court.id}>
+                    {court.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="qb-start">Giờ bắt đầu *</Label>
+              <Label htmlFor="qb-start">Giờ bắt đầu</Label>
               {isPrefilled ? (
                 <Input id="qb-start" value={startTime} disabled />
               ) : (
@@ -165,7 +212,7 @@ export function QuickBookDialog({
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="qb-duration">Thời lượng (giờ)</Label>
+              <Label htmlFor="qb-duration">Thời lượng</Label>
               <select
                 id="qb-duration"
                 value={duration}
@@ -182,24 +229,39 @@ export function QuickBookDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="qb-name">Tên khách hàng *</Label>
-            <Input id="qb-name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="qb-phone">Số điện thoại *</Label>
-            <Input id="qb-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Label htmlFor="qb-note">Ghi chú</Label>
+            <textarea
+              id="qb-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="VD: Cần thuê áo đấu..."
+              rows={2}
+              className="w-full rounded-lg border border-input bg-transparent p-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+            />
           </div>
 
-          {startTime && (
-            <p className="text-sm text-muted-foreground">
-              {startTime}–{endTime} · {estimatedTotal.toLocaleString("vi-VN")}đ
-            </p>
-          )}
+          <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/30">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Receipt className="size-4 text-green-700 dark:text-green-400" />
+              Tổng tiền dự tính
+            </span>
+            <span className="text-lg font-bold text-green-700 dark:text-green-400">
+              {estimatedTotal.toLocaleString("vi-VN")}đ
+            </span>
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 border-t px-6 py-4">
-          <DialogClose className="rounded-lg border px-4 py-2 text-sm font-medium">Hủy</DialogClose>
-          <Button type="button" onClick={handleSubmit} disabled={submitting}>
+          <DialogClose className="rounded-lg border px-4 py-2 text-sm font-medium">
+            Hủy
+          </DialogClose>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="gap-1.5 bg-green-600 text-white hover:bg-green-700"
+          >
+            <Check className="size-4" />
             Xác nhận đặt sân
           </Button>
         </div>

@@ -15,4 +15,5 @@ export interface OwnerBooking {
   paymentNote: string | null;
   bookingCode: string;
   recurringScheduleId: string | null;
+  note: string | null;
 }
