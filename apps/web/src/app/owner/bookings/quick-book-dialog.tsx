@@ -252,14 +252,14 @@ export function QuickBookDialog({
         </div>
 
         <div className="flex justify-end gap-2 border-t px-6 py-4">
-          <DialogClose className="rounded-lg border px-4 py-2 text-sm font-medium">
+          <DialogClose className="h-10 rounded-xl border border-input px-4 text-sm font-medium hover:bg-muted">
             Hủy
           </DialogClose>
           <Button
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="gap-1.5 bg-green-600 text-white hover:bg-green-700"
+            className="h-10 gap-1.5 rounded-xl bg-green-600 px-4 font-medium text-white hover:bg-green-700"
           >
             <Check className="size-4" />
             Xác nhận đặt sân
