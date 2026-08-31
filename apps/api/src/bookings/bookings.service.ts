@@ -56,75 +56,13 @@ export class BookingsService {
   ) {}
 
   async create(customerId: string, dto: CreateBookingDto): Promise<Booking> {
-    if (!DATE_PATTERN.test(dto.date)) {
-      throw new BadRequestException('date phải theo định dạng YYYY-MM-DD');
-    }
-    const today = new Date().toISOString().slice(0, 10);
-    if (dto.date < today) {
-      throw new BadRequestException(
-        'Không thể đặt sân cho ngày trong quá khứ',
-      );
-    }
-
-    const court = await this.courtsService.findByIdOrThrow(dto.courtId);
-    if (court.status !== CourtStatus.ACTIVE) {
-      throw new NotFoundException(`Court ${dto.courtId} không tồn tại`);
-    }
-    const venue = await this.venuesService.findByIdOrThrow(court.venueId);
-    if (venue.status !== VenueStatus.ACTIVE) {
-      throw new NotFoundException(`Court ${dto.courtId} không tồn tại`);
-    }
-
-    const slotStarts = generateBookingSlotStarts(dto.startTime, dto.endTime, {
-      openTime: court.openTime,
-      closeTime: court.closeTime,
-      slotDurationMinutes: court.slotDurationMinutes,
+    const { booking, court, venue } = await this.createBookingRecord({
+      courtId: dto.courtId,
+      date: dto.date,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      customerId,
     });
-    if (!slotStarts) {
-      throw new BadRequestException(
-        'Khung giờ đặt không hợp lệ hoặc không thẳng hàng với slot của sân',
-      );
-    }
-
-    const pricePerSlot = court.pricePerHour * (court.slotDurationMinutes / 60);
-    const totalPrice = Math.round(pricePerSlot * slotStarts.length * 100) / 100;
-
-    let savedBooking: Booking;
-    try {
-      savedBooking = await this.dataSource.transaction(async (manager) => {
-        const booking = manager.create(Booking, {
-          courtId: dto.courtId,
-          customerId,
-          date: dto.date,
-          startTime: dto.startTime,
-          endTime: dto.endTime,
-          totalPrice,
-          status: BookingStatus.CONFIRMED,
-        });
-        const saved = await manager.save(booking);
-
-        const slots = slotStarts.map((slotStart) =>
-          manager.create(BookingSlot, {
-            bookingId: saved.id,
-            courtId: dto.courtId,
-            date: dto.date,
-            slotStart,
-          }),
-        );
-        await manager.save(slots);
-        await this.paymentsService.createForBooking(saved.id, manager);
-
-        return saved;
-      });
-    } catch (error) {
-      if (
-        error instanceof QueryFailedError &&
-        (error as unknown as { code?: string }).code === UNIQUE_VIOLATION_CODE
-      ) {
-        throw new ConflictException('Một hoặc nhiều khung giờ đã được đặt');
-      }
-      throw error;
-    }
 
     const customer = await this.usersService.findById(customerId);
     const owner = await this.usersService.findById(venue.ownerId);
@@ -136,7 +74,7 @@ export class BookingsService {
       date: dto.date,
       startTime: dto.startTime,
       endTime: dto.endTime,
-      totalPrice,
+      totalPrice: booking.totalPrice,
     });
     await this.notificationsService.notifyNewBookingForOwner({
       to: owner?.email ?? '',
@@ -147,10 +85,94 @@ export class BookingsService {
       endTime: dto.endTime,
       customerName: customer?.fullName ?? '',
       customerPhone: customer?.phone ?? null,
-      totalPrice,
+      totalPrice: booking.totalPrice,
     });
 
-    return savedBooking;
+    return booking;
+  }
+
+  async createBookingRecord(params: {
+    courtId: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    customerId?: string;
+    customerContactId?: string;
+    recurringScheduleId?: string;
+    totalPriceOverride?: number;
+  }): Promise<{ booking: Booking; court: Court; venue: Venue }> {
+    if (!DATE_PATTERN.test(params.date)) {
+      throw new BadRequestException('date phải theo định dạng YYYY-MM-DD');
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    if (params.date < today) {
+      throw new BadRequestException(
+        'Không thể đặt sân cho ngày trong quá khứ',
+      );
+    }
+
+    const court = await this.courtsService.findByIdOrThrow(params.courtId);
+    if (court.status !== CourtStatus.ACTIVE) {
+      throw new NotFoundException(`Court ${params.courtId} không tồn tại`);
+    }
+    const venue = await this.venuesService.findByIdOrThrow(court.venueId);
+    if (venue.status !== VenueStatus.ACTIVE) {
+      throw new NotFoundException(`Court ${params.courtId} không tồn tại`);
+    }
+
+    const slotStarts = generateBookingSlotStarts(params.startTime, params.endTime, {
+      openTime: court.openTime,
+      closeTime: court.closeTime,
+      slotDurationMinutes: court.slotDurationMinutes,
+    });
+    if (!slotStarts) {
+      throw new BadRequestException(
+        'Khung giờ đặt không hợp lệ hoặc không thẳng hàng với slot của sân',
+      );
+    }
+
+    const pricePerSlot = court.pricePerHour * (court.slotDurationMinutes / 60);
+    const computedPrice = Math.round(pricePerSlot * slotStarts.length * 100) / 100;
+    const totalPrice = params.totalPriceOverride ?? computedPrice;
+
+    try {
+      const booking = await this.dataSource.transaction(async (manager) => {
+        const entity = manager.create(Booking, {
+          courtId: params.courtId,
+          customerId: params.customerId ?? null,
+          customerContactId: params.customerContactId ?? null,
+          recurringScheduleId: params.recurringScheduleId ?? null,
+          date: params.date,
+          startTime: params.startTime,
+          endTime: params.endTime,
+          totalPrice,
+          status: BookingStatus.CONFIRMED,
+        });
+        const saved = await manager.save(entity);
+
+        const slots = slotStarts.map((slotStart) =>
+          manager.create(BookingSlot, {
+            bookingId: saved.id,
+            courtId: params.courtId,
+            date: params.date,
+            slotStart,
+          }),
+        );
+        await manager.save(slots);
+        await this.paymentsService.createForBooking(saved.id, manager);
+
+        return saved;
+      });
+      return { booking, court, venue };
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        (error as unknown as { code?: string }).code === UNIQUE_VIOLATION_CODE
+      ) {
+        throw new ConflictException('Một hoặc nhiều khung giờ đã được đặt');
+      }
+      throw error;
+    }
   }
 
   async findMineByCustomer(customerId: string): Promise<BookingWithCourtInfo[]> {
