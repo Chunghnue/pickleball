@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBranch, ALL_BRANCHES_ID } from "@/lib/branch-context";
-import { buildHourAxis, computeCellState } from "@/lib/booking-grid";
+import { buildHourAxis, computeCellState, computeMaxConsecutiveHours } from "@/lib/booking-grid";
 import { WeekDayNav } from "./week-day-nav";
 import { StatusBar } from "./status-bar";
 import { BookingGrid } from "./booking-grid";
+import { QuickBookDialog } from "./quick-book-dialog";
 import type { Court } from "../types";
 import type { OwnerBooking } from "./types";
 
@@ -106,6 +107,34 @@ export default function OwnerBookingsPage() {
     return { empty, booked, playing, total: empty + booked + playing };
   }, [courts, bookings, now]);
 
+  const [quickBook, setQuickBook] = useState<{ courtId?: string; hour?: string; max?: number } | null>(
+    null,
+  );
+
+  function handleCellClick(
+    court: Court,
+    hour: string,
+    state: "empty" | "booked" | "playing" | "recurring" | "unavailable",
+    bookingIds: string[],
+  ) {
+    if (state === "empty") {
+      const gridBookings = bookings.map((b) => ({
+        id: b.id,
+        courtId: b.courtId,
+        startTime: b.startTime,
+        endTime: b.endTime,
+        status: b.status,
+        recurringScheduleId: b.recurringScheduleId,
+      }));
+      const max = computeMaxConsecutiveHours(
+        { id: court.id, status: court.status, openTime: court.openTime, closeTime: court.closeTime },
+        hour,
+        gridBookings,
+      );
+      setQuickBook({ courtId: court.id, hour, max });
+    }
+  }
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-8">
       <div className="flex items-center justify-between">
@@ -133,10 +162,25 @@ export default function OwnerBookingsPage() {
         playingCount={counts.playing}
         totalCount={counts.total}
         onRefresh={loadBookings}
-        onQuickBook={() => {}}
+        onQuickBook={() => setQuickBook({})}
       />
 
-      <BookingGrid courts={courts} bookings={bookings} now={now} onCellClick={() => {}} />
+      <BookingGrid courts={courts} bookings={bookings} now={now} onCellClick={handleCellClick} />
+
+      <QuickBookDialog
+        open={quickBook !== null}
+        onOpenChange={(open) => !open && setQuickBook(null)}
+        venueId={venueId}
+        date={selectedDate}
+        courts={courts}
+        initialCourtId={quickBook?.courtId}
+        initialHour={quickBook?.hour}
+        maxDurationHours={quickBook?.max}
+        onCreated={() => {
+          setQuickBook(null);
+          loadBookings();
+        }}
+      />
     </main>
   );
 }
