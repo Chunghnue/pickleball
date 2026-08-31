@@ -15,6 +15,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DisputesModule } from './disputes/disputes.module';
 import { CustomerContactsModule } from './customer-contacts/customer-contacts.module';
+import { RecurringSchedulesModule } from './recurring-schedules/recurring-schedules.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { CustomerContactsModule } from './customer-contacts/customer-contacts.mo
     NotificationsModule,
     DisputesModule,
     CustomerContactsModule,
+    RecurringSchedulesModule,
   ],
   controllers: [AppController],
   providers: [
