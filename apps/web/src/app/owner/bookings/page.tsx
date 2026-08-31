@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Zap } from "lucide-react";
+import { Pointer, RefreshCw, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBranch, ALL_BRANCHES_ID } from "@/lib/branch-context";
 import { buildHourAxis, computeCellState, computeMaxConsecutiveHours } from "@/lib/booking-grid";
@@ -225,11 +225,16 @@ export default function OwnerBookingsPage() {
             size="icon"
             onClick={loadBookings}
             aria-label="Làm mới"
+            className="size-10 rounded-xl border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950/40"
           >
             <RefreshCw className="size-4" />
           </Button>
-          <Button type="button" onClick={() => setQuickBook({})} className="gap-1.5">
-            <Zap className="size-4" />
+          <Button
+            type="button"
+            onClick={() => setQuickBook({})}
+            className="h-10 gap-2 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
+          >
+            <Zap className="size-4 fill-white" />
             Đặt nhanh
           </Button>
         </div>
@@ -250,6 +255,7 @@ export default function OwnerBookingsPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
         <div className="flex flex-wrap items-center gap-1.5">
+          <Pointer className="size-3.5 text-blue-600" />
           <span>
             Click ô <span className="font-medium text-green-600">trống</span> để đặt
           </span>
