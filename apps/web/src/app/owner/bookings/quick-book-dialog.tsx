@@ -58,8 +58,20 @@ export function QuickBookDialog({
 
   useEffect(() => {
     if (!open) return;
-    setCourtId(initialCourtId ?? activeCourts[0]?.id ?? "");
-    setStartTime(initialHour ?? "");
+    const resolvedCourtId = initialCourtId ?? activeCourts[0]?.id ?? "";
+    setCourtId(resolvedCourtId);
+    const resolvedCourt = activeCourts.find((c) => c.id === resolvedCourtId);
+    const defaultHour = resolvedCourt
+      ? buildHourAxis([
+          {
+            id: resolvedCourt.id,
+            status: resolvedCourt.status,
+            openTime: resolvedCourt.openTime,
+            closeTime: resolvedCourt.closeTime,
+          },
+        ])[0]
+      : undefined;
+    setStartTime(initialHour ?? defaultHour ?? "");
     setDuration(Math.min(2, maxDurationHours ?? 8));
     setFullName("");
     setPhone("");
@@ -175,7 +187,22 @@ export function QuickBookDialog({
               <select
                 id="qb-court"
                 value={courtId}
-                onChange={(e) => setCourtId(e.target.value)}
+                onChange={(e) => {
+                  const newCourtId = e.target.value;
+                  setCourtId(newCourtId);
+                  const newCourt = activeCourts.find((c) => c.id === newCourtId);
+                  const hours = newCourt
+                    ? buildHourAxis([
+                        {
+                          id: newCourt.id,
+                          status: newCourt.status,
+                          openTime: newCourt.openTime,
+                          closeTime: newCourt.closeTime,
+                        },
+                      ])
+                    : [];
+                  setStartTime(hours[0] ?? "");
+                }}
                 disabled={isPrefilled}
                 className={`${SELECT_CLASS} pl-6`}
               >
