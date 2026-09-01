@@ -108,6 +108,14 @@ export type UpdateCourtInput = z.infer<typeof updateCourtSchema>;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+// z.coerce.number() turns an empty string into 0 (Number('') === 0), so an
+// `.optional()` numeric field with a `.min()` above 0 rejects "left blank"
+// as if the owner had typed 0. Preprocessing '' (and null) to undefined
+// *before* coercion lets `.optional()` actually skip validation when empty.
+function emptyToUndefined<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess((val) => (val === '' || val === null ? undefined : val), schema);
+}
+
 const pricingRuleBaseSchema = z.object({
   name: z.string().min(1, 'Vui lòng nhập tên khung giá'),
   daysOfWeek: z
@@ -116,9 +124,11 @@ const pricingRuleBaseSchema = z.object({
   startTime: z.string().regex(TIME_PATTERN, 'Định dạng giờ không hợp lệ (HH:mm)'),
   endTime: z.string().regex(TIME_PATTERN, 'Định dạng giờ không hợp lệ (HH:mm)'),
   price: z.coerce.number().min(0.01, 'Giá phải lớn hơn 0'),
-  priority: z.coerce.number().int('Phải là số nguyên').optional(),
-  advanceBookingHours: z.coerce.number().int('Phải là số nguyên').min(1).optional(),
-  advancePrice: z.coerce.number().min(0.01, 'Giá phải lớn hơn 0').optional(),
+  priority: emptyToUndefined(z.coerce.number().int('Phải là số nguyên').optional()),
+  advanceBookingHours: emptyToUndefined(
+    z.coerce.number().int('Phải là số nguyên').min(1, 'Tối thiểu 1 giờ').optional(),
+  ),
+  advancePrice: emptyToUndefined(z.coerce.number().min(0.01, 'Giá phải lớn hơn 0').optional()),
   validFrom: z
     .string()
     .regex(DATE_PATTERN, 'Định dạng ngày không hợp lệ')
@@ -149,7 +159,7 @@ const recurringScheduleBaseSchema = z.object({
   startTime: z.string().regex(TIME_PATTERN, 'Định dạng giờ không hợp lệ (HH:mm)'),
   endTime: z.string().regex(TIME_PATTERN, 'Định dạng giờ không hợp lệ (HH:mm)'),
   pricePerSession: z.coerce.number().min(0.01, 'Giá phải lớn hơn 0'),
-  discountPercent: z.coerce.number().min(0).max(100).optional(),
+  discountPercent: emptyToUndefined(z.coerce.number().min(0).max(100).optional()),
   validFrom: z.string().regex(DATE_PATTERN, 'Định dạng ngày không hợp lệ'),
   validTo: z.string().regex(DATE_PATTERN, 'Định dạng ngày không hợp lệ'),
   note: z.string().optional(),
