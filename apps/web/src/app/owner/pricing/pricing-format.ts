@@ -28,6 +28,48 @@ export function isAllDaysSelected(days: number[]): boolean {
   return new Set(days).size >= 7;
 }
 
+export type PricingRuleSortValue = "time" | "priceAsc" | "priceDesc" | "name";
+
+interface SortableRule {
+  id: string;
+  name: string;
+  price: number;
+  startTime: string;
+}
+
+// Ties (equal price/name/time) always fall through to name then id, so the
+// same set of rules sorts identically no matter what order it arrived in —
+// otherwise a stable sort merely preserves whatever order the input array
+// happened to have, which silently changes across re-fetches/optimistic
+// local updates and makes tied rows look like they're randomly reordering.
+export function sortPricingRules<T extends SortableRule>(
+  rules: T[],
+  sortValue: PricingRuleSortValue,
+): T[] {
+  return [...rules].sort((a, b) => {
+    let primary: number;
+    switch (sortValue) {
+      case "priceAsc":
+        primary = a.price - b.price;
+        break;
+      case "priceDesc":
+        primary = b.price - a.price;
+        break;
+      case "name":
+        primary = a.name.localeCompare(b.name, "vi");
+        break;
+      case "time":
+      default:
+        primary = a.startTime.localeCompare(b.startTime);
+        break;
+    }
+    if (primary !== 0) return primary;
+    const nameCompare = a.name.localeCompare(b.name, "vi");
+    if (nameCompare !== 0) return nameCompare;
+    return a.id.localeCompare(b.id);
+  });
+}
+
 export function sessionPriceAfterDiscount(
   pricePerSession: number,
   discountPercent: number | null,

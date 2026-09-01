@@ -6,6 +6,7 @@ import {
   formatShortDate,
   isAllDaysSelected,
   sessionPriceAfterDiscount,
+  sortPricingRules,
 } from "./pricing-format";
 
 describe("dayLabel", () => {
@@ -45,6 +46,41 @@ describe("isAllDaysSelected", () => {
   });
   it("is false when a day is missing", () => {
     expect(isAllDaysSelected([0, 1, 2, 3, 4, 5])).toBe(false);
+  });
+});
+
+describe("sortPricingRules", () => {
+  const RULE_B = { id: "b-id", name: "B", price: 100000, startTime: "18:00" };
+  const RULE_A = { id: "a-id", name: "A", price: 100000, startTime: "09:00" };
+  const RULE_C = { id: "c-id", name: "C", price: 50000, startTime: "12:00" };
+
+  it("breaks ties on equal price by name, regardless of input order", () => {
+    const order1 = sortPricingRules([RULE_B, RULE_A, RULE_C], "priceAsc");
+    const order2 = sortPricingRules([RULE_A, RULE_C, RULE_B], "priceAsc");
+    expect(order1.map((r) => r.id)).toEqual(order2.map((r) => r.id));
+    // C (50000) first, then A/B (100000) tied on price -> broken by name A, B
+    expect(order1.map((r) => r.id)).toEqual(["c-id", "a-id", "b-id"]);
+  });
+
+  it("sorts by price descending", () => {
+    const result = sortPricingRules([RULE_C, RULE_A, RULE_B], "priceDesc");
+    expect(result.map((r) => r.id)).toEqual(["a-id", "b-id", "c-id"]);
+  });
+
+  it("sorts by name", () => {
+    const result = sortPricingRules([RULE_C, RULE_B, RULE_A], "name");
+    expect(result.map((r) => r.id)).toEqual(["a-id", "b-id", "c-id"]);
+  });
+
+  it("sorts by start time", () => {
+    const result = sortPricingRules([RULE_B, RULE_C, RULE_A], "time");
+    expect(result.map((r) => r.id)).toEqual(["a-id", "c-id", "b-id"]);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [RULE_B, RULE_A];
+    sortPricingRules(input, "priceAsc");
+    expect(input).toEqual([RULE_B, RULE_A]);
   });
 });
 

@@ -22,20 +22,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
-import { formatDaysOfWeek, formatMoney, formatShortDate, isAllDaysSelected } from "./pricing-format";
+import {
+  formatDaysOfWeek,
+  formatMoney,
+  formatShortDate,
+  isAllDaysSelected,
+  sortPricingRules,
+  type PricingRuleSortValue,
+} from "./pricing-format";
 import { PricingRuleFormDialog } from "./pricing-rule-form-dialog";
 import type { PricingRule } from "./types";
 
-type SortValue = "time" | "priceAsc" | "priceDesc" | "name";
-
-const SORT_TRIGGER_LABEL: Record<SortValue, string> = {
+const SORT_TRIGGER_LABEL: Record<PricingRuleSortValue, string> = {
   time: "Theo giờ",
   priceAsc: "Giá thấp → cao",
   priceDesc: "Giá cao → thấp",
   name: "Theo tên",
 };
 
-const SORT_MENU_OPTIONS: { value: SortValue; label: string }[] = [
+const SORT_MENU_OPTIONS: { value: PricingRuleSortValue; label: string }[] = [
   { value: "time", label: "Sắp xếp: Theo giờ" },
   { value: "priceAsc", label: "Giá thấp → cao" },
   { value: "priceDesc", label: "Giá cao → thấp" },
@@ -56,22 +61,11 @@ export function PricingRulesTab({
   onRuleDeleted: (ruleId: string) => void;
 }) {
   const [search, setSearch] = useState("");
-  const [sortValue, setSortValue] = useState<SortValue>("time");
-  const filtered = rules
-    .filter((rule) => rule.name.toLowerCase().includes(search.trim().toLowerCase()))
-    .sort((a, b) => {
-      switch (sortValue) {
-        case "priceAsc":
-          return a.price - b.price;
-        case "priceDesc":
-          return b.price - a.price;
-        case "name":
-          return a.name.localeCompare(b.name, "vi");
-        case "time":
-        default:
-          return a.startTime.localeCompare(b.startTime);
-      }
-    });
+  const [sortValue, setSortValue] = useState<PricingRuleSortValue>("time");
+  const filtered = sortPricingRules(
+    rules.filter((rule) => rule.name.toLowerCase().includes(search.trim().toLowerCase())),
+    sortValue,
+  );
 
   return (
     <div className="flex flex-col gap-4">
