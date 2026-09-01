@@ -77,13 +77,23 @@ Mọi chỗ hiện đang join `users` để lấy tên/SĐT khách (`GET /bookin
 Tất cả owner-facing (JWT, role `owner`), scope theo venue owner sở hữu — dùng chung cách tổng hợp nhiều-venue như Dashboard (`?venueId=` tuỳ chọn, mặc định tất cả venue).
 
 ```
-GET  /customers?venueId=&tier=&search=
-     → [{ kind: 'registered'|'walkin', id, fullName, phone, totalBookings, totalSpent, lastBookingAt, tier, customerCode }]
+GET  /customers?venueId=&tier=&search=&page=&pageSize=
+     → { items: [{ kind: 'registered'|'walkin', id, fullName, phone, totalBookings,
+                   totalSpent, lastBookingAt, tier, customerCode }],
+         total, page, pageSize }
      tier: all|new|regular|vip (mặc định all); search: khớp fullName hoặc phone (LIKE, không phân biệt hoa thường)
+     page: mặc định 1; pageSize: mặc định 20, tối đa 100 (>100 → kẹp về 100)
+     Sắp xếp mặc định: lastBookingAt giảm dần; khách chưa đặt lần nào (lastBookingAt NULL) xếp cuối,
+       tie-break theo fullName tăng dần. total tính trên toàn bộ khách khớp tier+search (trước phân trang).
+
+GET  /customers/summary?venueId=
+     → { totalCustomers, vipCustomers, totalBookings, totalSpent }
+     Tính trên TOÀN BỘ khách của venue trong phạm vi venueId — KHÔNG áp tier/search/phân trang.
 
 GET  /customers/:kind/:id      (kind: registered|walkin)
-     → { kind, id, fullName, phone, email?, address?, tier, totalBookings, totalSpent,
+     → { kind, id, fullName, phone, email?, address?, note?, tier, totalBookings, totalSpent,
          lastBookingAt, customerCode, joinedAt }
+     note chỉ có với kind=walkin (khách registered không có trường ghi chú)
 
 POST /customer-contacts
      body: { fullName, phone, email?, address?, note? }
@@ -94,13 +104,15 @@ POST /customer-contacts
 
 **Ngày tham gia:** `users.created_at` (registered) hoặc `customer_contacts.created_at` (walkin).
 
-**Thẻ số liệu tổng hợp** (đầu trang danh sách, tính trên toàn bộ khách trong phạm vi lọc):
-- Tổng khách = tổng số dòng trong `GET /customers` (registered + walkin).
-- Khách VIP = số dòng có `tier = vip`.
-- Tổng lượt đặt = tổng `totalBookings` của toàn bộ khách trong danh sách.
-- Tổng doanh thu = tổng `totalSpent` của toàn bộ khách trong danh sách.
+**Thẻ số liệu tổng hợp** (`GET /customers/summary`, đầu trang danh sách) — tính trên **toàn bộ khách của venue**, **không** bị ảnh hưởng bởi tab `tier` hay ô `search` đang chọn (số liệu tổng cố định, không đổi khi người dùng lọc/tìm kiếm/lật trang):
+- Tổng khách (`totalCustomers`) = tổng số khách của venue (registered + walkin).
+- Khách VIP (`vipCustomers`) = số khách có `tier = vip`.
+- Tổng lượt đặt (`totalBookings`) = tổng lượt đặt của toàn bộ khách của venue.
+- Tổng doanh thu (`totalSpent`) = tổng chi tiêu của toàn bộ khách của venue.
 
-Truy vấn dùng TypeORM `QueryBuilder` (cùng quyết định kỹ thuật với Dashboard §5) để tính `totalBookings`/`totalSpent`/`lastBookingAt` theo nhóm khách mà không tải toàn bộ bảng vào bộ nhớ.
+Vì `GET /customers` đã phân trang (chỉ trả 1 trang), 4 thẻ này **không** cộng dồn từ response danh sách — chúng dùng endpoint `GET /customers/summary` riêng để tổng hợp trên cả tập.
+
+Truy vấn dùng TypeORM `QueryBuilder` (cùng quyết định kỹ thuật với Dashboard §5) để tính `totalBookings`/`totalSpent`/`lastBookingAt` theo nhóm khách mà không tải toàn bộ bảng vào bộ nhớ; phân trang áp `LIMIT`/`OFFSET` sau khi đã tính tier để lọc/sắp xếp đúng.
 
 ## 6. Validation
 
@@ -108,12 +120,14 @@ Truy vấn dùng TypeORM `QueryBuilder` (cùng quyết định kỹ thuật vớ
 - `POST /customer-contacts`: `fullName`, `phone` bắt buộc; trùng `(ownerId, phone)` đã tồn tại → 409 (gợi ý dùng contact đã có thay vì tạo trùng).
 - `POST /venues/mine/:venueId/bookings`: đúng 1 trong 3 field khách → 400 nếu vi phạm; `customerId`/`customerContactId` không tồn tại → 404; `customerContactId` không thuộc owner đang gọi → 404 (không lộ dữ liệu contact của owner khác).
 - `GET /customers/:kind/:id`: khách không thuộc phạm vi venue của owner (chưa từng đặt tại venue owner sở hữu, với `kind=registered`) hoặc contact không thuộc owner (`kind=walkin`) → 404.
+- `GET /customers`: `page < 1` → kẹp về 1; `pageSize` ngoài khoảng `[1, 100]` → kẹp về biên gần nhất (mặc định 20). `tier` không hợp lệ → 400.
 
 ## 7. Testing
 
 - **Unit:** logic phân loại tier (boundary: đúng 1 lượt đặt, đúng ngưỡng 5.000.000đ, đúng ngưỡng 10 lượt); tạo mã KH đúng định dạng.
 - **Integration:** CHECK constraint DB chặn insert booking thiếu cả 2 hoặc đủ cả 2 field khách (test trực tiếp trên Postgres thật, giống cách test unique index ở Bookings).
 - **E2E:** owner thêm khách walk-in → đặt sân hộ bằng `newCustomer` → khách xuất hiện trong `GET /customers` với đúng lượt đặt/tổng tiền/tier; owner đặt sân hộ khách đã có tài khoản qua `customerId`; tìm kiếm theo SĐT trả đúng kết quả; lọc theo tier.
+- **Phân trang & số liệu:** `GET /customers` trả đúng `total`/`page`/`pageSize` và sắp xếp mặc định (khách mới nhất lên đầu, khách chưa đặt xếp cuối); `GET /customers/summary` giữ nguyên số liệu khi đổi `tier`/`search` (chỉ đổi theo `venueId`).
 
 ## 8. Ngoài phạm vi
 
