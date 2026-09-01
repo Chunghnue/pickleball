@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { CustomerContact } from './entities/customer-contact.entity';
@@ -98,6 +103,36 @@ export class CustomerContactsService {
         if (winner) {
           return winner;
         }
+      }
+      throw error;
+    }
+  }
+
+  async create(
+    ownerId: string,
+    data: { fullName: string; phone: string; email?: string; address?: string; note?: string },
+  ): Promise<CustomerContact> {
+    const existing = await this.repository.findOne({ where: { ownerId, phone: data.phone } });
+    if (existing) {
+      throw new ConflictException(`Đã tồn tại khách hàng với số điện thoại ${data.phone}`);
+    }
+    try {
+      return await this.repository.save(
+        this.repository.create({
+          ownerId,
+          fullName: data.fullName,
+          phone: data.phone,
+          email: data.email ?? null,
+          address: data.address ?? null,
+          note: data.note ?? null,
+        }),
+      );
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        (error as unknown as { code?: string }).code === UNIQUE_VIOLATION_CODE
+      ) {
+        throw new ConflictException(`Đã tồn tại khách hàng với số điện thoại ${data.phone}`);
       }
       throw error;
     }
