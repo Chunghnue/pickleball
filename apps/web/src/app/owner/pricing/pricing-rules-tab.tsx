@@ -14,11 +14,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import { formatDaysOfWeek, formatMoney, formatShortDate, isAllDaysSelected } from "./pricing-format";
 import { PricingRuleFormDialog } from "./pricing-rule-form-dialog";
 import type { PricingRule } from "./types";
+
+type SortValue = "time" | "priceAsc" | "priceDesc" | "name";
+
+const SORT_TRIGGER_LABEL: Record<SortValue, string> = {
+  time: "Theo giờ",
+  priceAsc: "Giá thấp → cao",
+  priceDesc: "Giá cao → thấp",
+  name: "Theo tên",
+};
+
+const SORT_MENU_OPTIONS: { value: SortValue; label: string }[] = [
+  { value: "time", label: "Sắp xếp: Theo giờ" },
+  { value: "priceAsc", label: "Giá thấp → cao" },
+  { value: "priceDesc", label: "Giá cao → thấp" },
+  { value: "name", label: "Theo tên" },
+];
 
 export function PricingRulesTab({
   venueId,
@@ -34,12 +56,22 @@ export function PricingRulesTab({
   onRuleDeleted: (ruleId: string) => void;
 }) {
   const [search, setSearch] = useState("");
-  const [sortAsc, setSortAsc] = useState(true);
+  const [sortValue, setSortValue] = useState<SortValue>("time");
   const filtered = rules
     .filter((rule) => rule.name.toLowerCase().includes(search.trim().toLowerCase()))
-    .sort((a, b) =>
-      sortAsc ? a.startTime.localeCompare(b.startTime) : b.startTime.localeCompare(a.startTime),
-    );
+    .sort((a, b) => {
+      switch (sortValue) {
+        case "priceAsc":
+          return a.price - b.price;
+        case "priceDesc":
+          return b.price - a.price;
+        case "name":
+          return a.name.localeCompare(b.name, "vi");
+        case "time":
+        default:
+          return a.startTime.localeCompare(b.startTime);
+      }
+    });
 
   return (
     <div className="flex flex-col gap-4">
@@ -60,16 +92,27 @@ export function PricingRulesTab({
             className="h-11 border-0 px-0 focus-visible:ring-0"
           />
         </div>
-        <button
-          type="button"
-          onClick={() => setSortAsc((prev) => !prev)}
-          aria-label={sortAsc ? "Sắp xếp theo giờ tăng dần" : "Sắp xếp theo giờ giảm dần"}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <span>Sắp xếp:</span>
-          <span className="font-medium text-foreground">Theo giờ</span>
-          <ChevronDown className={cn("size-4 transition-transform", !sortAsc && "rotate-180")} />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex h-11 items-center gap-1.5 rounded-xl border border-input bg-card px-3 text-sm text-muted-foreground outline-none hover:bg-muted">
+            <span>Sắp xếp:</span>
+            <span className="font-medium text-foreground">{SORT_TRIGGER_LABEL[sortValue]}</span>
+            <ChevronDown className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {SORT_MENU_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => setSortValue(option.value)}
+                className={cn(
+                  option.value === sortValue &&
+                    "bg-blue-600 text-white data-[highlighted]:bg-blue-600 data-[highlighted]:text-white",
+                )}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
