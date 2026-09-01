@@ -1,9 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PricingService } from './pricing.service';
 import { PricingRule } from './entities/pricing-rule.entity';
 import { Court } from '../courts/entities/court.entity';
 import { Venue } from '../courts/entities/venue.entity';
+import { CreatePricingRuleDto } from './dto/create-pricing-rule.dto';
+import { UpdatePricingRuleDto } from './dto/update-pricing-rule.dto';
 
 const mockPricingRulesRepository = () => ({
   find: jest.fn(),
@@ -185,5 +188,130 @@ describe('PricingService.resolvePrice', () => {
     const price = await service.resolvePrice('court-1', '2026-08-25', '20:00');
 
     expect(price).toBe(100000);
+  });
+});
+
+const VALID_DTO: CreatePricingRuleDto = {
+  name: 'Buổi tối',
+  daysOfWeek: [0, 1, 2, 3, 4],
+  startTime: '17:00',
+  endTime: '22:00',
+  price: 150000,
+};
+
+describe('PricingService.create', () => {
+  it('creates a rule on an owned court', async () => {
+    const { service, pricingRulesRepo, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    pricingRulesRepo.create.mockImplementation((data) => data);
+    pricingRulesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'rule-1', ...data }));
+
+    const result = await service.create('owner-1', 'venue-1', 'court-1', VALID_DTO);
+
+    expect(result.courtId).toBe('court-1');
+    expect(result.priority).toBe(0);
+    expect(result.advanceBookingHours).toBeNull();
+    expect(result.advancePrice).toBeNull();
+    expect(result.validFrom).toBeNull();
+    expect(result.validTo).toBeNull();
+  });
+
+  it('throws ForbiddenException when the venue belongs to another owner', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'someone-else' });
+
+    await expect(service.create('owner-1', 'venue-1', 'court-1', VALID_DTO)).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('throws NotFoundException when the court does not belong to the venue', async () => {
+    const { service, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.create('owner-1', 'venue-1', 'court-1', VALID_DTO)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('throws BadRequestException when startTime is not before endTime', async () => {
+    const { service, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+
+    await expect(
+      service.create('owner-1', 'venue-1', 'court-1', { ...VALID_DTO, startTime: '22:00', endTime: '17:00' }),
+    ).rejects.toThrow('startTime phải trước endTime');
+  });
+
+  it('throws BadRequestException when validFrom is after validTo', async () => {
+    const { service, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+
+    await expect(
+      service.create('owner-1', 'venue-1', 'court-1', {
+        ...VALID_DTO,
+        validFrom: '2026-09-01',
+        validTo: '2026-08-01',
+      }),
+    ).rejects.toThrow('validFrom phải trước hoặc bằng validTo');
+  });
+});
+
+describe('PricingService.findByCourt', () => {
+  it('returns rules for an owned court', async () => {
+    const { service, pricingRulesRepo, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    pricingRulesRepo.find.mockResolvedValue([rule({})]);
+
+    const result = await service.findByCourt('owner-1', 'venue-1', 'court-1');
+
+    expect(result).toHaveLength(1);
+  });
+});
+
+describe('PricingService.update', () => {
+  it('applies partial updates', async () => {
+    const { service, pricingRulesRepo, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    const existing = rule({ price: 100000 });
+    pricingRulesRepo.findOne.mockResolvedValue(existing);
+    pricingRulesRepo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const dto: UpdatePricingRuleDto = { price: 130000 };
+    const result = await service.update('owner-1', 'venue-1', 'court-1', 'rule-1', dto);
+
+    expect(result.price).toBe(130000);
+    expect(result.startTime).toBe(existing.startTime);
+  });
+
+  it('throws NotFoundException when the rule does not exist on that court', async () => {
+    const { service, pricingRulesRepo, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    pricingRulesRepo.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.update('owner-1', 'venue-1', 'court-1', 'rule-1', { price: 1 }),
+    ).rejects.toThrow(NotFoundException);
+  });
+});
+
+describe('PricingService.remove', () => {
+  it('removes an owned rule', async () => {
+    const { service, pricingRulesRepo, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    const existing = rule({});
+    pricingRulesRepo.findOne.mockResolvedValue(existing);
+
+    await service.remove('owner-1', 'venue-1', 'court-1', 'rule-1');
+
+    expect(pricingRulesRepo.remove).toHaveBeenCalledWith(existing);
   });
 });
