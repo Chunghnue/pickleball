@@ -56,7 +56,7 @@ const EMPTY_VALUES = {
   daysOfWeek: [] as number[],
   startTime: "17:00",
   endTime: "22:00",
-  price: 0,
+  price: undefined,
   priority: undefined,
   advanceBookingHours: undefined,
   advancePrice: undefined,
