@@ -1468,6 +1468,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import type { z } from "zod";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1521,7 +1522,11 @@ export function RecurringScheduleFormDialog({
   const [open, setOpen] = useState(false);
   const [customer, setCustomer] = useState<CustomerSelection | null>(null);
 
-  const form = useForm<CreateRecurringScheduleInput>({
+  const form = useForm<
+    z.input<typeof createRecurringScheduleSchema>,
+    unknown,
+    CreateRecurringScheduleInput
+  >({
     resolver: zodResolver(createRecurringScheduleSchema),
     defaultValues: defaultValues(defaultCourtId),
   });
