@@ -152,6 +152,44 @@ describe('RecurringSchedulesService.create', () => {
   });
 });
 
+describe('RecurringSchedulesService.create autoRenew', () => {
+  const ACTIVE_COURT = { id: 'court-1', venueId: 'venue-1' };
+
+  it('defaults autoRenew to false, and persists true when provided', async () => {
+    const { service, courtsService, venuesService, customerContactsService, bookingsService } =
+      await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
+    customerContactsService.resolveSelector.mockResolvedValue({ customerContactId: 'contact-1' });
+    bookingsService.createBookingRecord.mockResolvedValue({});
+
+    const defaultResult = await service.create('owner-1', 'venue-1', {
+      courtId: 'court-1',
+      dayOfWeek: 0,
+      startTime: '18:00',
+      endTime: '19:00',
+      pricePerSession: 100000,
+      validFrom: '2024-01-01',
+      validTo: '2024-01-14',
+      customerContactId: 'contact-1',
+    });
+    expect(defaultResult.schedule.autoRenew).toBe(false);
+
+    const explicitResult = await service.create('owner-1', 'venue-1', {
+      courtId: 'court-1',
+      dayOfWeek: 0,
+      startTime: '18:00',
+      endTime: '19:00',
+      pricePerSession: 100000,
+      validFrom: '2024-01-01',
+      validTo: '2024-01-14',
+      customerContactId: 'contact-1',
+      autoRenew: true,
+    });
+    expect(explicitResult.schedule.autoRenew).toBe(true);
+  });
+});
+
 describe('RecurringSchedulesService.cancel', () => {
   it('marks the schedule cancelled and cancels its future occurrences', async () => {
     const { service, repo, courtsService, venuesService, bookingsService } =

@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsInt,
   IsNumber,
   IsOptional,
@@ -48,4 +49,8 @@ export class CreateRecurringScheduleDto extends CustomerSelectorDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  autoRenew?: boolean;
 }

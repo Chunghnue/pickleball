@@ -57,6 +57,7 @@ export class RecurringSchedulesService {
         validFrom: dto.validFrom,
         validTo: dto.validTo,
         note: dto.note ?? null,
+        autoRenew: dto.autoRenew ?? false,
       }),
     );
 

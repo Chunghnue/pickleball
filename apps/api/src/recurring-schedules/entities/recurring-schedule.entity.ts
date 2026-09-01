@@ -77,6 +77,9 @@ export class RecurringSchedule {
   @Column({ nullable: true, type: 'varchar' })
   note: string | null;
 
+  @Column({ name: 'auto_renew', type: 'boolean', default: false })
+  autoRenew: boolean;
+
   @Column({
     type: 'enum',
     enum: RecurringScheduleStatus,
