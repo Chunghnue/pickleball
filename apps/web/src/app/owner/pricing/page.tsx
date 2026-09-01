@@ -33,10 +33,12 @@ export default function OwnerPricingPage() {
     setCourtIdParam(params.get("courtId"));
   }, []);
 
-  // Load the owner's venues — used to auto-pick one when the global branch
-  // switcher is at "Tất cả chi nhánh" (no page-level venue-scoped API can
-  // work without a concrete venueId), mirroring how the Bookings page
-  // resolves this exact situation.
+  // Load the owner's venues — used to fall back to one, *for this page
+  // only*, when the global branch switcher is at "Tất cả chi nhánh" (every
+  // pricing/recurring-schedule API needs a concrete venueId). Matches how
+  // the Bookings page resolves the same situation: read from the switcher,
+  // but never write the fallback back into it — only an explicit ?courtId=
+  // navigation (below) is deliberate enough to sync the global switcher.
   useEffect(() => {
     fetch("/api/venues/mine")
       .then((res) => (res.ok ? res.json() : null))
@@ -69,18 +71,15 @@ export default function OwnerPricingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allCourts, courtIdParam]);
 
-  // No branch explicitly selected and no ?courtId= to resolve one from —
-  // fall back to the owner's first venue instead of blocking the page.
-  useEffect(() => {
-    if (selectedVenueId !== ALL_BRANCHES_ID) return;
-    if (courtIdParam && allCourts && allCourts.some((c) => c.id === courtIdParam)) return;
-    if (venues && venues.length > 0) {
-      setSelectedVenueId(venues[0].id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVenueId, courtIdParam, allCourts, venues]);
-
-  const resolvedVenueId = selectedVenueId === ALL_BRANCHES_ID ? null : selectedVenueId;
+  // Page-local fallback only — deliberately does NOT call
+  // setSelectedVenueId, so landing here with no branch chosen doesn't
+  // silently reassign the global "CHI NHÁNH" dropdown for the rest of the
+  // app (that dropdown should only ever change from the user picking it,
+  // or from the explicit ?courtId= navigation above).
+  const resolvedVenueId =
+    selectedVenueId !== ALL_BRANCHES_ID
+      ? selectedVenueId
+      : (venues && venues.length > 0 ? venues[0].id : null);
 
   const courtsInVenue = useMemo(
     () =>

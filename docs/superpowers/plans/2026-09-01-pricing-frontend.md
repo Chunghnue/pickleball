@@ -2229,10 +2229,12 @@ export default function OwnerPricingPage() {
     setCourtIdParam(params.get("courtId"));
   }, []);
 
-  // Load the owner's venues — used to auto-pick one when the global branch
-  // switcher is at "Tất cả chi nhánh" (no page-level venue-scoped API can
-  // work without a concrete venueId), mirroring how the Bookings page
-  // resolves this exact situation.
+  // Load the owner's venues — used to fall back to one, *for this page
+  // only*, when the global branch switcher is at "Tất cả chi nhánh" (every
+  // pricing/recurring-schedule API needs a concrete venueId). Matches how
+  // the Bookings page resolves the same situation: read from the switcher,
+  // but never write the fallback back into it — only an explicit ?courtId=
+  // navigation (below) is deliberate enough to sync the global switcher.
   useEffect(() => {
     fetch("/api/venues/mine")
       .then((res) => (res.ok ? res.json() : null))
@@ -2265,18 +2267,15 @@ export default function OwnerPricingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allCourts, courtIdParam]);
 
-  // No branch explicitly selected and no ?courtId= to resolve one from —
-  // fall back to the owner's first venue instead of blocking the page.
-  useEffect(() => {
-    if (selectedVenueId !== ALL_BRANCHES_ID) return;
-    if (courtIdParam && allCourts && allCourts.some((c) => c.id === courtIdParam)) return;
-    if (venues && venues.length > 0) {
-      setSelectedVenueId(venues[0].id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVenueId, courtIdParam, allCourts, venues]);
-
-  const resolvedVenueId = selectedVenueId === ALL_BRANCHES_ID ? null : selectedVenueId;
+  // Page-local fallback only — deliberately does NOT call
+  // setSelectedVenueId, so landing here with no branch chosen doesn't
+  // silently reassign the global "CHI NHÁNH" dropdown for the rest of the
+  // app (that dropdown should only ever change from the user picking it,
+  // or from the explicit ?courtId= navigation above).
+  const resolvedVenueId =
+    selectedVenueId !== ALL_BRANCHES_ID
+      ? selectedVenueId
+      : (venues && venues.length > 0 ? venues[0].id : null);
 
   const courtsInVenue = useMemo(
     () =>
@@ -2459,6 +2458,7 @@ export default function OwnerPricingPage() {
 }
 ```
 
+
 - [ ] **Step 2: Build**
 
 Run: `cd apps/web && npm run build`
@@ -2468,7 +2468,7 @@ Expected: build succeeds with no type errors and no route conflicts.
 
 Run: `cd apps/api && npm run start:dev` (in one terminal) and `cd apps/web && npm run dev` (in another), then in a browser as a logged-in owner:
 
-1. From the sidebar, click "Bảng giá" with no branch explicitly selected — confirm the page loads real data immediately (auto-picking the owner's first venue) rather than blocking on a "choose a branch" prompt; that prompt should only appear if the owner truly has zero venues.
+1. From the sidebar, click "Bảng giá" with no branch explicitly selected — confirm the page loads real data immediately (falling back to the owner's first venue, page-locally) rather than blocking on a "choose a branch" prompt; that prompt should only appear if the owner truly has zero venues. Confirm the sidebar's own "CHI NHÁNH" dropdown still reads "Tất cả chi nhánh" afterward — visiting this page must not silently change that global switcher.
 2. From "Danh sách sân", click the eye icon on a court — confirm it lands on `/owner/pricing?courtId=...` with that court pre-selected and the branch switcher synced.
 3. On the "Bảng giá" tab: add a pricing rule (with and without the optional advance-booking/valid-range fields), confirm it appears in the table and the summary card count increases; edit it; delete it; switch the court dropdown and confirm the list changes; use "Sao chép" from another court and confirm rules appear.
 4. Switch to "Đặt cố định": confirm the empty state copy when there are none; add a recurring schedule using both an existing customer (search) and a brand-new customer; confirm the toast reports `generatedCount`/`conflictingDates` correctly; click a row to open the detail dialog, confirm occurrences list and cancel it; confirm the summary cards update.
