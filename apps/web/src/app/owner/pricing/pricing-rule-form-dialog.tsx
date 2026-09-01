@@ -224,7 +224,13 @@ export function PricingRuleFormDialog(props: CreateProps | EditProps) {
               <Label htmlFor="rule-price">
                 Giá (đ) <RequiredMark />
               </Label>
-              <Input id="rule-price" type="number" step="1000" {...form.register("price")} />
+              <Input
+                id="rule-price"
+                type="number"
+                step="1000"
+                placeholder="300000"
+                {...form.register("price")}
+              />
               {errors.price && <p className="text-sm text-destructive">{errors.price.message}</p>}
             </div>
             <div className="space-y-1.5">
@@ -245,14 +251,25 @@ export function PricingRuleFormDialog(props: CreateProps | EditProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="rule-advance-hours">Đặt trước (giờ)</Label>
-              <Input id="rule-advance-hours" type="number" {...form.register("advanceBookingHours")} />
+              <Input
+                id="rule-advance-hours"
+                type="number"
+                placeholder="0"
+                {...form.register("advanceBookingHours")}
+              />
               {errors.advanceBookingHours && (
                 <p className="text-sm text-destructive">{errors.advanceBookingHours.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="rule-advance-price">Giá đặt trước (đ)</Label>
-              <Input id="rule-advance-price" type="number" step="1000" {...form.register("advancePrice")} />
+              <Input
+                id="rule-advance-price"
+                type="number"
+                step="1000"
+                placeholder="0"
+                {...form.register("advancePrice")}
+              />
               {errors.advancePrice && (
                 <p className="text-sm text-destructive">{errors.advancePrice.message}</p>
               )}
