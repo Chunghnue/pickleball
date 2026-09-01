@@ -1,9 +1,11 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, LessThanOrEqual, Repository } from 'typeorm';
+import { Cron } from '@nestjs/schedule';
 import { RecurringSchedule, RecurringScheduleStatus } from './entities/recurring-schedule.entity';
 import { CreateRecurringScheduleDto } from './dto/create-recurring-schedule.dto';
 import { generateOccurrenceDates } from './occurrence-dates.util';
+import { addDays } from './date.util';
 import { CourtsService } from '../courts/courts.service';
 import { VenuesService } from '../courts/venues.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
@@ -146,5 +148,62 @@ export class RecurringSchedulesService {
     }
     const occurrences = await this.bookingsService.findByRecurringScheduleId(id);
     return { schedule, occurrences };
+  }
+
+  @Cron('0 1 * * *')
+  async renewExpiringSchedules(): Promise<void> {
+    const cutoff = addDays(new Date().toISOString().slice(0, 10), 7);
+    const dueSchedules = await this.repository.find({
+      where: {
+        status: RecurringScheduleStatus.ACTIVE,
+        autoRenew: true,
+        validTo: LessThanOrEqual(cutoff),
+      },
+    });
+    for (const schedule of dueSchedules) {
+      await this.renewSchedule(schedule);
+    }
+  }
+
+  async renewSchedule(
+    schedule: RecurringSchedule,
+  ): Promise<{ generatedCount: number; conflictingDates: string[] }> {
+    const renewalStart = addDays(schedule.validTo, 1);
+    const newValidTo = addDays(schedule.validTo, 30);
+    const sessionPrice =
+      Math.round(schedule.pricePerSession * (1 - (schedule.discountPercent ?? 0) / 100) * 100) /
+      100;
+    const dates = generateOccurrenceDates(renewalStart, newValidTo, schedule.dayOfWeek);
+    const customerRef = schedule.customerId
+      ? { customerId: schedule.customerId }
+      : { customerContactId: schedule.customerContactId as string };
+
+    const conflictingDates: string[] = [];
+    let generatedCount = 0;
+    for (const date of dates) {
+      try {
+        await this.bookingsService.createBookingRecord({
+          courtId: schedule.courtId,
+          date,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          ...customerRef,
+          recurringScheduleId: schedule.id,
+          totalPriceOverride: sessionPrice,
+        });
+        generatedCount += 1;
+      } catch (error) {
+        if (error instanceof ConflictException) {
+          conflictingDates.push(date);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    schedule.validTo = newValidTo;
+    await this.repository.save(schedule);
+
+    return { generatedCount, conflictingDates };
   }
 }

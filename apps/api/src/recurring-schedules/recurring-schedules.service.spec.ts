@@ -286,3 +286,97 @@ describe('RecurringSchedulesService.findByIdForOwner', () => {
     );
   });
 });
+
+describe('RecurringSchedulesService.renewSchedule', () => {
+  const DUE_SCHEDULE = {
+    id: 'schedule-1',
+    courtId: 'court-1',
+    customerId: null,
+    customerContactId: 'contact-1',
+    dayOfWeek: 0, // Monday
+    startTime: '18:00',
+    endTime: '19:00',
+    pricePerSession: 100000,
+    discountPercent: 10,
+    validFrom: '2098-12-01',
+    validTo: '2099-01-05', // a Monday
+    autoRenew: true,
+    status: RecurringScheduleStatus.ACTIVE,
+  } as RecurringSchedule;
+
+  it('generates occurrences for the next 30 days past validTo and extends validTo', async () => {
+    const { service, repo, bookingsService } = await buildTestingModule();
+    bookingsService.createBookingRecord.mockResolvedValue({});
+    repo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.renewSchedule({ ...DUE_SCHEDULE });
+
+    // 2099-01-06 .. 2099-02-04 (30 days after old validTo) contains Mondays
+    // 2099-01-12, 01-19, 01-26, 02-02 -> 4 occurrences
+    expect(result.generatedCount).toBe(4);
+    expect(result.conflictingDates).toEqual([]);
+    expect(bookingsService.createBookingRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        courtId: 'court-1',
+        date: '2099-01-12',
+        startTime: '18:00',
+        endTime: '19:00',
+        customerContactId: 'contact-1',
+        recurringScheduleId: 'schedule-1',
+        totalPriceOverride: 90000,
+      }),
+    );
+    expect(repo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ validTo: '2099-02-04' }),
+    );
+  });
+
+  it('collects conflicting dates instead of aborting', async () => {
+    const { service, repo, bookingsService } = await buildTestingModule();
+    bookingsService.createBookingRecord
+      .mockRejectedValueOnce(new ConflictException('Một hoặc nhiều khung giờ đã được đặt'))
+      .mockResolvedValue({});
+    repo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.renewSchedule({ ...DUE_SCHEDULE });
+
+    expect(result.conflictingDates).toEqual(['2099-01-12']);
+    expect(result.generatedCount).toBe(3);
+  });
+});
+
+describe('RecurringSchedulesService.renewExpiringSchedules', () => {
+  it('renews every active, auto-renewing schedule due within 7 days', async () => {
+    const { service, repo, bookingsService } = await buildTestingModule();
+    const due = {
+      id: 'schedule-1',
+      courtId: 'court-1',
+      customerId: null,
+      customerContactId: 'contact-1',
+      dayOfWeek: 0,
+      startTime: '18:00',
+      endTime: '19:00',
+      pricePerSession: 100000,
+      discountPercent: null,
+      validFrom: '2098-12-01',
+      validTo: '2099-01-05',
+      autoRenew: true,
+      status: RecurringScheduleStatus.ACTIVE,
+    } as RecurringSchedule;
+    repo.find.mockResolvedValue([due]);
+    repo.save.mockImplementation((data) => Promise.resolve(data));
+    bookingsService.createBookingRecord.mockResolvedValue({});
+
+    await service.renewExpiringSchedules();
+
+    expect(repo.find).toHaveBeenCalledWith({
+      where: {
+        status: RecurringScheduleStatus.ACTIVE,
+        autoRenew: true,
+        validTo: expect.anything(),
+      },
+    });
+    expect(bookingsService.createBookingRecord).toHaveBeenCalled();
+    expect(repo.save).toHaveBeenCalledWith(expect.objectContaining({ validTo: '2099-02-04' }));
+  });
+});
