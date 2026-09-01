@@ -177,6 +177,50 @@ export class PricingService {
     return this.pricingRulesRepository.save(copies);
   }
 
+  async copyFromVenue(
+    ownerId: string,
+    venueId: string,
+    sourceVenueId: string,
+  ): Promise<PricingRule[]> {
+    if (sourceVenueId === venueId) {
+      throw new BadRequestException('Không thể sao chép từ chính chi nhánh hiện tại');
+    }
+    await this.getOwnedVenue(ownerId, venueId);
+    const sourceVenue = await this.venuesRepository.findOne({ where: { id: sourceVenueId } });
+    if (!sourceVenue || sourceVenue.ownerId !== ownerId) {
+      throw new NotFoundException(`Venue ${sourceVenueId} không tồn tại`);
+    }
+
+    const targetCourts = await this.courtsRepository.find({ where: { venueId } });
+    const sourceCourts = await this.courtsRepository.find({ where: { venueId: sourceVenueId } });
+    const sourceCourtIds = sourceCourts.map((court) => court.id);
+    const sourceRules = await this.pricingRulesRepository.find({
+      where: { courtId: In(sourceCourtIds.length > 0 ? sourceCourtIds : ['__none__']) },
+    });
+
+    const copies = targetCourts.flatMap((court) =>
+      sourceRules.map((rule) =>
+        this.pricingRulesRepository.create({
+          courtId: court.id,
+          name: rule.name,
+          daysOfWeek: rule.daysOfWeek,
+          startTime: rule.startTime,
+          endTime: rule.endTime,
+          price: rule.price,
+          priority: rule.priority,
+          advanceBookingHours: rule.advanceBookingHours,
+          advancePrice: rule.advancePrice,
+          validFrom: rule.validFrom,
+          validTo: rule.validTo,
+        }),
+      ),
+    );
+    if (copies.length === 0) {
+      return [];
+    }
+    return this.pricingRulesRepository.save(copies);
+  }
+
   async getSummary(
     ownerId: string,
     venueId: string,

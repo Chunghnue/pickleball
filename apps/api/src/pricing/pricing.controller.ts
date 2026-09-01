@@ -83,4 +83,15 @@ export class PricingController {
   ) {
     return this.pricingService.copyFrom(user.userId, venueId, courtId, sourceCourtId);
   }
+
+  @Post('venues/mine/:venueId/pricing-rules/copy-from-venue/:sourceVenueId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.OWNER)
+  copyFromVenue(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('venueId') venueId: string,
+    @Param('sourceVenueId') sourceVenueId: string,
+  ) {
+    return this.pricingService.copyFromVenue(user.userId, venueId, sourceVenueId);
+  }
 }

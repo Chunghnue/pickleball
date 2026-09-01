@@ -151,6 +151,60 @@ describe('Pricing rules (e2e)', () => {
     expect(targetCourtRules.body).toHaveLength(1);
   });
 
+  it('copies every source-venue rule onto every court of the target venue', async () => {
+    const { ownerId, token } = await createOwnerAndLogin();
+    const { venueId: sourceVenueId, courtId: sourceCourtId } = await createVenueAndCourt(ownerId);
+    const { venueId: targetVenueId, courtId: targetCourtId1 } = await createVenueAndCourt(ownerId);
+    const courtsRepo = dataSource.getRepository(Court);
+    const targetCourt2 = await courtsRepo.save(
+      courtsRepo.create({
+        venueId: targetVenueId,
+        name: 'Sân 2',
+        pricePerHour: 100000,
+        openTime: '08:00',
+        closeTime: '23:00',
+        slotDurationMinutes: 60,
+        status: CourtStatus.ACTIVE,
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post(`/venues/mine/${sourceVenueId}/courts/${sourceCourtId}/pricing-rules`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Buổi tối',
+        daysOfWeek: [0, 1, 2, 3, 4],
+        startTime: '17:00',
+        endTime: '22:00',
+        price: 150000,
+      })
+      .expect(201);
+
+    const copyResponse = await request(app.getHttpServer())
+      .post(`/venues/mine/${targetVenueId}/pricing-rules/copy-from-venue/${sourceVenueId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    // 1 source rule x 2 target courts
+    expect(copyResponse.body).toHaveLength(2);
+    expect(copyResponse.body.map((r: { courtId: string }) => r.courtId).sort()).toEqual(
+      [targetCourtId1, targetCourt2.id].sort(),
+    );
+
+    const court1Rules = await request(app.getHttpServer())
+      .get(`/venues/mine/${targetVenueId}/courts/${targetCourtId1}/pricing-rules`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(court1Rules.body).toHaveLength(1);
+    expect(court1Rules.body[0].name).toBe('Buổi tối');
+
+    const court2Rules = await request(app.getHttpServer())
+      .get(`/venues/mine/${targetVenueId}/courts/${targetCourt2.id}/pricing-rules`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(court2Rules.body).toHaveLength(1);
+  });
+
   it('rejects a pricing rule request for a venue owned by someone else', async () => {
     const { token } = await createOwnerAndLogin();
     const otherOwnerId = (await createOwnerAndLoginAsSecondOwner()).ownerId;

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PricingService } from './pricing.service';
 import { PricingRule } from './entities/pricing-rule.entity';
 import { Court } from '../courts/entities/court.entity';
@@ -364,6 +364,70 @@ describe('PricingService.copyFrom', () => {
     venuesRepo.find.mockResolvedValue([{ id: 'venue-1', ownerId: 'owner-1' }]);
 
     await expect(service.copyFrom('owner-1', 'venue-1', 'court-1', 'someone-elses-court')).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+});
+
+describe('PricingService.copyFromVenue', () => {
+  it('copies every source-venue rule onto every court of the target venue', async () => {
+    const { service, pricingRulesRepo, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne
+      .mockResolvedValueOnce({ id: 'venue-1', ownerId: 'owner-1' }) // target venue ownership
+      .mockResolvedValueOnce({ id: 'venue-2', ownerId: 'owner-1' }); // source venue ownership
+    courtsRepo.find
+      .mockResolvedValueOnce([{ id: 'court-1' }, { id: 'court-2' }]) // target venue's courts
+      .mockResolvedValueOnce([{ id: 'court-3' }]); // source venue's courts
+    pricingRulesRepo.find.mockResolvedValue([
+      rule({ id: 'src-1', courtId: 'court-3', price: 100000 }),
+      rule({ id: 'src-2', courtId: 'court-3', price: 200000 }),
+    ]);
+    pricingRulesRepo.create.mockImplementation((data) => data);
+    pricingRulesRepo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.copyFromVenue('owner-1', 'venue-1', 'venue-2');
+
+    expect(result).toHaveLength(4); // 2 target courts x 2 source rules
+    expect(result.map((r) => (r as unknown as { courtId: string }).courtId).sort()).toEqual([
+      'court-1',
+      'court-1',
+      'court-2',
+      'court-2',
+    ]);
+    expect(result.map((r) => (r as unknown as { price: number }).price).sort()).toEqual([
+      100000, 100000, 200000, 200000,
+    ]);
+  });
+
+  it('returns an empty array without saving when the target venue has no courts', async () => {
+    const { service, pricingRulesRepo, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne
+      .mockResolvedValueOnce({ id: 'venue-1', ownerId: 'owner-1' })
+      .mockResolvedValueOnce({ id: 'venue-2', ownerId: 'owner-1' });
+    courtsRepo.find.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: 'court-3' }]);
+    pricingRulesRepo.find.mockResolvedValue([rule({ id: 'src-1', courtId: 'court-3' })]);
+
+    const result = await service.copyFromVenue('owner-1', 'venue-1', 'venue-2');
+
+    expect(result).toEqual([]);
+    expect(pricingRulesRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('throws BadRequestException when copying a venue from itself', async () => {
+    const { service } = await buildTestingModule();
+
+    await expect(service.copyFromVenue('owner-1', 'venue-1', 'venue-1')).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('throws NotFoundException when the source venue is not owned by the caller', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne
+      .mockResolvedValueOnce({ id: 'venue-1', ownerId: 'owner-1' })
+      .mockResolvedValueOnce({ id: 'venue-2', ownerId: 'someone-else' });
+
+    await expect(service.copyFromVenue('owner-1', 'venue-1', 'venue-2')).rejects.toThrow(
       NotFoundException,
     );
   });
