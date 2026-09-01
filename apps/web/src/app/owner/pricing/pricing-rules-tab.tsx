@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Calendar, ChevronDown, FileText, Pencil, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Calendar, ChevronDown, FileText, Pencil, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -270,21 +270,23 @@ function PricingRuleRow({
             />
             <DialogContent className="max-w-sm p-6">
               <div className="flex flex-col items-center gap-3 text-center">
-                <Trash2 className="size-11 text-muted-foreground/70" strokeWidth={1.25} />
-                <DialogTitle className="text-base font-semibold">
-                  Xóa khung giá <span className="text-blue-600">{rule.name}</span>?
-                </DialogTitle>
+                <div className="flex size-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/40">
+                  <AlertTriangle className="size-8 text-red-500" />
+                </div>
+                <DialogTitle className="text-lg font-bold">Xóa bảng giá?</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  Xóa <span className="font-semibold text-foreground">{rule.name}</span>?
+                </p>
               </div>
-              <div className="mt-5 flex gap-3">
-                <DialogClose className="flex-1 rounded-lg border bg-muted/60 px-4 py-2 text-sm font-medium hover:bg-muted">
+              <div className="mt-5 flex justify-center gap-3">
+                <DialogClose className="rounded-lg border bg-muted/60 px-5 py-2 text-sm font-medium hover:bg-muted">
                   Hủy
                 </DialogClose>
                 <Button
                   onClick={handleDelete}
                   disabled={deleting}
-                  className="flex-1 gap-1.5 bg-red-600 text-white hover:bg-red-700"
+                  className="bg-red-600 px-5 text-white hover:bg-red-700"
                 >
-                  <Trash2 className="size-4" />
                   Xóa
                 </Button>
               </div>

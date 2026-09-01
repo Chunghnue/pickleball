@@ -6,10 +6,12 @@ import { RecurringSchedulesController } from './recurring-schedules.controller';
 import { CourtsModule } from '../courts/courts.module';
 import { CustomerContactsModule } from '../customer-contacts/customer-contacts.module';
 import { BookingsModule } from '../bookings/bookings.module';
+import { User } from '../users/entities/user.entity';
+import { CustomerContact } from '../customer-contacts/entities/customer-contact.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([RecurringSchedule]),
+    TypeOrmModule.forFeature([RecurringSchedule, User, CustomerContact]),
     CourtsModule,
     CustomerContactsModule,
     BookingsModule,

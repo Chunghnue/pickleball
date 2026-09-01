@@ -84,6 +84,13 @@ export function minutesBetween(startTime: string, endTime: string): number | nul
   return endMinutes - startMinutes;
 }
 
+// Mirrors the backend's pricing-summary formula (52/12 average weeks per
+// month) so a card's own estimate lines up with the venue-wide total shown
+// in the summary tile above it.
+export function monthlyRevenueEstimate(sessionPrice: number): number {
+  return Math.round(sessionPrice * (52 / 12) * 100) / 100;
+}
+
 export function sessionPriceAfterDiscount(
   pricePerSession: number,
   discountPercent: number | null,

@@ -7,6 +7,8 @@ import { CourtsService } from '../courts/courts.service';
 import { VenuesService } from '../courts/venues.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
 import { BookingsService } from '../bookings/bookings.service';
+import { User } from '../users/entities/user.entity';
+import { CustomerContact } from '../customer-contacts/entities/customer-contact.entity';
 
 const mockRepository = () => ({
   create: jest.fn((data: unknown) => data),
@@ -14,6 +16,8 @@ const mockRepository = () => ({
   findOne: jest.fn(),
   find: jest.fn(),
 });
+
+const mockLookupRepository = () => ({ find: jest.fn().mockResolvedValue([]) });
 
 const mockCourtsService = () => ({
   findByIdOrThrow: jest.fn(),
@@ -33,6 +37,8 @@ async function buildTestingModule() {
     providers: [
       RecurringSchedulesService,
       { provide: getRepositoryToken(RecurringSchedule), useFactory: mockRepository },
+      { provide: getRepositoryToken(User), useFactory: mockLookupRepository },
+      { provide: getRepositoryToken(CustomerContact), useFactory: mockLookupRepository },
       { provide: CourtsService, useFactory: mockCourtsService },
       { provide: VenuesService, useFactory: mockVenuesService },
       { provide: CustomerContactsService, useFactory: mockCustomerContactsService },
@@ -43,6 +49,10 @@ async function buildTestingModule() {
   return {
     service: module.get(RecurringSchedulesService),
     repo: module.get(getRepositoryToken(RecurringSchedule)) as ReturnType<typeof mockRepository>,
+    usersRepo: module.get(getRepositoryToken(User)) as ReturnType<typeof mockLookupRepository>,
+    customerContactsRepo: module.get(getRepositoryToken(CustomerContact)) as ReturnType<
+      typeof mockLookupRepository
+    >,
     courtsService: module.get(CourtsService) as ReturnType<typeof mockCourtsService>,
     venuesService: module.get(VenuesService) as ReturnType<typeof mockVenuesService>,
     customerContactsService: module.get(CustomerContactsService) as ReturnType<
@@ -230,6 +240,133 @@ describe('RecurringSchedulesService.cancel', () => {
   });
 });
 
+describe('RecurringSchedulesService.pause', () => {
+  it('moves an active schedule to paused', async () => {
+    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
+    repo.findOne.mockResolvedValue({
+      id: 'schedule-1',
+      courtId: 'court-1',
+      status: RecurringScheduleStatus.ACTIVE,
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+
+    const result = await service.pause('owner-1', 'venue-1', 'schedule-1');
+
+    expect(result.status).toBe(RecurringScheduleStatus.PAUSED);
+  });
+
+  it('throws BadRequestException when the schedule is not active', async () => {
+    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
+    repo.findOne.mockResolvedValue({
+      id: 'schedule-1',
+      courtId: 'court-1',
+      status: RecurringScheduleStatus.CANCELLED,
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+
+    await expect(service.pause('owner-1', 'venue-1', 'schedule-1')).rejects.toThrow(
+      'Chỉ có thể tạm dừng lịch đang hoạt động',
+    );
+  });
+});
+
+describe('RecurringSchedulesService.resume', () => {
+  it('moves a paused schedule back to active', async () => {
+    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
+    repo.findOne.mockResolvedValue({
+      id: 'schedule-1',
+      courtId: 'court-1',
+      status: RecurringScheduleStatus.PAUSED,
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+
+    const result = await service.resume('owner-1', 'venue-1', 'schedule-1');
+
+    expect(result.status).toBe(RecurringScheduleStatus.ACTIVE);
+  });
+
+  it('throws BadRequestException when the schedule is not paused', async () => {
+    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
+    repo.findOne.mockResolvedValue({
+      id: 'schedule-1',
+      courtId: 'court-1',
+      status: RecurringScheduleStatus.ACTIVE,
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+
+    await expect(service.resume('owner-1', 'venue-1', 'schedule-1')).rejects.toThrow(
+      'Chỉ có thể tiếp tục lịch đang tạm dừng',
+    );
+  });
+});
+
+describe('RecurringSchedulesService.update', () => {
+  it('applies only the provided fields', async () => {
+    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
+    repo.findOne.mockResolvedValue({
+      id: 'schedule-1',
+      courtId: 'court-1',
+      status: RecurringScheduleStatus.ACTIVE,
+      pricePerSession: 100000,
+      discountPercent: null,
+      validFrom: '2024-01-01',
+      validTo: '2024-01-14',
+      note: null,
+      autoRenew: false,
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+
+    const result = await service.update('owner-1', 'venue-1', 'schedule-1', {
+      pricePerSession: 150000,
+      autoRenew: true,
+    });
+
+    expect(result).toMatchObject({
+      pricePerSession: 150000,
+      autoRenew: true,
+      validTo: '2024-01-14',
+      note: null,
+    });
+  });
+
+  it('throws BadRequestException when validTo is before validFrom', async () => {
+    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
+    repo.findOne.mockResolvedValue({
+      id: 'schedule-1',
+      courtId: 'court-1',
+      status: RecurringScheduleStatus.ACTIVE,
+      validFrom: '2024-01-10',
+      validTo: '2024-01-14',
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+
+    await expect(
+      service.update('owner-1', 'venue-1', 'schedule-1', { validTo: '2024-01-01' }),
+    ).rejects.toThrow('validTo phải sau hoặc bằng validFrom');
+  });
+
+  it('throws BadRequestException when the schedule is cancelled', async () => {
+    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
+    repo.findOne.mockResolvedValue({
+      id: 'schedule-1',
+      courtId: 'court-1',
+      status: RecurringScheduleStatus.CANCELLED,
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+
+    await expect(
+      service.update('owner-1', 'venue-1', 'schedule-1', { note: 'x' }),
+    ).rejects.toThrow('Không thể sửa lịch cố định đã huỷ');
+  });
+});
+
 describe('RecurringSchedulesService.findByVenueForOwner', () => {
   it('lists schedules for the venue courts with their occurrence count', async () => {
     const { service, repo, courtsService, bookingsService } = await buildTestingModule();
@@ -244,6 +381,50 @@ describe('RecurringSchedulesService.findByVenueForOwner', () => {
     expect(courtsService.findByVenueForOwner).toHaveBeenCalledWith('owner-1', 'venue-1');
     expect(result).toEqual([
       expect.objectContaining({ id: 'schedule-1', occurrenceCount: 5 }),
+    ]);
+  });
+
+  it('resolves customerName from the registered user or the customer contact', async () => {
+    const { service, repo, courtsService, bookingsService, usersRepo, customerContactsRepo } =
+      await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
+    repo.find.mockResolvedValue([
+      {
+        id: 'schedule-1',
+        courtId: 'court-1',
+        customerId: 'user-1',
+        customerContactId: null,
+        status: RecurringScheduleStatus.ACTIVE,
+      },
+      {
+        id: 'schedule-2',
+        courtId: 'court-1',
+        customerId: null,
+        customerContactId: 'contact-1',
+        status: RecurringScheduleStatus.ACTIVE,
+      },
+    ]);
+    bookingsService.countByRecurringScheduleId.mockResolvedValue(0);
+    usersRepo.find.mockResolvedValue([
+      { id: 'user-1', fullName: 'Đình Văn Chung', phone: '0900000001' },
+    ]);
+    customerContactsRepo.find.mockResolvedValue([
+      { id: 'contact-1', fullName: 'Đình Văn Chung 1', phone: '0900000002' },
+    ]);
+
+    const result = await service.findByVenueForOwner('owner-1', 'venue-1');
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: 'schedule-1',
+        customerName: 'Đình Văn Chung',
+        customerPhone: '0900000001',
+      }),
+      expect.objectContaining({
+        id: 'schedule-2',
+        customerName: 'Đình Văn Chung 1',
+        customerPhone: '0900000002',
+      }),
     ]);
   });
 

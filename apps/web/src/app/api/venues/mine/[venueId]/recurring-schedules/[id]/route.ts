@@ -14,3 +14,20 @@ export async function GET(
   }
   return toNextResponse(upstream);
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ venueId: string; id: string }> },
+) {
+  const { venueId, id } = await params;
+  const body = await request.json();
+  const upstream = await fetchApi(`/venues/mine/${venueId}/recurring-schedules/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (upstream.status === 401) {
+    await clearAuthCookies();
+  }
+  return toNextResponse(upstream);
+}

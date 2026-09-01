@@ -176,3 +176,12 @@ export const createRecurringScheduleSchema = recurringScheduleBaseSchema
     path: ['validTo'],
   });
 export type CreateRecurringScheduleInput = z.infer<typeof createRecurringScheduleSchema>;
+
+export const updateRecurringScheduleSchema = z.object({
+  pricePerSession: z.coerce.number().min(0.01, 'Giá phải lớn hơn 0'),
+  discountPercent: emptyToUndefined(z.coerce.number().min(0).max(100).optional()),
+  validTo: z.string().regex(DATE_PATTERN, 'Định dạng ngày không hợp lệ'),
+  note: z.string().optional(),
+  autoRenew: z.boolean().optional(),
+});
+export type UpdateRecurringScheduleInput = z.infer<typeof updateRecurringScheduleSchema>;

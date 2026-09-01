@@ -132,18 +132,30 @@ export function PricingRuleFormDialog(props: CreateProps | EditProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger} />
-      <DialogContent className="max-w-lg gap-0 p-0">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <DialogTitle className="text-lg font-semibold">
-            {isEdit ? "Sửa bảng giá" : "Thêm bảng giá"}
-          </DialogTitle>
-          <DialogClose
-            className="text-muted-foreground outline-none hover:text-foreground"
-            aria-label="Đóng"
-          >
-            <X className="size-5" />
-          </DialogClose>
-        </div>
+      <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
+        {isEdit ? (
+          <div className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 px-6 py-4">
+            <DialogTitle className="text-lg font-semibold text-white">
+              Sửa: {rule!.name}
+            </DialogTitle>
+            <DialogClose
+              className="text-white/80 outline-none hover:text-white"
+              aria-label="Đóng"
+            >
+              <X className="size-5" />
+            </DialogClose>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <DialogTitle className="text-lg font-semibold">Thêm bảng giá</DialogTitle>
+            <DialogClose
+              className="text-muted-foreground outline-none hover:text-foreground"
+              aria-label="Đóng"
+            >
+              <X className="size-5" />
+            </DialogClose>
+          </div>
+        )}
 
         <form
           id={isEdit ? `pricing-rule-form-${rule!.id}` : "pricing-rule-form-create"}
@@ -308,7 +320,7 @@ export function PricingRuleFormDialog(props: CreateProps | EditProps) {
             className="gap-1.5 bg-blue-600 text-white hover:bg-blue-700"
           >
             <Check className="size-4" />
-            Lưu
+            {isEdit ? "Cập nhật" : "Lưu"}
           </Button>
         </div>
       </DialogContent>

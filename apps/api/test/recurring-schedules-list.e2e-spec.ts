@@ -96,4 +96,86 @@ describe('Recurring schedules list/detail (e2e)', () => {
     expect(detailResponse.body.schedule.id).toBe(scheduleId);
     expect(detailResponse.body.occurrences).toHaveLength(3);
   });
+
+  it('pauses, resumes, and edits a schedule via the real endpoints', async () => {
+    const passwordHash = await bcrypt.hash('password123', 10);
+    const usersRepo = dataSource.getRepository(User);
+    const owner = await usersRepo.save(
+      usersRepo.create({
+        email: 'owner2@test.com',
+        passwordHash,
+        fullName: 'Owner',
+        role: UserRole.OWNER,
+        status: UserStatus.ACTIVE,
+        emailVerified: true,
+      }),
+    );
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'owner2@test.com', password: 'password123' });
+    const token = loginResponse.body.accessToken as string;
+
+    const venuesRepo = dataSource.getRepository(Venue);
+    const venue = await venuesRepo.save(
+      venuesRepo.create({
+        ownerId: owner.id,
+        name: 'Sân XYZ',
+        address: '123 Le Loi',
+        city: 'Ho Chi Minh',
+        status: VenueStatus.ACTIVE,
+      }),
+    );
+    const courtsRepo = dataSource.getRepository(Court);
+    const court = await courtsRepo.save(
+      courtsRepo.create({
+        venueId: venue.id,
+        name: 'Sân 1',
+        pricePerHour: 100000,
+        openTime: '08:00',
+        closeTime: '23:00',
+        slotDurationMinutes: 60,
+        status: CourtStatus.ACTIVE,
+      }),
+    );
+
+    const createResponse = await request(app.getHttpServer())
+      .post(`/venues/mine/${venue.id}/recurring-schedules`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        courtId: court.id,
+        dayOfWeek: 0,
+        startTime: '18:00',
+        endTime: '19:00',
+        pricePerSession: 100000,
+        validFrom: '2099-01-05',
+        validTo: '2099-01-19',
+        newCustomer: { fullName: 'Khách quen', phone: '0933333333' },
+      })
+      .expect(201);
+    const scheduleId = createResponse.body.schedule.id as string;
+
+    const pauseResponse = await request(app.getHttpServer())
+      .post(`/venues/mine/${venue.id}/recurring-schedules/${scheduleId}/pause`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+    expect(pauseResponse.body.status).toBe('paused');
+
+    await request(app.getHttpServer())
+      .post(`/venues/mine/${venue.id}/recurring-schedules/${scheduleId}/pause`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+
+    const resumeResponse = await request(app.getHttpServer())
+      .post(`/venues/mine/${venue.id}/recurring-schedules/${scheduleId}/resume`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+    expect(resumeResponse.body.status).toBe('active');
+
+    const updateResponse = await request(app.getHttpServer())
+      .patch(`/venues/mine/${venue.id}/recurring-schedules/${scheduleId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ pricePerSession: 120000, note: 'Đổi giá' })
+      .expect(200);
+    expect(updateResponse.body).toMatchObject({ pricePerSession: 120000, note: 'Đổi giá' });
+  });
 });

@@ -9,6 +9,7 @@ import { timeColumnTransformer } from '../../bookings/time-column.transformer';
 
 export enum RecurringScheduleStatus {
   ACTIVE = 'active',
+  PAUSED = 'paused',
   CANCELLED = 'cancelled',
 }
 

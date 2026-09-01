@@ -11,6 +11,7 @@ import { PricingRulesTab } from "./pricing-rules-tab";
 import { PricingRuleFormDialog } from "./pricing-rule-form-dialog";
 import { CopyPricingDialog } from "./copy-pricing-dialog";
 import { RecurringSchedulesTab } from "./recurring-schedules-tab";
+import { RecurringScheduleFormDialog } from "./recurring-schedule-form-dialog";
 import { RecurringScheduleDetailDialog } from "./recurring-schedule-detail-dialog";
 import type { CourtWithVenueName, Venue } from "../types";
 import type {
@@ -193,8 +194,8 @@ export default function OwnerPricingPage() {
           </p>
         </div>
 
-        {activeTab === "pricing" && selectedCourtId && (
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {activeTab === "pricing" && selectedCourtId && (
             <select
               value={selectedCourtId}
               onChange={(e) => setSelectedCourtId(e.target.value)}
@@ -206,20 +207,22 @@ export default function OwnerPricingPage() {
                 </option>
               ))}
             </select>
-            <CopyPricingDialog
-              venueId={resolvedVenueId}
-              sourceVenues={copySourceVenues}
-              onCopied={() => {
-                loadRules();
-                loadSummary();
-              }}
-              trigger={
-                <Button type="button" variant="outline" className="gap-1.5">
-                  <Copy className="size-4" />
-                  Sao chép
-                </Button>
-              }
-            />
+          )}
+          <CopyPricingDialog
+            venueId={resolvedVenueId}
+            sourceVenues={copySourceVenues}
+            onCopied={() => {
+              loadRules();
+              loadSummary();
+            }}
+            trigger={
+              <Button type="button" variant="outline" className="gap-1.5">
+                <Copy className="size-4" />
+                Sao chép
+              </Button>
+            }
+          />
+          {activeTab === "pricing" && selectedCourtId && (
             <PricingRuleFormDialog
               mode="create"
               venueId={resolvedVenueId}
@@ -235,8 +238,25 @@ export default function OwnerPricingPage() {
                 </Button>
               }
             />
-          </div>
-        )}
+          )}
+          {activeTab === "recurring" && (
+            <RecurringScheduleFormDialog
+              venueId={resolvedVenueId}
+              courtsInVenue={courtsInVenue}
+              defaultCourtId={selectedCourtId}
+              onCreated={() => {
+                loadSchedules();
+                loadSummary();
+              }}
+              trigger={
+                <Button type="button" className="gap-1.5 bg-blue-600 text-white hover:bg-blue-700">
+                  <Plus className="size-4" />
+                  Thêm lịch cố định
+                </Button>
+              }
+            />
+          )}
+        </div>
       </div>
 
       {summary && <PricingMetrics summary={summary} />}
@@ -306,13 +326,13 @@ export default function OwnerPricingPage() {
         <RecurringSchedulesTab
           venueId={resolvedVenueId}
           courtsInVenue={courtsInVenue}
-          defaultCourtId={selectedCourtId}
           schedules={schedules}
-          onCreated={() => {
+          monthlyRevenue={summary?.estimatedMonthlyRecurringRevenue ?? 0}
+          onOpenDetail={setDetailScheduleId}
+          onChanged={() => {
             loadSchedules();
             loadSummary();
           }}
-          onOpenDetail={setDetailScheduleId}
         />
       )}
 

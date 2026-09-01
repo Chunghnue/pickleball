@@ -6,6 +6,7 @@ import {
   formatShortDate,
   isAllDaysSelected,
   minutesBetween,
+  monthlyRevenueEstimate,
   sessionPriceAfterDiscount,
   sortPricingRules,
 } from "./pricing-format";
@@ -82,6 +83,12 @@ describe("sortPricingRules", () => {
     const input = [RULE_B, RULE_A];
     sortPricingRules(input, "priceAsc");
     expect(input).toEqual([RULE_B, RULE_A]);
+  });
+});
+
+describe("monthlyRevenueEstimate", () => {
+  it("multiplies the per-session price by the average weeks per month (52/12)", () => {
+    expect(monthlyRevenueEstimate(100000)).toBe(433333.33);
   });
 });
 

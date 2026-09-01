@@ -30,8 +30,7 @@ function RequiredMark() {
 function customerIdDisplay(customer: CustomerSelection | null): string {
   if (!customer) return "";
   if ("customerId" in customer.payload) return customer.payload.customerId;
-  if ("customerContactId" in customer.payload) return customer.payload.customerContactId;
-  return "Khách mới";
+  return customer.payload.customerContactId;
 }
 
 function defaultValues(defaultCourtId: string | null) {

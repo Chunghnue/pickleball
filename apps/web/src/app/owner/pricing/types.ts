@@ -21,7 +21,7 @@ export interface PricingSummary {
   estimatedMonthlyRecurringRevenue: number;
 }
 
-export type RecurringScheduleStatus = "active" | "cancelled";
+export type RecurringScheduleStatus = "active" | "paused" | "cancelled";
 
 export interface RecurringSchedule {
   id: string;
@@ -44,6 +44,8 @@ export interface RecurringSchedule {
 
 export interface RecurringScheduleListItem extends RecurringSchedule {
   occurrenceCount: number;
+  customerName: string;
+  customerPhone: string | null;
 }
 
 export type OccurrenceStatus = "confirmed" | "cancelled" | "completed";

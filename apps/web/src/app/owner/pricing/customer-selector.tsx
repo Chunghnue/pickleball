@@ -1,17 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, User, UserPlus, X } from "lucide-react";
+import { Search, User, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { CustomerListItem } from "../customers/types";
 
 export interface CustomerSelection {
   label: string;
-  payload:
-    | { customerId: string }
-    | { customerContactId: string }
-    | { newCustomer: { fullName: string; phone: string } };
+  payload: { customerId: string } | { customerContactId: string };
 }
 
 export function CustomerSelector({
@@ -23,8 +19,6 @@ export function CustomerSelector({
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CustomerListItem[]>([]);
-  const [newFullName, setNewFullName] = useState("");
-  const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -94,41 +88,6 @@ export function CustomerSelector({
           ))}
         </ul>
       )}
-      <div className="space-y-1.5 rounded-lg border border-dashed p-3">
-        <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <UserPlus className="size-3.5" />
-          Hoặc thêm khách mới
-        </Label>
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            value={newFullName}
-            onChange={(e) => setNewFullName(e.target.value)}
-            placeholder="Họ tên"
-            className="h-9"
-          />
-          <Input
-            value={newPhone}
-            onChange={(e) => setNewPhone(e.target.value)}
-            placeholder="SĐT"
-            className="h-9"
-          />
-        </div>
-        <button
-          type="button"
-          disabled={!newFullName.trim() || !newPhone.trim()}
-          onClick={() =>
-            onChange({
-              label: `${newFullName.trim()} · ${newPhone.trim()} (mới)`,
-              payload: {
-                newCustomer: { fullName: newFullName.trim(), phone: newPhone.trim() },
-              },
-            })
-          }
-          className="text-sm font-medium text-blue-600 disabled:cursor-not-allowed disabled:text-muted-foreground"
-        >
-          Dùng khách mới này
-        </button>
-      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { In, LessThanOrEqual, Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import { RecurringSchedule, RecurringScheduleStatus } from './entities/recurring-schedule.entity';
 import { CreateRecurringScheduleDto } from './dto/create-recurring-schedule.dto';
+import { UpdateRecurringScheduleDto } from './dto/update-recurring-schedule.dto';
 import { generateOccurrenceDates } from './occurrence-dates.util';
 import { addDays } from './date.util';
 import { CourtsService } from '../courts/courts.service';
@@ -11,6 +12,8 @@ import { VenuesService } from '../courts/venues.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
 import { BookingsService } from '../bookings/bookings.service';
 import { Booking } from '../bookings/entities/booking.entity';
+import { User } from '../users/entities/user.entity';
+import { CustomerContact } from '../customer-contacts/entities/customer-contact.entity';
 
 const MAX_SPAN_DAYS = 366;
 
@@ -19,6 +22,10 @@ export class RecurringSchedulesService {
   constructor(
     @InjectRepository(RecurringSchedule)
     private readonly repository: Repository<RecurringSchedule>,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
+    @InjectRepository(CustomerContact)
+    private readonly customerContactsRepository: Repository<CustomerContact>,
     private readonly courtsService: CourtsService,
     private readonly venuesService: VenuesService,
     private readonly customerContactsService: CustomerContactsService,
@@ -94,7 +101,11 @@ export class RecurringSchedulesService {
     return { schedule, generatedCount, conflictingDates };
   }
 
-  async cancel(ownerId: string, venueId: string, id: string): Promise<RecurringSchedule> {
+  private async getOwnedScheduleOrThrow(
+    ownerId: string,
+    venueId: string,
+    id: string,
+  ): Promise<RecurringSchedule> {
     await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
     const schedule = await this.repository.findOne({ where: { id } });
     if (!schedule) {
@@ -104,6 +115,11 @@ export class RecurringSchedulesService {
     if (court.venueId !== venueId) {
       throw new NotFoundException(`Lịch cố định ${id} không tồn tại`);
     }
+    return schedule;
+  }
+
+  async cancel(ownerId: string, venueId: string, id: string): Promise<RecurringSchedule> {
+    const schedule = await this.getOwnedScheduleOrThrow(ownerId, venueId, id);
     if (schedule.status === RecurringScheduleStatus.CANCELLED) {
       throw new BadRequestException('Lịch cố định đã bị huỷ');
     }
@@ -114,21 +130,98 @@ export class RecurringSchedulesService {
     return schedule;
   }
 
+  async pause(ownerId: string, venueId: string, id: string): Promise<RecurringSchedule> {
+    const schedule = await this.getOwnedScheduleOrThrow(ownerId, venueId, id);
+    if (schedule.status !== RecurringScheduleStatus.ACTIVE) {
+      throw new BadRequestException('Chỉ có thể tạm dừng lịch đang hoạt động');
+    }
+    schedule.status = RecurringScheduleStatus.PAUSED;
+    return this.repository.save(schedule);
+  }
+
+  async resume(ownerId: string, venueId: string, id: string): Promise<RecurringSchedule> {
+    const schedule = await this.getOwnedScheduleOrThrow(ownerId, venueId, id);
+    if (schedule.status !== RecurringScheduleStatus.PAUSED) {
+      throw new BadRequestException('Chỉ có thể tiếp tục lịch đang tạm dừng');
+    }
+    schedule.status = RecurringScheduleStatus.ACTIVE;
+    return this.repository.save(schedule);
+  }
+
+  async update(
+    ownerId: string,
+    venueId: string,
+    id: string,
+    dto: UpdateRecurringScheduleDto,
+  ): Promise<RecurringSchedule> {
+    const schedule = await this.getOwnedScheduleOrThrow(ownerId, venueId, id);
+    if (schedule.status === RecurringScheduleStatus.CANCELLED) {
+      throw new BadRequestException('Không thể sửa lịch cố định đã huỷ');
+    }
+    if (dto.validTo !== undefined && dto.validTo < schedule.validFrom) {
+      throw new BadRequestException('validTo phải sau hoặc bằng validFrom');
+    }
+
+    if (dto.pricePerSession !== undefined) schedule.pricePerSession = dto.pricePerSession;
+    if (dto.discountPercent !== undefined) schedule.discountPercent = dto.discountPercent;
+    if (dto.note !== undefined) schedule.note = dto.note;
+    if (dto.autoRenew !== undefined) schedule.autoRenew = dto.autoRenew;
+    if (dto.validTo !== undefined) schedule.validTo = dto.validTo;
+
+    return this.repository.save(schedule);
+  }
+
+  private async resolveCustomerInfo(
+    schedules: RecurringSchedule[],
+  ): Promise<Map<string, { fullName: string; phone: string | null }>> {
+    const userIds = schedules.map((s) => s.customerId).filter((id): id is string => !!id);
+    const contactIds = schedules
+      .map((s) => s.customerContactId)
+      .filter((id): id is string => !!id);
+
+    const [users, contacts] = await Promise.all([
+      userIds.length > 0 ? this.usersRepository.find({ where: { id: In(userIds) } }) : [],
+      contactIds.length > 0
+        ? this.customerContactsRepository.find({ where: { id: In(contactIds) } })
+        : [],
+    ]);
+
+    const info = new Map<string, { fullName: string; phone: string | null }>();
+    for (const user of users) info.set(user.id, { fullName: user.fullName, phone: user.phone });
+    for (const contact of contacts)
+      info.set(contact.id, { fullName: contact.fullName, phone: contact.phone });
+    return info;
+  }
+
   async findByVenueForOwner(
     ownerId: string,
     venueId: string,
-  ): Promise<Array<RecurringSchedule & { occurrenceCount: number }>> {
+  ): Promise<
+    Array<
+      RecurringSchedule & {
+        occurrenceCount: number;
+        customerName: string;
+        customerPhone: string | null;
+      }
+    >
+  > {
     const courts = await this.courtsService.findByVenueForOwner(ownerId, venueId);
     const courtIds = courts.map((court) => court.id);
     const schedules = await this.repository.find({
       where: { courtId: In(courtIds.length > 0 ? courtIds : ['__none__']) },
       order: { createdAt: 'DESC' },
     });
+    const info = await this.resolveCustomerInfo(schedules);
     return Promise.all(
-      schedules.map(async (schedule) => ({
-        ...schedule,
-        occurrenceCount: await this.bookingsService.countByRecurringScheduleId(schedule.id),
-      })),
+      schedules.map(async (schedule) => {
+        const customer = info.get(schedule.customerId ?? schedule.customerContactId ?? '');
+        return {
+          ...schedule,
+          occurrenceCount: await this.bookingsService.countByRecurringScheduleId(schedule.id),
+          customerName: customer?.fullName ?? 'Khách hàng',
+          customerPhone: customer?.phone ?? null,
+        };
+      }),
     );
   }
 
@@ -137,15 +230,7 @@ export class RecurringSchedulesService {
     venueId: string,
     id: string,
   ): Promise<{ schedule: RecurringSchedule; occurrences: Booking[] }> {
-    await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
-    const schedule = await this.repository.findOne({ where: { id } });
-    if (!schedule) {
-      throw new NotFoundException(`Lịch cố định ${id} không tồn tại`);
-    }
-    const court = await this.courtsService.findByIdOrThrow(schedule.courtId);
-    if (court.venueId !== venueId) {
-      throw new NotFoundException(`Lịch cố định ${id} không tồn tại`);
-    }
+    const schedule = await this.getOwnedScheduleOrThrow(ownerId, venueId, id);
     const occurrences = await this.bookingsService.findByRecurringScheduleId(id);
     return { schedule, occurrences };
   }
