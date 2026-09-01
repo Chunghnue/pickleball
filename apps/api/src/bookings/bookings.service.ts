@@ -24,6 +24,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
+import { PricingService } from '../pricing/pricing.service';
 import { buildBookingCode } from './booking-code.util';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -56,6 +57,7 @@ export class BookingsService {
     private readonly paymentsService: PaymentsService,
     private readonly notificationsService: NotificationsService,
     private readonly customerContactsService: CustomerContactsService,
+    private readonly pricingService: PricingService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
@@ -137,8 +139,16 @@ export class BookingsService {
       );
     }
 
-    const pricePerSlot = court.pricePerHour * (court.slotDurationMinutes / 60);
-    const computedPrice = Math.round(pricePerSlot * slotStarts.length * 100) / 100;
+    let computedPrice = 0;
+    for (const slotStart of slotStarts) {
+      const resolvedPrice = await this.pricingService.resolvePrice(
+        params.courtId,
+        params.date,
+        slotStart,
+      );
+      computedPrice += resolvedPrice * (court.slotDurationMinutes / 60);
+    }
+    computedPrice = Math.round(computedPrice * 100) / 100;
     const totalPrice = params.totalPriceOverride ?? computedPrice;
 
     try {

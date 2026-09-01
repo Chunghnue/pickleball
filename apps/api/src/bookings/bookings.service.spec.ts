@@ -13,6 +13,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
+import { PricingService } from '../pricing/pricing.service';
 import { buildBookingCode } from './booking-code.util';
 
 const mockBookingsRepository = () => {
@@ -66,6 +67,10 @@ const mockCustomerContactsService = () => ({
   findById: jest.fn(),
 });
 
+const mockPricingService = () => ({
+  resolvePrice: jest.fn().mockResolvedValue(100000),
+});
+
 function buildMockManager() {
   return {
     create: jest.fn((_entity: unknown, data: unknown) => data),
@@ -100,6 +105,7 @@ async function buildTestingModule() {
       { provide: PaymentsService, useFactory: mockPaymentsService },
       { provide: NotificationsService, useFactory: mockNotificationsService },
       { provide: CustomerContactsService, useFactory: mockCustomerContactsService },
+      { provide: PricingService, useFactory: mockPricingService },
       { provide: DataSource, useFactory: mockDataSource },
     ],
   }).compile();
@@ -130,6 +136,7 @@ async function buildTestingModule() {
     customerContactsService: module.get(CustomerContactsService) as ReturnType<
       typeof mockCustomerContactsService
     >,
+    pricingService: module.get(PricingService) as ReturnType<typeof mockPricingService>,
     dataSource: module.get(DataSource) as ReturnType<typeof mockDataSource>,
   };
 }
@@ -226,6 +233,32 @@ describe('BookingsService.create', () => {
       customerPhone: '0900000000',
       totalPrice: 200000,
     });
+  });
+
+  it('sums per-slot resolved prices instead of a single flat rate', async () => {
+    const { service, courtsService, venuesService, usersService, dataSource, pricingService } =
+      await buildTestingModule();
+    courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
+    venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    usersService.findById.mockResolvedValue({
+      id: 'customer-1',
+      email: 'customer@test.com',
+      fullName: 'Nguyễn Văn A',
+    });
+    pricingService.resolvePrice.mockResolvedValueOnce(120000).mockResolvedValueOnce(150000);
+    const manager = buildMockManager();
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    const result = await service.create('customer-1', {
+      courtId: 'court-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '10:00',
+    });
+
+    expect(pricingService.resolvePrice).toHaveBeenCalledWith('court-1', '2026-08-25', '08:00');
+    expect(pricingService.resolvePrice).toHaveBeenCalledWith('court-1', '2026-08-25', '09:00');
+    expect(result.totalPrice).toBe(270000);
   });
 
   it('throws ConflictException when a slot is already taken', async () => {

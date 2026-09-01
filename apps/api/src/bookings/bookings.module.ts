@@ -9,6 +9,7 @@ import { UsersModule } from '../users/users.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CustomerContactsModule } from '../customer-contacts/customer-contacts.module';
+import { PricingModule } from '../pricing/pricing.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CustomerContactsModule } from '../customer-contacts/customer-contacts.m
     CustomerContactsModule,
     forwardRef(() => PaymentsModule),
     NotificationsModule,
+    PricingModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService],
