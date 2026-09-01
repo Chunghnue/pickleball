@@ -97,9 +97,9 @@ export default function OwnerPricingPage() {
     [allCourts, resolvedVenueId],
   );
 
-  const copySourceCandidates = useMemo(
-    () => (allCourts ?? []).filter((court) => court.id !== selectedCourtId),
-    [allCourts, selectedCourtId],
+  const copySourceVenues = useMemo(
+    () => (venues ?? []).filter((venue) => venue.id !== resolvedVenueId),
+    [venues, resolvedVenueId],
   );
 
   // Keep selectedCourtId valid for the resolved venue; default to the first
@@ -208,8 +208,7 @@ export default function OwnerPricingPage() {
             </select>
             <CopyPricingDialog
               venueId={resolvedVenueId}
-              targetCourtId={selectedCourtId}
-              sourceCandidates={copySourceCandidates}
+              sourceVenues={copySourceVenues}
               onCopied={() => {
                 loadRules();
                 loadSummary();
