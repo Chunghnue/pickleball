@@ -155,7 +155,7 @@ describe("dayLabel", () => {
 
 describe("formatDaysOfWeek", () => {
   it("sorts and joins day labels", () => {
-    expect(formatDaysOfWeek([4, 0, 2])).toBe("T2, T3, T5");
+    expect(formatDaysOfWeek([4, 0, 2])).toBe("T2, T4, T6");
   });
   it("returns an empty string for an empty array", () => {
     expect(formatDaysOfWeek([])).toBe("");

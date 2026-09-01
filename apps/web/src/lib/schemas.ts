@@ -105,3 +105,64 @@ export const updateCourtSchema = z.object({
   status: z.enum(courtStatusValues).optional(),
 });
 export type UpdateCourtInput = z.infer<typeof updateCourtSchema>;
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const pricingRuleBaseSchema = z.object({
+  name: z.string().min(1, 'Vui lòng nhập tên khung giá'),
+  daysOfWeek: z
+    .array(z.coerce.number().int().min(0).max(6))
+    .min(1, 'Chọn ít nhất 1 thứ áp dụng'),
+  startTime: z.string().regex(TIME_PATTERN, 'Định dạng giờ không hợp lệ (HH:mm)'),
+  endTime: z.string().regex(TIME_PATTERN, 'Định dạng giờ không hợp lệ (HH:mm)'),
+  price: z.coerce.number().min(0.01, 'Giá phải lớn hơn 0'),
+  priority: z.coerce.number().int('Phải là số nguyên').optional(),
+  advanceBookingHours: z.coerce.number().int('Phải là số nguyên').min(1).optional(),
+  advancePrice: z.coerce.number().min(0.01, 'Giá phải lớn hơn 0').optional(),
+  validFrom: z
+    .string()
+    .regex(DATE_PATTERN, 'Định dạng ngày không hợp lệ')
+    .optional()
+    .or(z.literal('')),
+  validTo: z
+    .string()
+    .regex(DATE_PATTERN, 'Định dạng ngày không hợp lệ')
+    .optional()
+    .or(z.literal('')),
+});
+
+export const createPricingRuleSchema = pricingRuleBaseSchema.refine(
+  (data) => data.startTime < data.endTime,
+  { message: 'Giờ bắt đầu phải trước giờ kết thúc', path: ['endTime'] },
+);
+export type CreatePricingRuleInput = z.infer<typeof createPricingRuleSchema>;
+
+export const updatePricingRuleSchema = pricingRuleBaseSchema.partial().refine(
+  (data) => !data.startTime || !data.endTime || data.startTime < data.endTime,
+  { message: 'Giờ bắt đầu phải trước giờ kết thúc', path: ['endTime'] },
+);
+export type UpdatePricingRuleInput = z.infer<typeof updatePricingRuleSchema>;
+
+const recurringScheduleBaseSchema = z.object({
+  courtId: z.string().min(1, 'Vui lòng chọn sân'),
+  dayOfWeek: z.coerce.number().int().min(0).max(6),
+  startTime: z.string().regex(TIME_PATTERN, 'Định dạng giờ không hợp lệ (HH:mm)'),
+  endTime: z.string().regex(TIME_PATTERN, 'Định dạng giờ không hợp lệ (HH:mm)'),
+  pricePerSession: z.coerce.number().min(0.01, 'Giá phải lớn hơn 0'),
+  discountPercent: z.coerce.number().min(0).max(100).optional(),
+  validFrom: z.string().regex(DATE_PATTERN, 'Định dạng ngày không hợp lệ'),
+  validTo: z.string().regex(DATE_PATTERN, 'Định dạng ngày không hợp lệ'),
+  note: z.string().optional(),
+  autoRenew: z.boolean().optional(),
+});
+
+export const createRecurringScheduleSchema = recurringScheduleBaseSchema
+  .refine((data) => data.startTime < data.endTime, {
+    message: 'Giờ bắt đầu phải trước giờ kết thúc',
+    path: ['endTime'],
+  })
+  .refine((data) => data.validFrom <= data.validTo, {
+    message: 'Từ ngày phải trước hoặc bằng đến ngày',
+    path: ['validTo'],
+  });
+export type CreateRecurringScheduleInput = z.infer<typeof createRecurringScheduleSchema>;
