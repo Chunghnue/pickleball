@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { getSubmitErrorMessage } from "@/lib/error-message";
+import { cn } from "@/lib/utils";
 import { formatDaysOfWeek, formatMoney, formatShortDate, isAllDaysSelected } from "./pricing-format";
 import { PricingRuleFormDialog } from "./pricing-rule-form-dialog";
 import type { PricingRule } from "./types";
@@ -33,9 +34,12 @@ export function PricingRulesTab({
   onRuleDeleted: (ruleId: string) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [sortAsc, setSortAsc] = useState(true);
   const filtered = rules
     .filter((rule) => rule.name.toLowerCase().includes(search.trim().toLowerCase()))
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    .sort((a, b) =>
+      sortAsc ? a.startTime.localeCompare(b.startTime) : b.startTime.localeCompare(a.startTime),
+    );
 
   return (
     <div className="flex flex-col gap-4">
@@ -56,11 +60,16 @@ export function PricingRulesTab({
             className="h-11 border-0 px-0 focus-visible:ring-0"
           />
         </div>
-        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => setSortAsc((prev) => !prev)}
+          aria-label={sortAsc ? "Sắp xếp theo giờ tăng dần" : "Sắp xếp theo giờ giảm dần"}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
           <span>Sắp xếp:</span>
           <span className="font-medium text-foreground">Theo giờ</span>
-          <ChevronDown className="size-4" />
-        </div>
+          <ChevronDown className={cn("size-4 transition-transform", !sortAsc && "rotate-180")} />
+        </button>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
