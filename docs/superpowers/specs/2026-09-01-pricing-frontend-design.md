@@ -71,7 +71,7 @@ Mọi endpoint pricing-rules/recurring-schedules đều cần đúng 1 `venueId`
 - Bảng: Khách hàng · Sân · Thứ + khung giờ · Giá/buổi (sau giảm nếu có) · Từ–Đến · Số buổi đã sinh (`occurrenceCount`) · Trạng thái (badge Đang áp dụng/Đã huỷ) · action xem chi tiết.
 - Empty state (đúng copy docs/spec): "Chưa có lịch cố định – Khách đặt sân hàng tuần sẽ hiện ở đây".
 - **Dialog Thêm** (react-hook-form + zod, mirror `CreateRecurringScheduleDto`):
-  - Khách hàng * — dùng lại pattern chọn khách (tìm khách có sẵn theo tên/SĐT, hoặc nhập khách mới) đã có ở luồng đặt sân/AddCustomerDialog
+  - Khách hàng * — **component mới** `CustomerSelector`: ô nhập tên/SĐT gọi `GET /api/customers?search=` (debounce, endpoint đã có sẵn cho trang Khách hàng) gợi ý khách đã có (registered hoặc walk-in); chọn 1 kết quả → `customerId`/`customerContactId` tương ứng theo `kind`; nếu không chọn kết quả nào và có nhập tên+SĐT → coi là khách mới, gửi `newCustomer`. (Không có UI tìm-kiếm-khách-hàng nào sẵn có trong app để tái dùng — `QuickBookDialog` chỉ prefill từ khách đã chọn sẵn trên trang Khách hàng, không tự tìm kiếm.)
   - Sân * — dropdown mọi sân trong chi nhánh, mặc định = sân đang chọn ở tab "Bảng giá" nhưng đổi được tự do
   - Thứ trong tuần * — single-select (1 lịch = 1 thứ, đúng data model backend)
   - Giờ bắt đầu * / Giờ kết thúc *
@@ -103,7 +103,7 @@ Mirror đúng cấu trúc module Khách hàng — không dùng react-query/SWR, 
 
 ## 7. Testing & verification
 
-- Unit test (Jest, giống `customer-format.test.ts`) cho các hàm thuần trong `pricing-format.ts` (format thứ trong tuần, format giá/giảm giá, query-string builder) — không viết component test, đúng convention hiện tại của repo.
+- Unit test (Vitest, giống `customer-format.test.ts`) cho các hàm thuần trong `pricing-format.ts` (format thứ trong tuần, format giá/giảm giá, query-string builder) — không viết component test, đúng convention hiện tại của repo.
 - Sau khi implement: chạy dev server, thao tác thật trên trình duyệt — cả 2 tab, thêm/sửa/xóa 1 khung giá, sao chép khung giá, thêm 1 lịch cố định, xem chi tiết occurrence, huỷ lịch — thay vì chỉ dựa vào unit test để xác nhận UI đúng.
 
 ## 8. Ngoài phạm vi
