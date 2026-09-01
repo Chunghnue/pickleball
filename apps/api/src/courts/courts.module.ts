@@ -11,12 +11,14 @@ import { VenuesController } from './venues.controller';
 import { CourtsController } from './courts.controller';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { PricingModule } from '../pricing/pricing.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Venue, VenueImage, Court, CourtImage, Booking]),
     UsersModule,
     NotificationsModule,
+    PricingModule,
   ],
   controllers: [VenuesController, CourtsController],
   providers: [VenuesService, CourtsService],

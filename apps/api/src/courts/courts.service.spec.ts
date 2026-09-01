@@ -5,6 +5,7 @@ import { Court, CourtStatus } from './entities/court.entity';
 import { CourtImage } from './entities/court-image.entity';
 import { Booking } from '../bookings/entities/booking.entity';
 import { VenuesService } from './venues.service';
+import { PricingService } from '../pricing/pricing.service';
 
 const mockCourtsRepository = () => ({
   create: jest.fn(),
@@ -33,6 +34,10 @@ const mockVenuesService = () => ({
   findMineByOwner: jest.fn(),
 });
 
+const mockPricingService = () => ({
+  resolvePrice: jest.fn().mockResolvedValue(100000),
+});
+
 async function buildTestingModule() {
   const module: TestingModule = await Test.createTestingModule({
     providers: [
@@ -47,6 +52,7 @@ async function buildTestingModule() {
         useFactory: mockBookingsRepository,
       },
       { provide: VenuesService, useFactory: mockVenuesService },
+      { provide: PricingService, useFactory: mockPricingService },
     ],
   }).compile();
 
@@ -63,6 +69,9 @@ async function buildTestingModule() {
     >,
     venuesService: module.get(VenuesService) as ReturnType<
       typeof mockVenuesService
+    >,
+    pricingService: module.get(PricingService) as ReturnType<
+      typeof mockPricingService
     >,
   };
 }
@@ -267,6 +276,30 @@ describe('CourtsService.getSlotsForDate', () => {
     expect(result).toEqual([
       { start: '08:00', end: '09:00', price: 100000 },
       { start: '09:00', end: '10:00', price: 100000 },
+    ]);
+  });
+
+  it('resolves each slot price through PricingService', async () => {
+    const { service, courtsRepo, venuesService, pricingService } = await buildTestingModule();
+    courtsRepo.findOne.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+      openTime: '08:00',
+      closeTime: '10:00',
+      slotDurationMinutes: 60,
+      pricePerHour: 100000,
+      status: CourtStatus.ACTIVE,
+    });
+    venuesService.findPublicById.mockResolvedValue({ id: 'venue-1' });
+    pricingService.resolvePrice.mockResolvedValueOnce(120000).mockResolvedValueOnce(80000);
+
+    const result = await service.getSlotsForDate('court-1', '2026-08-25');
+
+    expect(pricingService.resolvePrice).toHaveBeenCalledWith('court-1', '2026-08-25', '08:00');
+    expect(pricingService.resolvePrice).toHaveBeenCalledWith('court-1', '2026-08-25', '09:00');
+    expect(result).toEqual([
+      { start: '08:00', end: '09:00', price: 120000 },
+      { start: '09:00', end: '10:00', price: 80000 },
     ]);
   });
 

@@ -14,9 +14,10 @@ import { Booking } from '../bookings/entities/booking.entity';
 import { VenuesService } from './venues.service';
 import { CreateCourtDto } from './dto/create-court.dto';
 import { UpdateCourtDto } from './dto/update-court.dto';
-import { generateSlots, Slot } from './slot-generator';
+import { generateSlotTimes, Slot } from './slot-generator';
 import { timeToMinutes } from './time.util';
 import { getUploadsDir } from './court-image-upload.config';
+import { PricingService } from '../pricing/pricing.service';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -38,6 +39,7 @@ export class CourtsService {
     @InjectRepository(Booking)
     private readonly bookingsRepository: Repository<Booking>,
     private readonly venuesService: VenuesService,
+    private readonly pricingService: PricingService,
   ) {}
 
   async create(
@@ -229,12 +231,19 @@ export class CourtsService {
     }
     await this.venuesService.findPublicById(court.venueId);
 
-    return generateSlots({
+    const slotTimes = generateSlotTimes({
       openTime: court.openTime,
       closeTime: court.closeTime,
       slotDurationMinutes: court.slotDurationMinutes,
-      pricePerHour: court.pricePerHour,
     });
+
+    const slots: Slot[] = [];
+    for (const slotTime of slotTimes) {
+      const resolvedPrice = await this.pricingService.resolvePrice(courtId, date, slotTime.start);
+      const price = Math.round(resolvedPrice * (court.slotDurationMinutes / 60) * 100) / 100;
+      slots.push({ ...slotTime, price });
+    }
+    return slots;
   }
 
   private assertOpenBeforeClose(openTime: string, closeTime: string): void {

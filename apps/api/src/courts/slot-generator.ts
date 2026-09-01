@@ -6,11 +6,15 @@ export interface Slot {
   price: number;
 }
 
-export interface GenerateSlotsInput {
+export interface SlotTime {
+  start: string;
+  end: string;
+}
+
+export interface GenerateSlotTimesInput {
   openTime: string;
   closeTime: string;
   slotDurationMinutes: number;
-  pricePerHour: number;
 }
 
 function toTimeString(totalMinutes: number): string {
@@ -21,12 +25,11 @@ function toTimeString(totalMinutes: number): string {
   return `${hours}:${minutes}`;
 }
 
-export function generateSlots(input: GenerateSlotsInput): Slot[] {
+export function generateSlotTimes(input: GenerateSlotTimesInput): SlotTime[] {
   const openMinutes = timeToMinutes(input.openTime);
   const closeMinutes = timeToMinutes(input.closeTime);
-  const pricePerSlot = input.pricePerHour * (input.slotDurationMinutes / 60);
 
-  const slots: Slot[] = [];
+  const slots: SlotTime[] = [];
   for (
     let start = openMinutes;
     start + input.slotDurationMinutes <= closeMinutes;
@@ -35,7 +38,6 @@ export function generateSlots(input: GenerateSlotsInput): Slot[] {
     slots.push({
       start: toTimeString(start),
       end: toTimeString(start + input.slotDurationMinutes),
-      price: Math.round(pricePerSlot * 100) / 100,
     });
   }
   return slots;
