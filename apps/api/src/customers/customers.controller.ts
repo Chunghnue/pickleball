@@ -6,6 +6,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { CustomersService } from './customers.service';
+import { ListCustomersDto } from './dto/list-customers.dto';
 
 @Controller('customers')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -16,5 +17,10 @@ export class CustomersController {
   @Get('summary')
   getSummary(@CurrentUser() user: AuthenticatedUser, @Query('venueId') venueId?: string) {
     return this.customersService.getSummary(user.userId, venueId);
+  }
+
+  @Get()
+  list(@CurrentUser() user: AuthenticatedUser, @Query() query: ListCustomersDto) {
+    return this.customersService.listCustomers(user.userId, query);
   }
 }

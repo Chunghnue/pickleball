@@ -6,6 +6,22 @@ import { Booking } from '../bookings/entities/booking.entity';
 import { CustomerContact } from '../customer-contacts/entities/customer-contact.entity';
 import { VenuesService } from '../courts/venues.service';
 import { CustomerTier, buildCustomerCode, classifyTier } from './customer-classification';
+import { ListCustomersDto } from './dto/list-customers.dto';
+
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+function clampPage(raw?: string): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.floor(n);
+}
+
+function clampPageSize(raw?: string): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return DEFAULT_PAGE_SIZE;
+  return Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(n)));
+}
 
 export type CustomerKind = 'registered' | 'walkin';
 
@@ -132,6 +148,51 @@ export class CustomersService {
       ...registeredRows.map((row) => this.toItem('registered', row)),
       ...walkinRows.map((row) => this.toItem('walkin', row)),
     ];
+  }
+
+  async listCustomers(
+    ownerId: string,
+    dto: ListCustomersDto,
+  ): Promise<{ items: CustomerListItem[]; total: number; page: number; pageSize: number }> {
+    const all = await this.aggregateCustomers(ownerId, dto.venueId);
+
+    const tier = dto.tier && dto.tier !== 'all' ? dto.tier : null;
+    const search = dto.search?.trim().toLowerCase();
+
+    let filtered = all;
+    if (tier) {
+      filtered = filtered.filter((c) => c.tier === tier);
+    }
+    if (search) {
+      filtered = filtered.filter(
+        (c) =>
+          c.fullName.toLowerCase().includes(search) ||
+          (c.phone ?? '').toLowerCase().includes(search),
+      );
+    }
+
+    filtered = [...filtered].sort((a, b) => {
+      if (a.lastBookingAt && b.lastBookingAt) {
+        if (a.lastBookingAt !== b.lastBookingAt) {
+          return a.lastBookingAt < b.lastBookingAt ? 1 : -1; // desc
+        }
+      } else if (a.lastBookingAt) {
+        return -1; // a booked, b never → a first
+      } else if (b.lastBookingAt) {
+        return 1;
+      }
+      return a.fullName.localeCompare(b.fullName);
+    });
+
+    const page = clampPage(dto.page);
+    const pageSize = clampPageSize(dto.pageSize);
+    const start = (page - 1) * pageSize;
+    return {
+      items: filtered.slice(start, start + pageSize),
+      total: filtered.length,
+      page,
+      pageSize,
+    };
   }
 
   async getSummary(ownerId: string, venueId?: string): Promise<CustomerSummary> {
