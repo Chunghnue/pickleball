@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -22,5 +22,14 @@ export class CustomersController {
   @Get()
   list(@CurrentUser() user: AuthenticatedUser, @Query() query: ListCustomersDto) {
     return this.customersService.listCustomers(user.userId, query);
+  }
+
+  @Get(':kind/:id')
+  detail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('kind') kind: string,
+    @Param('id') id: string,
+  ) {
+    return this.customersService.getCustomerDetail(user.userId, kind, id);
   }
 }

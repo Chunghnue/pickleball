@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Court } from '../courts/entities/court.entity';
 import { Booking } from '../bookings/entities/booking.entity';
 import { CustomerContact } from '../customer-contacts/entities/customer-contact.entity';
+import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
+import { UsersService } from '../users/users.service';
 import { VenuesService } from '../courts/venues.service';
 import { CustomerTier, buildCustomerCode, classifyTier } from './customer-classification';
 import { ListCustomersDto } from './dto/list-customers.dto';
@@ -44,6 +46,13 @@ export interface CustomerSummary {
   totalSpent: number;
 }
 
+export interface CustomerDetail extends CustomerListItem {
+  email?: string;
+  address?: string;
+  note?: string;
+  joinedAt: string;
+}
+
 interface RawCustomerRow {
   id: string;
   fullName: string;
@@ -63,6 +72,8 @@ export class CustomersService {
     private readonly bookingsRepository: Repository<Booking>,
     @InjectRepository(CustomerContact)
     private readonly contactsRepository: Repository<CustomerContact>,
+    private readonly customerContactsService: CustomerContactsService,
+    private readonly usersService: UsersService,
   ) {}
 
   private async resolveCourtIds(ownerId: string, venueId?: string): Promise<string[]> {
@@ -202,6 +213,39 @@ export class CustomersService {
       vipCustomers: customers.filter((c) => c.tier === 'vip').length,
       totalBookings: customers.reduce((sum, c) => sum + c.totalBookings, 0),
       totalSpent: customers.reduce((sum, c) => sum + c.totalSpent, 0),
+    };
+  }
+
+  async getCustomerDetail(ownerId: string, kind: string, id: string): Promise<CustomerDetail> {
+    if (kind !== 'registered' && kind !== 'walkin') {
+      throw new NotFoundException('Khách hàng không tồn tại');
+    }
+
+    const all = await this.aggregateCustomers(ownerId);
+    const row = all.find((c) => c.kind === kind && c.id === id);
+    if (!row) {
+      throw new NotFoundException('Khách hàng không tồn tại');
+    }
+
+    if (kind === 'walkin') {
+      const contact = await this.customerContactsService.findByIdForOwner(ownerId, id);
+      return {
+        ...row,
+        email: contact.email ?? undefined,
+        address: contact.address ?? undefined,
+        note: contact.note ?? undefined,
+        joinedAt: contact.createdAt.toISOString(),
+      };
+    }
+
+    const user = await this.usersService.findById(id);
+    if (!user) {
+      throw new NotFoundException('Khách hàng không tồn tại');
+    }
+    return {
+      ...row,
+      email: user.email,
+      joinedAt: user.createdAt.toISOString(),
     };
   }
 }
