@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   avatarInitials,
+  avatarColor,
   tierLabel,
   formatShortDate,
   buildCustomersQuery,
@@ -15,6 +16,15 @@ describe("avatarInitials", () => {
   });
   it("falls back to ? for empty input", () => {
     expect(avatarInitials("   ")).toBe("?");
+  });
+});
+
+describe("avatarColor", () => {
+  it("is deterministic for the same name", () => {
+    expect(avatarColor("Phạm Văn An")).toBe(avatarColor("Phạm Văn An"));
+  });
+  it("returns a bg color utility class", () => {
+    expect(avatarColor("Lê Thị Bình")).toMatch(/^bg-[a-z]+-\d{3}$/);
   });
 });
 

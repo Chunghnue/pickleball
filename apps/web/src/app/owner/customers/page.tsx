@@ -143,7 +143,15 @@ export default function OwnerCustomersPage() {
   return (
     <main className="flex w-full flex-1 flex-col gap-6 bg-muted/30 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Khách hàng</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Khách hàng</h1>
+          {summary && (
+            <p className="text-sm text-muted-foreground">
+              Tổng {summary.totalCustomers} khách ·{" "}
+              <span className="font-medium text-amber-500">{summary.vipCustomers} VIP</span>
+            </p>
+          )}
+        </div>
         <Button
           type="button"
           onClick={() => setAddOpen(true)}

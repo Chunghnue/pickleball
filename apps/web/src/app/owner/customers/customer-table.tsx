@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { avatarInitials, formatShortDate } from "./customer-format";
+import { avatarColor, avatarInitials, formatShortDate } from "./customer-format";
 import { TierBadge } from "./tier-badge";
 import type { CustomerListItem } from "./types";
 
@@ -32,8 +32,7 @@ export function CustomerTable({
   onPrev: () => void;
   onNext: () => void;
 }) {
-  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, total);
+  const hasPager = total > pageSize;
 
   return (
     <Card>
@@ -42,13 +41,13 @@ export function CustomerTable({
           <TableHeader>
             <TableRow className="bg-muted/60 hover:bg-muted/60">
               <TableHead className="w-10">#</TableHead>
-              <TableHead>Khách hàng</TableHead>
+              <TableHead>KHÁCH HÀNG</TableHead>
               <TableHead>SĐT</TableHead>
-              <TableHead>Lượt đặt</TableHead>
-              <TableHead>Tổng tiền</TableHead>
-              <TableHead>Lần cuối</TableHead>
-              <TableHead>Loại</TableHead>
-              <TableHead className="text-right">Thao tác</TableHead>
+              <TableHead>LƯỢT ĐẶT</TableHead>
+              <TableHead>TỔNG TIỀN</TableHead>
+              <TableHead>LẦN CUỐI</TableHead>
+              <TableHead>LOẠI</TableHead>
+              <TableHead className="text-right"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -66,54 +65,59 @@ export function CustomerTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                    <span
+                      className={`flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${avatarColor(item.fullName)}`}
+                    >
                       {avatarInitials(item.fullName)}
                     </span>
-                    <span className="font-medium">{item.fullName}</span>
+                    <span className="font-semibold">{item.fullName}</span>
                   </div>
                 </TableCell>
                 <TableCell>{item.phone ?? "—"}</TableCell>
-                <TableCell>{item.totalBookings}</TableCell>
-                <TableCell className="font-medium">
+                <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
+                  {item.totalBookings}
+                </TableCell>
+                <TableCell className="font-semibold text-green-600 dark:text-green-400">
                   {currencyFormatter.format(item.totalSpent)}đ
                 </TableCell>
-                <TableCell>{formatShortDate(item.lastBookingAt)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatShortDate(item.lastBookingAt)}
+                </TableCell>
                 <TableCell>
                   <TierBadge tier={item.tier} />
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="icon"
                     aria-label="Xem chi tiết"
                     onClick={() => onOpenDetail(item)}
+                    className="inline-flex size-8 items-center justify-center rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-400 dark:hover:bg-blue-950/40"
                   >
                     <Eye className="size-4" />
-                  </Button>
+                  </button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
         <div className="flex items-center justify-between border-t px-4 py-3 text-sm text-muted-foreground">
-          <span>
-            Hiển thị {from}–{to} / {total}
-          </span>
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onPrev} disabled={page <= 1}>
-              Trước
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onNext}
-              disabled={page * pageSize >= total}
-            >
-              Sau
-            </Button>
-          </div>
+          <span>{total} khách hàng</span>
+          {hasPager && (
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={onPrev} disabled={page <= 1}>
+                Trước
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onNext}
+                disabled={page * pageSize >= total}
+              >
+                Sau
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -34,6 +34,25 @@ export function formatShortDate(value: string | null): string {
   return `${d}/${m}/${y}`;
 }
 
+const AVATAR_COLORS = [
+  "bg-blue-500",
+  "bg-red-500",
+  "bg-purple-500",
+  "bg-green-600",
+  "bg-amber-500",
+  "bg-pink-500",
+  "bg-cyan-600",
+  "bg-indigo-500",
+];
+
+export function avatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) % AVATAR_COLORS.length;
+  }
+  return AVATAR_COLORS[hash];
+}
+
 export function buildCustomersQuery(params: {
   venueId?: string;
   tier: CustomerTier | "all";

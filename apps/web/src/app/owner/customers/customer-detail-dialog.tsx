@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { avatarInitials, formatShortDate } from "./customer-format";
+import { avatarColor, avatarInitials, formatShortDate } from "./customer-format";
 import { TierBadge } from "./tier-badge";
 import type { CustomerDetail, CustomerKind } from "./types";
 
@@ -43,7 +43,9 @@ export function CustomerDetailDialog({
         ) : (
           <div className="flex flex-col gap-4 py-2">
             <div className="flex items-center gap-3">
-              <span className="flex size-12 items-center justify-center rounded-full bg-muted text-base font-semibold">
+              <span
+                className={`flex size-12 items-center justify-center rounded-full text-base font-semibold text-white ${avatarColor(detail.fullName)}`}
+              >
                 {avatarInitials(detail.fullName)}
               </span>
               <div>
