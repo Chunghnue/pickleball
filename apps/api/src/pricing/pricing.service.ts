@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { PricingRule } from './entities/pricing-rule.entity';
 import { Court } from '../courts/entities/court.entity';
 import { Venue } from '../courts/entities/venue.entity';
@@ -136,6 +136,42 @@ export class PricingService {
       throw new NotFoundException(`Pricing rule ${id} không tồn tại`);
     }
     await this.pricingRulesRepository.remove(rule);
+  }
+
+  async copyFrom(
+    ownerId: string,
+    venueId: string,
+    courtId: string,
+    sourceCourtId: string,
+  ): Promise<PricingRule[]> {
+    await this.getOwnedCourtOrThrow(ownerId, venueId, courtId);
+
+    const ownedVenues = await this.venuesRepository.find({ where: { ownerId } });
+    const ownedVenueIds = ownedVenues.map((venue) => venue.id);
+    const sourceCourt = await this.courtsRepository.findOne({
+      where: { id: sourceCourtId, venueId: In(ownedVenueIds.length > 0 ? ownedVenueIds : ['__none__']) },
+    });
+    if (!sourceCourt) {
+      throw new NotFoundException(`Court ${sourceCourtId} không tồn tại`);
+    }
+
+    const sourceRules = await this.pricingRulesRepository.find({ where: { courtId: sourceCourtId } });
+    const copies = sourceRules.map((rule) =>
+      this.pricingRulesRepository.create({
+        courtId,
+        name: rule.name,
+        daysOfWeek: rule.daysOfWeek,
+        startTime: rule.startTime,
+        endTime: rule.endTime,
+        price: rule.price,
+        priority: rule.priority,
+        advanceBookingHours: rule.advanceBookingHours,
+        advancePrice: rule.advancePrice,
+        validFrom: rule.validFrom,
+        validTo: rule.validTo,
+      }),
+    );
+    return this.pricingRulesRepository.save(copies);
   }
 
   private async getOwnedCourtOrThrow(

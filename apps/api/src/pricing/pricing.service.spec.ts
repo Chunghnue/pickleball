@@ -315,3 +315,42 @@ describe('PricingService.remove', () => {
     expect(pricingRulesRepo.remove).toHaveBeenCalledWith(existing);
   });
 });
+
+describe('PricingService.copyFrom', () => {
+  it('copies rules from a court the owner owns in any of their venues', async () => {
+    const { service, pricingRulesRepo, courtsRepo, venuesRepo } = await buildTestingModule();
+    // target court ownership check
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne
+      .mockResolvedValueOnce({ id: 'court-1', venueId: 'venue-1' }) // getOwnedCourtOrThrow(target)
+      .mockResolvedValueOnce({ id: 'court-2', venueId: 'venue-2' }); // source court lookup
+    venuesRepo.find.mockResolvedValue([
+      { id: 'venue-1', ownerId: 'owner-1' },
+      { id: 'venue-2', ownerId: 'owner-1' },
+    ]);
+    pricingRulesRepo.find.mockResolvedValue([
+      rule({ id: 'src-1', courtId: 'court-2', price: 150000 }),
+    ]);
+    pricingRulesRepo.create.mockImplementation((data) => data);
+    pricingRulesRepo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.copyFrom('owner-1', 'venue-1', 'court-1', 'court-2');
+
+    expect(result).toHaveLength(1);
+    expect((result[0] as unknown as { courtId: string }).courtId).toBe('court-1');
+    expect((result[0] as unknown as { price: number }).price).toBe(150000);
+  });
+
+  it('throws NotFoundException when sourceCourtId is not owned by the caller', async () => {
+    const { service, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne
+      .mockResolvedValueOnce({ id: 'court-1', venueId: 'venue-1' }) // target ok
+      .mockResolvedValueOnce(null); // source not found among owned venues
+    venuesRepo.find.mockResolvedValue([{ id: 'venue-1', ownerId: 'owner-1' }]);
+
+    await expect(service.copyFrom('owner-1', 'venue-1', 'court-1', 'someone-elses-court')).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+});
