@@ -211,6 +211,17 @@ export class BookingsService {
     });
   }
 
+  findByRecurringScheduleId(recurringScheduleId: string): Promise<Booking[]> {
+    return this.bookingsRepository.find({
+      where: { recurringScheduleId },
+      order: { date: 'ASC', startTime: 'ASC' },
+    });
+  }
+
+  countByRecurringScheduleId(recurringScheduleId: string): Promise<number> {
+    return this.bookingsRepository.count({ where: { recurringScheduleId } });
+  }
+
   async createForOwner(
     ownerId: string,
     venueId: string,

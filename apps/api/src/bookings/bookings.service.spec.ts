@@ -28,6 +28,7 @@ const mockBookingsRepository = () => {
     find: jest.fn(),
     findOne: jest.fn(),
     save: jest.fn(),
+    count: jest.fn(),
     createQueryBuilder: jest.fn(() => queryBuilder),
   };
 };
@@ -969,5 +970,32 @@ describe('BookingsService.cancelFutureOccurrences', () => {
     expect(manager.delete).toHaveBeenCalledWith(BookingSlot, { bookingId: 'booking-future' });
     expect(manager.delete).not.toHaveBeenCalledWith(BookingSlot, { bookingId: 'booking-past' });
     expect(pastBooking.status).toBe(BookingStatus.CONFIRMED);
+  });
+});
+
+describe('BookingsService.findByRecurringScheduleId', () => {
+  it('returns bookings for the schedule ordered by date/startTime', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.find.mockResolvedValue([{ id: 'booking-1', recurringScheduleId: 'schedule-1' }]);
+
+    const result = await service.findByRecurringScheduleId('schedule-1');
+
+    expect(bookingsRepo.find).toHaveBeenCalledWith({
+      where: { recurringScheduleId: 'schedule-1' },
+      order: { date: 'ASC', startTime: 'ASC' },
+    });
+    expect(result).toEqual([{ id: 'booking-1', recurringScheduleId: 'schedule-1' }]);
+  });
+});
+
+describe('BookingsService.countByRecurringScheduleId', () => {
+  it('counts bookings for the schedule', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.count.mockResolvedValue(3);
+
+    const result = await service.countByRecurringScheduleId('schedule-1');
+
+    expect(bookingsRepo.count).toHaveBeenCalledWith({ where: { recurringScheduleId: 'schedule-1' } });
+    expect(result).toBe(3);
   });
 });
