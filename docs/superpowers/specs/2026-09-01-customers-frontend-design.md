@@ -135,21 +135,21 @@ State: `tier` (mặc định `all`), `search` (+ debounce), `page` (mặc địn
 - 401 từ fetch → `router.push("/login?returnTo=%2Fowner%2Fcustomers")` (giống dashboard).
 - Bố cục `<main>` theo mẫu owner: tiêu đề "Khách hàng" + nút "+ Thêm khách" (phải), rồi metrics, filters, table.
 
-## 5. Luồng "Đặt sân cho khách này" (prefill)
+## 5. Luồng "Đặt sân cho khách này" (điều hướng sang trang Đặt lịch)
 
-Mở rộng `apps/web/src/app/owner/bookings/quick-book-dialog.tsx` bằng props tùy chọn (dùng ở calendar **không đổi**):
+**Quyết định (cập nhật 2026-09-01):** nút **"Đặt sân cho khách này"** **điều hướng** sang trang Đặt lịch (`/owner/bookings`) với khách đã chọn sẵn, để owner dùng lưới lịch xem chỗ trống rồi đặt. (Đảo lại phương án "mở dialog inline" đề xuất ban đầu — khớp với câu chữ "mở thẳng luồng tạo lịch đặt" ở spec gốc.)
 
-- `prefillCustomer?: { kind: CustomerKind; id: string; fullName: string; phone: string }`
-  - Khi có: ô Tên & SĐT hiển thị **read-only** (giá trị khách), KHÔNG cho sửa.
-  - Khi submit: thay vì `newCustomer`, gửi `customerId: id` (nếu `kind==='registered'`) hoặc `customerContactId: id` (nếu `kind==='walkin'`).
-- `editableDate?: boolean` (chế độ standalone, mở ngoài calendar)
-  - Khi `true`: render `<input type="date">` (mặc định hôm nay) và dùng giá trị này làm `date` khi submit, thay cho prop `date` cố định.
+**Trang Khách hàng** (`customer-detail-dialog.tsx` → `page.tsx`): `onBookForCustomer(customer)` gọi
+`router.push('/owner/bookings?bookForKind=<kind>&bookForId=<id>')`. Không truyền tên/SĐT qua URL — trang Đặt lịch tự fetch chi tiết khách.
 
-**Xử lý ở `page.tsx` khách hàng** khi `onBookForCustomer(customer)`:
-1. Resolve `venueId`: nếu đang chọn 1 chi nhánh → dùng nó; nếu "Tất cả chi nhánh" → mặc định venue đầu tiên (tải `/api/venues/mine` nếu chưa có).
-2. Nếu owner có **>1 venue** ở chế độ standalone: hiển thị `<select>` venue trong dialog (thêm prop `venues?` + `onVenueChange?` cho QuickBookDialog, chỉ render khi `editableDate` và có nhiều venue). Khi đổi venue → tải lại courts.
-3. Tải courts venue đó (`/api/venues/mine/{venueId}/courts`), truyền vào QuickBookDialog cùng `prefillCustomer`, `editableDate: true`, `date=hôm nay`.
-4. `onCreated` → toast "Đã tạo lịch đặt sân" (dialog tự toast), đóng dialog, tải lại list/summary (số Lượt đặt/Tổng tiền của khách cập nhật).
+**Trang Đặt lịch** (`bookings/page.tsx`):
+1. Khi mount, đọc `bookForKind`/`bookForId` từ `window.location.search`; nếu có → `GET /api/customers/{kind}/{id}` lấy `fullName`/`phone`, lưu vào state `prefillCustomer`, rồi `window.history.replaceState` xoá query (tránh kích hoạt lại). Toast "Đang đặt sân cho <tên>".
+2. Hiện **banner** "Đang đặt sân cho <tên> · <SĐT> — chọn ô trống để đặt" kèm nút **Huỷ** (xoá `prefillCustomer`, thoát chế độ).
+3. Owner click **ô trống** trên lưới (hoặc "Đặt nhanh") → mở `QuickBookDialog` với `prefillCustomer` set; ngày = ngày đang xem, sân/giờ = ô đã chọn.
+4. `prefillCustomer` **giữ nguyên** sau khi tạo booking (đặt được nhiều slot cho cùng khách) đến khi bấm Huỷ.
+
+**QuickBookDialog** (`quick-book-dialog.tsx`) — chỉ mở rộng bằng 1 prop `prefillCustomer?: { kind: CustomerKind; id; fullName; phone }` (dùng ở calendar không đổi):
+- Khi có: ô Tên & SĐT **read-only**; submit gửi `customerId` (registered) hoặc `customerContactId` (walkin) thay cho `newCustomer`.
 
 Backend đã hỗ trợ đủ: `POST /venues/mine/:venueId/bookings` nhận `customerId | customerContactId | newCustomer`.
 

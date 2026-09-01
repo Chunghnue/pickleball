@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pointer, RefreshCw, Zap } from "lucide-react";
+import { Pointer, RefreshCw, UserCheck, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBranch, ALL_BRANCHES_ID } from "@/lib/branch-context";
 import { buildHourAxis, computeCellState, computeMaxConsecutiveHours } from "@/lib/booking-grid";
@@ -13,6 +13,7 @@ import { BookingGrid } from "./booking-grid";
 import { QuickBookDialog } from "./quick-book-dialog";
 import { BookingDetailDialog } from "./booking-detail-dialog";
 import type { Court } from "../types";
+import type { CustomerKind } from "../customers/types";
 import type { OwnerBooking } from "./types";
 
 interface VenueOption {
@@ -50,11 +51,34 @@ export default function OwnerBookingsPage() {
   );
   const [detail, setDetail] = useState<OwnerBooking | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [prefillCustomer, setPrefillCustomer] = useState<{
+    kind: CustomerKind;
+    id: string;
+    fullName: string;
+    phone: string;
+  } | null>(null);
 
   useEffect(() => {
     fetch("/api/venues/mine")
       .then((res) => res.json())
       .then((data) => setVenues(Array.isArray(data) ? data : []));
+  }, []);
+
+  // Arriving from the Khách hàng screen ("Đặt sân cho khách này"): preselect the customer.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const kind = params.get("bookForKind");
+    const id = params.get("bookForId");
+    if (!kind || !id) return;
+    fetch(`/api/customers/${kind}/${id}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((c) => {
+        if (c) {
+          setPrefillCustomer({ kind: c.kind, id: c.id, fullName: c.fullName, phone: c.phone ?? "" });
+          toast.info(`Đang đặt sân cho ${c.fullName}`);
+        }
+      });
+    window.history.replaceState(null, "", "/owner/bookings");
   }, []);
 
   useEffect(() => {
@@ -235,6 +259,26 @@ export default function OwnerBookingsPage() {
         </div>
       </div>
 
+      {prefillCustomer && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm dark:border-blue-900 dark:bg-blue-950/30">
+          <span className="flex flex-wrap items-center gap-1.5 text-blue-700 dark:text-blue-300">
+            <UserCheck className="size-4" />
+            Đang đặt sân cho <span className="font-semibold">{prefillCustomer.fullName}</span>
+            {prefillCustomer.phone && (
+              <span className="text-blue-600/70 dark:text-blue-400/70">· {prefillCustomer.phone}</span>
+            )}
+            <span className="text-muted-foreground">— chọn ô trống để đặt</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setPrefillCustomer(null)}
+            className="rounded-lg px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:text-blue-300 dark:hover:bg-blue-900/40"
+          >
+            Huỷ
+          </button>
+        </div>
+      )}
+
       <StatusBar
         bookedCount={counts.booked}
         emptyCount={counts.empty}
@@ -279,6 +323,7 @@ export default function OwnerBookingsPage() {
         initialCourtId={quickBook?.courtId}
         initialHour={quickBook?.hour}
         maxDurationHours={quickBook?.max}
+        prefillCustomer={prefillCustomer ?? undefined}
         onCreated={() => {
           setQuickBook(null);
           loadBookings();
