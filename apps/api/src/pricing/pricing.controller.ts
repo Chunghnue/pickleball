@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -23,6 +23,17 @@ export class PricingController {
     @Body() dto: CreatePricingRuleDto,
   ) {
     return this.pricingService.create(user.userId, venueId, courtId, dto);
+  }
+
+  @Get('venues/mine/:venueId/pricing-summary')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.OWNER)
+  getSummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('venueId') venueId: string,
+    @Query('courtId') courtId?: string,
+  ) {
+    return this.pricingService.getSummary(user.userId, venueId, courtId);
   }
 
   @Get('venues/mine/:venueId/courts/:courtId/pricing-rules')
