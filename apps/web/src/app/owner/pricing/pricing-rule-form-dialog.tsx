@@ -158,52 +158,44 @@ export function PricingRuleFormDialog(props: CreateProps | EditProps) {
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="rule-sport">Loại sân</Label>
-              <select id="rule-sport" value="all" disabled className={SELECT_CLASS}>
-                <option value="all">Tất cả</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>
-                Áp dụng ngày <RequiredMark />
-              </Label>
-              <Controller
-                name="daysOfWeek"
-                control={form.control}
-                render={({ field }) => (
-                  <div className="flex flex-wrap gap-2">
-                    {DAY_LABELS.map((label, day) => {
-                      const current = (field.value ?? []) as number[];
-                      const checked = current.includes(day);
-                      return (
-                        <button
-                          key={day}
-                          type="button"
-                          onClick={() =>
-                            field.onChange(
-                              checked ? current.filter((d) => d !== day) : [...current, day],
-                            )
-                          }
-                          className={cn(
-                            "flex size-9 items-center justify-center rounded-lg border text-sm font-medium",
-                            checked
-                              ? "border-blue-600 bg-blue-600 text-white"
-                              : "border-input text-muted-foreground hover:bg-muted",
-                          )}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              />
-              {errors.daysOfWeek && (
-                <p className="text-sm text-destructive">{errors.daysOfWeek.message as string}</p>
+          <div className="space-y-1.5">
+            <Label>
+              Áp dụng ngày <RequiredMark />
+            </Label>
+            <Controller
+              name="daysOfWeek"
+              control={form.control}
+              render={({ field }) => (
+                <div className="flex flex-wrap gap-2">
+                  {DAY_LABELS.map((label, day) => {
+                    const current = (field.value ?? []) as number[];
+                    const checked = current.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() =>
+                          field.onChange(
+                            checked ? current.filter((d) => d !== day) : [...current, day],
+                          )
+                        }
+                        className={cn(
+                          "flex size-9 items-center justify-center rounded-lg border text-sm font-medium",
+                          checked
+                            ? "border-blue-600 bg-blue-600 text-white"
+                            : "border-input text-muted-foreground hover:bg-muted",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
-            </div>
+            />
+            {errors.daysOfWeek && (
+              <p className="text-sm text-destructive">{errors.daysOfWeek.message as string}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
