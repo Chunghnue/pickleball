@@ -895,7 +895,7 @@ export function PricingRuleFormDialog(props: CreateProps | EditProps) {
               render={({ field }) => (
                 <div className="flex flex-wrap gap-2">
                   {DAY_LABELS.map((label, day) => {
-                    const current: number[] = field.value ?? [];
+                    const current = (field.value ?? []) as number[];
                     const checked = current.includes(day);
                     return (
                       <button
