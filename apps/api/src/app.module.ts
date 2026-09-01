@@ -9,6 +9,7 @@ import { MailModule } from './mail/mail.module';
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
 import { CourtsModule } from './courts/courts.module';
+import { PricingModule } from './pricing/pricing.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PaymentsModule } from './payments/payments.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -40,6 +41,7 @@ import { RecurringSchedulesModule } from './recurring-schedules/recurring-schedu
     AuthModule,
     AdminModule,
     CourtsModule,
+    PricingModule,
     BookingsModule,
     PaymentsModule,
     DashboardModule,
