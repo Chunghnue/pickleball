@@ -7,6 +7,7 @@ import { Venue } from '../courts/entities/venue.entity';
 import { CreatePricingRuleDto } from './dto/create-pricing-rule.dto';
 import { UpdatePricingRuleDto } from './dto/update-pricing-rule.dto';
 import { timeToMinutes } from '../courts/time.util';
+import { RecurringSchedule, RecurringScheduleStatus } from '../recurring-schedules/entities/recurring-schedule.entity';
 
 @Injectable()
 export class PricingService {
@@ -17,6 +18,8 @@ export class PricingService {
     private readonly courtsRepository: Repository<Court>,
     @InjectRepository(Venue)
     private readonly venuesRepository: Repository<Venue>,
+    @InjectRepository(RecurringSchedule)
+    private readonly recurringSchedulesRepository: Repository<RecurringSchedule>,
   ) {}
 
   async resolvePrice(courtId: string, date: string, slotStart: string): Promise<number> {
@@ -174,11 +177,68 @@ export class PricingService {
     return this.pricingRulesRepository.save(copies);
   }
 
+  async getSummary(
+    ownerId: string,
+    venueId: string,
+    courtId?: string,
+  ): Promise<{
+    pricingRulesCount: number;
+    activeRecurringSchedulesCount: number;
+    estimatedMonthlyRecurringRevenue: number;
+  }> {
+    await this.getOwnedVenue(ownerId, venueId);
+
+    let courtIds: string[];
+    if (courtId) {
+      const court = await this.courtsRepository.findOne({ where: { id: courtId, venueId } });
+      if (!court) {
+        throw new NotFoundException(`Court ${courtId} không tồn tại`);
+      }
+      courtIds = [courtId];
+    } else {
+      const courts = await this.courtsRepository.find({ where: { venueId } });
+      courtIds = courts.map((court) => court.id);
+    }
+    const scopedCourtIds = courtIds.length > 0 ? courtIds : ['__none__'];
+
+    const pricingRulesCount = await this.pricingRulesRepository.count({
+      where: { courtId: In(scopedCourtIds) },
+    });
+
+    const activeSchedules = await this.recurringSchedulesRepository.find({
+      where: { courtId: In(scopedCourtIds), status: RecurringScheduleStatus.ACTIVE },
+    });
+    const estimatedMonthlyRecurringRevenue =
+      Math.round(
+        activeSchedules.reduce(
+          (sum, schedule) =>
+            sum +
+            schedule.pricePerSession * (1 - (schedule.discountPercent ?? 0) / 100) * (52 / 12),
+          0,
+        ) * 100,
+      ) / 100;
+
+    return {
+      pricingRulesCount,
+      activeRecurringSchedulesCount: activeSchedules.length,
+      estimatedMonthlyRecurringRevenue,
+    };
+  }
+
   private async getOwnedCourtOrThrow(
     ownerId: string,
     venueId: string,
     courtId: string,
   ): Promise<Court> {
+    await this.getOwnedVenue(ownerId, venueId);
+    const court = await this.courtsRepository.findOne({ where: { id: courtId, venueId } });
+    if (!court) {
+      throw new NotFoundException(`Court ${courtId} không tồn tại`);
+    }
+    return court;
+  }
+
+  private async getOwnedVenue(ownerId: string, venueId: string): Promise<Venue> {
     const venue = await this.venuesRepository.findOne({ where: { id: venueId } });
     if (!venue) {
       throw new NotFoundException(`Venue ${venueId} không tồn tại`);
@@ -186,11 +246,7 @@ export class PricingService {
     if (venue.ownerId !== ownerId) {
       throw new ForbiddenException('Bạn không có quyền truy cập venue này');
     }
-    const court = await this.courtsRepository.findOne({ where: { id: courtId, venueId } });
-    if (!court) {
-      throw new NotFoundException(`Court ${courtId} không tồn tại`);
-    }
-    return court;
+    return venue;
   }
 
   private assertValid(

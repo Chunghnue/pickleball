@@ -7,6 +7,7 @@ import { Court } from '../courts/entities/court.entity';
 import { Venue } from '../courts/entities/venue.entity';
 import { CreatePricingRuleDto } from './dto/create-pricing-rule.dto';
 import { UpdatePricingRuleDto } from './dto/update-pricing-rule.dto';
+import { RecurringSchedule, RecurringScheduleStatus } from '../recurring-schedules/entities/recurring-schedule.entity';
 
 const mockPricingRulesRepository = () => ({
   find: jest.fn(),
@@ -14,15 +15,21 @@ const mockPricingRulesRepository = () => ({
   create: jest.fn(),
   save: jest.fn(),
   remove: jest.fn(),
+  count: jest.fn(),
 });
 
 const mockCourtsRepository = () => ({
   findOne: jest.fn(),
+  find: jest.fn(),
 });
 
 const mockVenuesRepository = () => ({
   find: jest.fn(),
   findOne: jest.fn(),
+});
+
+const mockRecurringSchedulesRepository = () => ({
+  find: jest.fn(),
 });
 
 async function buildTestingModule() {
@@ -32,6 +39,10 @@ async function buildTestingModule() {
       { provide: getRepositoryToken(PricingRule), useFactory: mockPricingRulesRepository },
       { provide: getRepositoryToken(Court), useFactory: mockCourtsRepository },
       { provide: getRepositoryToken(Venue), useFactory: mockVenuesRepository },
+      {
+        provide: getRepositoryToken(RecurringSchedule),
+        useFactory: mockRecurringSchedulesRepository,
+      },
     ],
   }).compile();
 
@@ -42,6 +53,9 @@ async function buildTestingModule() {
     >,
     courtsRepo: module.get(getRepositoryToken(Court)) as ReturnType<typeof mockCourtsRepository>,
     venuesRepo: module.get(getRepositoryToken(Venue)) as ReturnType<typeof mockVenuesRepository>,
+    recurringSchedulesRepo: module.get(getRepositoryToken(RecurringSchedule)) as ReturnType<
+      typeof mockRecurringSchedulesRepository
+    >,
   };
 }
 
@@ -352,5 +366,71 @@ describe('PricingService.copyFrom', () => {
     await expect(service.copyFrom('owner-1', 'venue-1', 'court-1', 'someone-elses-court')).rejects.toThrow(
       NotFoundException,
     );
+  });
+});
+
+describe('PricingService.getSummary', () => {
+  it('counts pricing rules and active schedules across every court in the venue', async () => {
+    const { service, courtsRepo, venuesRepo, pricingRulesRepo, recurringSchedulesRepo } =
+      await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.find.mockResolvedValue([{ id: 'court-1' }, { id: 'court-2' }]);
+    pricingRulesRepo.count.mockResolvedValue(7);
+    recurringSchedulesRepo.find.mockResolvedValue([
+      { pricePerSession: 120000, discountPercent: null },
+      { pricePerSession: 100000, discountPercent: 10 },
+    ]);
+
+    const result = await service.getSummary('owner-1', 'venue-1');
+
+    expect(courtsRepo.find).toHaveBeenCalledWith({ where: { venueId: 'venue-1' } });
+    expect(pricingRulesRepo.count).toHaveBeenCalledWith({
+      where: { courtId: expect.anything() },
+    });
+    expect(recurringSchedulesRepo.find).toHaveBeenCalledWith({
+      where: { courtId: expect.anything(), status: RecurringScheduleStatus.ACTIVE },
+    });
+    expect(result).toEqual({
+      pricingRulesCount: 7,
+      activeRecurringSchedulesCount: 2,
+      // 120000*52/12 + 100000*0.9*52/12 = 520000 + 390000 = 910000
+      estimatedMonthlyRecurringRevenue: 910000,
+    });
+  });
+
+  it('scopes to a single court when courtId is provided', async () => {
+    const { service, courtsRepo, venuesRepo, pricingRulesRepo, recurringSchedulesRepo } =
+      await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    pricingRulesRepo.count.mockResolvedValue(2);
+    recurringSchedulesRepo.find.mockResolvedValue([]);
+
+    const result = await service.getSummary('owner-1', 'venue-1', 'court-1');
+
+    expect(courtsRepo.find).not.toHaveBeenCalled();
+    expect(pricingRulesRepo.count).toHaveBeenCalledWith({ where: { courtId: expect.anything() } });
+    expect(result).toEqual({
+      pricingRulesCount: 2,
+      activeRecurringSchedulesCount: 0,
+      estimatedMonthlyRecurringRevenue: 0,
+    });
+  });
+
+  it('throws NotFoundException when courtId does not belong to the venue', async () => {
+    const { service, courtsRepo, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    courtsRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.getSummary('owner-1', 'venue-1', 'court-x')).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('throws ForbiddenException when the venue belongs to another owner', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'someone-else' });
+
+    await expect(service.getSummary('owner-1', 'venue-1')).rejects.toThrow(ForbiddenException);
   });
 });
