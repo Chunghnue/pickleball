@@ -12,14 +12,20 @@ const mockRepository = () => ({
   create: jest.fn((data: unknown) => data),
   save: jest.fn((data: unknown) => Promise.resolve({ id: 'schedule-1', ...(data as object) })),
   findOne: jest.fn(),
+  find: jest.fn(),
 });
 
-const mockCourtsService = () => ({ findByIdOrThrow: jest.fn() });
+const mockCourtsService = () => ({
+  findByIdOrThrow: jest.fn(),
+  findByVenueForOwner: jest.fn(),
+});
 const mockVenuesService = () => ({ getOwnedVenueOrThrow: jest.fn() });
 const mockCustomerContactsService = () => ({ resolveSelector: jest.fn() });
 const mockBookingsService = () => ({
   createBookingRecord: jest.fn(),
   cancelFutureOccurrences: jest.fn(),
+  findByRecurringScheduleId: jest.fn(),
+  countByRecurringScheduleId: jest.fn(),
 });
 
 async function buildTestingModule() {
@@ -220,6 +226,63 @@ describe('RecurringSchedulesService.cancel', () => {
 
     await expect(service.cancel('owner-1', 'venue-1', 'schedule-1')).rejects.toThrow(
       'Lịch cố định đã bị huỷ',
+    );
+  });
+});
+
+describe('RecurringSchedulesService.findByVenueForOwner', () => {
+  it('lists schedules for the venue courts with their occurrence count', async () => {
+    const { service, repo, courtsService, bookingsService } = await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }, { id: 'court-2' }]);
+    repo.find.mockResolvedValue([
+      { id: 'schedule-1', courtId: 'court-1', status: RecurringScheduleStatus.ACTIVE },
+    ]);
+    bookingsService.countByRecurringScheduleId.mockResolvedValue(5);
+
+    const result = await service.findByVenueForOwner('owner-1', 'venue-1');
+
+    expect(courtsService.findByVenueForOwner).toHaveBeenCalledWith('owner-1', 'venue-1');
+    expect(result).toEqual([
+      expect.objectContaining({ id: 'schedule-1', occurrenceCount: 5 }),
+    ]);
+  });
+
+  it('returns an empty list when the venue has no courts', async () => {
+    const { service, courtsService, repo } = await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([]);
+    repo.find.mockResolvedValue([]);
+
+    const result = await service.findByVenueForOwner('owner-1', 'venue-1');
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe('RecurringSchedulesService.findByIdForOwner', () => {
+  it('returns the schedule with its occurrences', async () => {
+    const { service, repo, courtsService, venuesService, bookingsService } =
+      await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
+    repo.findOne.mockResolvedValue({ id: 'schedule-1', courtId: 'court-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    bookingsService.findByRecurringScheduleId.mockResolvedValue([{ id: 'booking-1' }]);
+
+    const result = await service.findByIdForOwner('owner-1', 'venue-1', 'schedule-1');
+
+    expect(result).toEqual({
+      schedule: { id: 'schedule-1', courtId: 'court-1' },
+      occurrences: [{ id: 'booking-1' }],
+    });
+  });
+
+  it('throws NotFoundException when the schedule does not belong to the venue', async () => {
+    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
+    repo.findOne.mockResolvedValue({ id: 'schedule-1', courtId: 'court-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'other-venue' });
+
+    await expect(service.findByIdForOwner('owner-1', 'venue-1', 'schedule-1')).rejects.toThrow(
+      'Lịch cố định schedule-1 không tồn tại',
     );
   });
 });

@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { RecurringSchedule, RecurringScheduleStatus } from './entities/recurring-schedule.entity';
 import { CreateRecurringScheduleDto } from './dto/create-recurring-schedule.dto';
 import { generateOccurrenceDates } from './occurrence-dates.util';
@@ -8,6 +8,7 @@ import { CourtsService } from '../courts/courts.service';
 import { VenuesService } from '../courts/venues.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
 import { BookingsService } from '../bookings/bookings.service';
+import { Booking } from '../bookings/entities/booking.entity';
 
 const MAX_SPAN_DAYS = 366;
 
@@ -109,5 +110,41 @@ export class RecurringSchedulesService {
     await this.repository.save(schedule);
     await this.bookingsService.cancelFutureOccurrences(id, ownerId);
     return schedule;
+  }
+
+  async findByVenueForOwner(
+    ownerId: string,
+    venueId: string,
+  ): Promise<Array<RecurringSchedule & { occurrenceCount: number }>> {
+    const courts = await this.courtsService.findByVenueForOwner(ownerId, venueId);
+    const courtIds = courts.map((court) => court.id);
+    const schedules = await this.repository.find({
+      where: { courtId: In(courtIds.length > 0 ? courtIds : ['__none__']) },
+      order: { createdAt: 'DESC' },
+    });
+    return Promise.all(
+      schedules.map(async (schedule) => ({
+        ...schedule,
+        occurrenceCount: await this.bookingsService.countByRecurringScheduleId(schedule.id),
+      })),
+    );
+  }
+
+  async findByIdForOwner(
+    ownerId: string,
+    venueId: string,
+    id: string,
+  ): Promise<{ schedule: RecurringSchedule; occurrences: Booking[] }> {
+    await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
+    const schedule = await this.repository.findOne({ where: { id } });
+    if (!schedule) {
+      throw new NotFoundException(`Lịch cố định ${id} không tồn tại`);
+    }
+    const court = await this.courtsService.findByIdOrThrow(schedule.courtId);
+    if (court.venueId !== venueId) {
+      throw new NotFoundException(`Lịch cố định ${id} không tồn tại`);
+    }
+    const occurrences = await this.bookingsService.findByRecurringScheduleId(id);
+    return { schedule, occurrences };
   }
 }

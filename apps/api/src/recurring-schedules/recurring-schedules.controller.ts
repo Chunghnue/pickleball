@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -21,6 +21,27 @@ export class RecurringSchedulesController {
     @Body() dto: CreateRecurringScheduleDto,
   ) {
     return this.recurringSchedulesService.create(user.userId, venueId, dto);
+  }
+
+  @Get('venues/mine/:venueId/recurring-schedules')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.OWNER)
+  findAll(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('venueId') venueId: string,
+  ) {
+    return this.recurringSchedulesService.findByVenueForOwner(user.userId, venueId);
+  }
+
+  @Get('venues/mine/:venueId/recurring-schedules/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.OWNER)
+  findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('venueId') venueId: string,
+    @Param('id') id: string,
+  ) {
+    return this.recurringSchedulesService.findByIdForOwner(user.userId, venueId, id);
   }
 
   @Post('venues/mine/:venueId/recurring-schedules/:id/cancel')
