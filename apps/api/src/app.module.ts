@@ -22,7 +22,14 @@ import { RecurringSchedulesModule } from './recurring-schedules/recurring-schedu
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // e2e tests boot this same AppModule and run real TRUNCATE queries
+      // (see test/utils/test-app.ts's clearDatabase) — pointing them at a
+      // separate database keeps that from wiping dev/demo data. Jest sets
+      // NODE_ENV=test by default, so this only kicks in under `npm run test:e2e`.
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+    }),
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60000, limit: 20 }]),
     TypeOrmModule.forRootAsync({
