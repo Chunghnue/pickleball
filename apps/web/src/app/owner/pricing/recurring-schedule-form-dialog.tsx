@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import type { z } from "zod";
-import { Check, X } from "lucide-react";
+import { Check, Repeat, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import {
   type CreateRecurringScheduleInput,
 } from "@/lib/schemas";
 import { getSubmitErrorMessage } from "@/lib/error-message";
-import { DAY_LABELS, formatMoney, sessionPriceAfterDiscount } from "./pricing-format";
+import { DAY_LABELS, formatMoney, minutesBetween, sessionPriceAfterDiscount } from "./pricing-format";
 import { CustomerSelector, type CustomerSelection } from "./customer-selector";
 import type { CourtWithVenueName } from "../types";
 import type { CreateRecurringScheduleResult } from "./types";
@@ -25,6 +25,13 @@ const SELECT_CLASS =
 
 function RequiredMark() {
   return <span className="text-destructive">*</span>;
+}
+
+function customerIdDisplay(customer: CustomerSelection | null): string {
+  if (!customer) return "";
+  if ("customerId" in customer.payload) return customer.payload.customerId;
+  if ("customerContactId" in customer.payload) return customer.payload.customerContactId;
+  return "Khách mới";
 }
 
 function defaultValues(defaultCourtId: string | null) {
@@ -78,6 +85,9 @@ export function RecurringScheduleFormDialog({
   const { errors } = form.formState;
   const pricePerSession = form.watch("pricePerSession");
   const discountPercent = form.watch("discountPercent");
+  const startTime = form.watch("startTime");
+  const endTime = form.watch("endTime");
+  const duration = minutesBetween(startTime, endTime);
 
   async function onSubmit(values: CreateRecurringScheduleInput) {
     if (!customer) {
@@ -114,13 +124,13 @@ export function RecurringScheduleFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger} />
-      <DialogContent className="max-w-lg gap-0 p-0">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <DialogTitle className="text-lg font-semibold">Thêm lịch cố định</DialogTitle>
-          <DialogClose
-            className="text-muted-foreground outline-none hover:text-foreground"
-            aria-label="Đóng"
-          >
+      <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
+        <div className="flex items-center justify-between bg-gradient-to-r from-violet-600 to-purple-500 px-6 py-4">
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+            <Repeat className="size-5 text-white" />
+            Thêm lịch cố định
+          </DialogTitle>
+          <DialogClose className="text-white/80 outline-none hover:text-white" aria-label="Đóng">
             <X className="size-5" />
           </DialogClose>
         </div>
@@ -130,11 +140,23 @@ export function RecurringScheduleFormDialog({
           onSubmit={form.handleSubmit(onSubmit)}
           className="flex max-h-[65vh] flex-col gap-4 overflow-y-auto px-6 py-5"
         >
-          <div className="space-y-1.5">
-            <Label>
-              Khách hàng <RequiredMark />
-            </Label>
-            <CustomerSelector value={customer} onChange={setCustomer} />
+          <div className="grid grid-cols-2 items-start gap-4">
+            <div className="space-y-1.5">
+              <Label>
+                Tên khách hàng <RequiredMark />
+              </Label>
+              <CustomerSelector value={customer} onChange={setCustomer} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-customer-id">ID Khách hàng</Label>
+              <Input
+                id="schedule-customer-id"
+                value={customerIdDisplay(customer)}
+                readOnly
+                placeholder="Tự điền khi chọn"
+                className="cursor-not-allowed bg-muted/40 text-muted-foreground"
+              />
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -147,30 +169,29 @@ export function RecurringScheduleFormDialog({
               </option>
               {courtsInVenue.map((court) => (
                 <option key={court.id} value={court.id}>
-                  {court.name}
+                  🎾 {court.name}
                 </option>
               ))}
             </select>
             {errors.courtId && <p className="text-sm text-destructive">{errors.courtId.message}</p>}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="schedule-day">
-              Thứ trong tuần <RequiredMark />
-            </Label>
-            <select id="schedule-day" className={SELECT_CLASS} {...form.register("dayOfWeek")}>
-              {DAY_LABELS.map((label, day) => (
-                <option key={day} value={day}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-day">
+                Thứ <RequiredMark />
+              </Label>
+              <select id="schedule-day" className={SELECT_CLASS} {...form.register("dayOfWeek")}>
+                {DAY_LABELS.map((label, day) => (
+                  <option key={day} value={day}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="schedule-start">
-                Giờ bắt đầu <RequiredMark />
+                Bắt đầu <RequiredMark />
               </Label>
               <Input id="schedule-start" type="time" {...form.register("startTime")} />
               {errors.startTime && (
@@ -179,14 +200,14 @@ export function RecurringScheduleFormDialog({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="schedule-end">
-                Giờ kết thúc <RequiredMark />
+                Kết thúc <RequiredMark />
               </Label>
               <Input id="schedule-end" type="time" {...form.register("endTime")} />
               {errors.endTime && <p className="text-sm text-destructive">{errors.endTime.message}</p>}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="schedule-price">
                 Giá/buổi (đ) <RequiredMark />
@@ -202,6 +223,16 @@ export function RecurringScheduleFormDialog({
               {errors.discountPercent && (
                 <p className="text-sm text-destructive">{errors.discountPercent.message}</p>
               )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-duration">Phút/buổi</Label>
+              <Input
+                id="schedule-duration"
+                value={duration ?? ""}
+                readOnly
+                placeholder="—"
+                className="cursor-not-allowed bg-muted/40 text-muted-foreground"
+              />
             </div>
           </div>
 
@@ -251,6 +282,7 @@ export function RecurringScheduleFormDialog({
 
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" className="size-4" {...form.register("autoRenew")} />
+            <Repeat className="size-3.5 text-muted-foreground" />
             Tự động gia hạn tháng sau
           </label>
         </form>

@@ -5,6 +5,7 @@ import {
   formatMoney,
   formatShortDate,
   isAllDaysSelected,
+  minutesBetween,
   sessionPriceAfterDiscount,
   sortPricingRules,
 } from "./pricing-format";
@@ -90,5 +91,20 @@ describe("sessionPriceAfterDiscount", () => {
   });
   it("returns the full price when discount is null", () => {
     expect(sessionPriceAfterDiscount(100000, null)).toBe(100000);
+  });
+});
+
+describe("minutesBetween", () => {
+  it("computes the duration in minutes", () => {
+    expect(minutesBetween("07:00", "08:30")).toBe(90);
+    expect(minutesBetween("19:00", "20:30")).toBe(90);
+  });
+  it("returns null when end is not after start", () => {
+    expect(minutesBetween("08:00", "08:00")).toBeNull();
+    expect(minutesBetween("09:00", "08:00")).toBeNull();
+  });
+  it("returns null for malformed input", () => {
+    expect(minutesBetween("bad", "08:00")).toBeNull();
+    expect(minutesBetween("08:00", "")).toBeNull();
   });
 });

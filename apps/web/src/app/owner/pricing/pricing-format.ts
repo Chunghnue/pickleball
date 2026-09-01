@@ -70,6 +70,20 @@ export function sortPricingRules<T extends SortableRule>(
   });
 }
 
+const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+// "Phút/buổi" isn't stored — it's shown as a read-only derived value from
+// startTime/endTime, so the form never sends a value the backend ignores.
+export function minutesBetween(startTime: string, endTime: string): number | null {
+  const startMatch = TIME_PATTERN.exec(startTime);
+  const endMatch = TIME_PATTERN.exec(endTime);
+  if (!startMatch || !endMatch) return null;
+  const startMinutes = Number(startMatch[1]) * 60 + Number(startMatch[2]);
+  const endMinutes = Number(endMatch[1]) * 60 + Number(endMatch[2]);
+  if (endMinutes <= startMinutes) return null;
+  return endMinutes - startMinutes;
+}
+
 export function sessionPriceAfterDiscount(
   pricePerSession: number,
   discountPercent: number | null,
