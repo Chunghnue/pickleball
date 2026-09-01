@@ -24,6 +24,10 @@ export function formatShortDate(value: string | null): string {
   return `${d}/${m}/${y}`;
 }
 
+export function isAllDaysSelected(days: number[]): boolean {
+  return new Set(days).size >= 7;
+}
+
 export function sessionPriceAfterDiscount(
   pricePerSession: number,
   discountPercent: number | null,

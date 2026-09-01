@@ -4,6 +4,7 @@ import {
   formatDaysOfWeek,
   formatMoney,
   formatShortDate,
+  isAllDaysSelected,
   sessionPriceAfterDiscount,
 } from "./pricing-format";
 
@@ -35,6 +36,15 @@ describe("formatShortDate", () => {
   });
   it("returns an em dash for null", () => {
     expect(formatShortDate(null)).toBe("—");
+  });
+});
+
+describe("isAllDaysSelected", () => {
+  it("is true when all 7 days are present, in any order", () => {
+    expect(isAllDaysSelected([6, 0, 1, 2, 3, 4, 5])).toBe(true);
+  });
+  it("is false when a day is missing", () => {
+    expect(isAllDaysSelected([0, 1, 2, 3, 4, 5])).toBe(false);
   });
 });
 
