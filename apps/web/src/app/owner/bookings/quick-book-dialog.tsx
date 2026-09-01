@@ -10,6 +10,7 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui
 import { getSubmitErrorMessage } from "@/lib/error-message";
 import { buildHourAxis } from "@/lib/booking-grid";
 import type { Court } from "../types";
+import type { CustomerKind } from "../customers/types";
 import type { OwnerBooking } from "./types";
 
 interface QuickBookDialogProps {
@@ -22,6 +23,10 @@ interface QuickBookDialogProps {
   initialHour?: string;
   maxDurationHours?: number;
   onCreated: (booking: OwnerBooking) => void;
+  prefillCustomer?: { kind: CustomerKind; id: string; fullName: string; phone: string };
+  editableDate?: boolean;
+  venues?: { id: string; name: string }[];
+  onVenueChange?: (venueId: string) => void;
 }
 
 const SELECT_CLASS =
@@ -45,6 +50,10 @@ export function QuickBookDialog({
   initialHour,
   maxDurationHours,
   onCreated,
+  prefillCustomer,
+  editableDate,
+  venues,
+  onVenueChange,
 }: QuickBookDialogProps) {
   const isPrefilled = Boolean(initialCourtId && initialHour);
   const activeCourts = courts.filter((c) => c.status === "active");
@@ -54,6 +63,7 @@ export function QuickBookDialog({
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
+  const [bookingDate, setBookingDate] = useState(date);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -73,11 +83,29 @@ export function QuickBookDialog({
       : undefined;
     setStartTime(initialHour ?? defaultHour ?? "");
     setDuration(Math.min(2, maxDurationHours ?? 8));
-    setFullName("");
-    setPhone("");
+    setBookingDate(date);
+    setFullName(prefillCustomer?.fullName ?? "");
+    setPhone(prefillCustomer?.phone ?? "");
     setNote("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialCourtId, initialHour, maxDurationHours]);
+  }, [open, initialCourtId, initialHour, maxDurationHours, date, prefillCustomer]);
+
+  // standalone (customers screen): when the selected venue's courts change,
+  // re-seed the court and its first start-time. Gated to editableDate so the
+  // calendar's QuickBookDialog is unaffected.
+  useEffect(() => {
+    if (!open || !editableDate) return;
+    const first = activeCourts[0];
+    setCourtId(first?.id ?? "");
+    setStartTime(
+      first
+        ? buildHourAxis([
+            { id: first.id, status: first.status, openTime: first.openTime, closeTime: first.closeTime },
+          ])[0] ?? ""
+        : "",
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [venueId]);
 
   const selectedCourt = activeCourts.find((c) => c.id === courtId);
   const startTimeOptions = selectedCourt
@@ -101,16 +129,22 @@ export function QuickBookDialog({
       return;
     }
     setSubmitting(true);
+    const customerPayload = prefillCustomer
+      ? prefillCustomer.kind === "registered"
+        ? { customerId: prefillCustomer.id }
+        : { customerContactId: prefillCustomer.id }
+      : { newCustomer: { fullName: fullName.trim(), phone: phone.trim() } };
+
     const response = await fetch(`/api/venues/mine/${venueId}/bookings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         courtId,
-        date,
+        date: bookingDate,
         startTime,
         endTime,
         note: note.trim() || undefined,
-        newCustomer: { fullName: fullName.trim(), phone: phone.trim() },
+        ...customerPayload,
       }),
     });
     const data = await response.json().catch(() => null);
@@ -154,6 +188,7 @@ export function QuickBookDialog({
                   id="qb-name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  disabled={Boolean(prefillCustomer)}
                   placeholder="Nguyễn Văn A"
                   className="h-9 border-0 px-0 focus-visible:ring-0"
                 />
@@ -169,12 +204,31 @@ export function QuickBookDialog({
                   id="qb-phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  disabled={Boolean(prefillCustomer)}
                   placeholder="0901 234 567"
                   className="h-9 border-0 px-0 focus-visible:ring-0"
                 />
               </div>
             </div>
           </div>
+
+          {editableDate && venues && venues.length > 1 && (
+            <div className="space-y-1.5">
+              <Label htmlFor="qb-venue">Chi nhánh</Label>
+              <select
+                id="qb-venue"
+                value={venueId}
+                onChange={(e) => onVenueChange?.(e.target.value)}
+                className={SELECT_CLASS}
+              >
+                {venues.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="qb-court">
@@ -214,6 +268,19 @@ export function QuickBookDialog({
               </select>
             </div>
           </div>
+
+          {editableDate && (
+            <div className="space-y-1.5">
+              <Label htmlFor="qb-date">Ngày</Label>
+              <input
+                id="qb-date"
+                type="date"
+                value={bookingDate}
+                onChange={(e) => setBookingDate(e.target.value)}
+                className={SELECT_CLASS}
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
