@@ -2188,7 +2188,7 @@ git commit -m "feat(web/pricing): add RecurringSchedulesTab and PricingMetrics"
 - Modify: `apps/web/src/app/owner/pricing/page.tsx` (replace the `ComingSoon` stub)
 
 **Interfaces:**
-- Consumes: everything from Tasks 1–9, plus `useBranch`/`ALL_BRANCHES_ID` (existing `@/lib/branch-context`), `CourtWithVenueName` (existing `../types`)
+- Consumes: everything from Tasks 1–9, plus `useBranch`/`ALL_BRANCHES_ID` (existing `@/lib/branch-context`), `CourtWithVenueName`/`Venue` (existing `../types`)
 - Produces: the finished page at `/owner/pricing`.
 
 - [ ] **Step 1: Write `page.tsx`**
@@ -2203,7 +2203,7 @@ import { PricingMetrics } from "./pricing-metrics";
 import { PricingRulesTab } from "./pricing-rules-tab";
 import { RecurringSchedulesTab } from "./recurring-schedules-tab";
 import { RecurringScheduleDetailDialog } from "./recurring-schedule-detail-dialog";
-import type { CourtWithVenueName } from "../types";
+import type { CourtWithVenueName, Venue } from "../types";
 import type {
   PricingRule,
   PricingSummary,
@@ -2214,6 +2214,7 @@ export default function OwnerPricingPage() {
   const router = useRouter();
   const { selectedVenueId, setSelectedVenueId } = useBranch();
 
+  const [venues, setVenues] = useState<Venue[] | null>(null);
   const [allCourts, setAllCourts] = useState<CourtWithVenueName[] | null>(null);
   const [courtIdParam, setCourtIdParam] = useState<string | null>(null);
   const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
@@ -2226,6 +2227,16 @@ export default function OwnerPricingPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setCourtIdParam(params.get("courtId"));
+  }, []);
+
+  // Load the owner's venues — used to auto-pick one when the global branch
+  // switcher is at "Tất cả chi nhánh" (no page-level venue-scoped API can
+  // work without a concrete venueId), mirroring how the Bookings page
+  // resolves this exact situation.
+  useEffect(() => {
+    fetch("/api/venues/mine")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data && setVenues(data));
   }, []);
 
   // Load every court the owner has, across all venues — used to resolve
@@ -2253,6 +2264,17 @@ export default function OwnerPricingPage() {
     setSelectedCourtId(courtIdParam);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allCourts, courtIdParam]);
+
+  // No branch explicitly selected and no ?courtId= to resolve one from —
+  // fall back to the owner's first venue instead of blocking the page.
+  useEffect(() => {
+    if (selectedVenueId !== ALL_BRANCHES_ID) return;
+    if (courtIdParam && allCourts && allCourts.some((c) => c.id === courtIdParam)) return;
+    if (venues && venues.length > 0) {
+      setSelectedVenueId(venues[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedVenueId, courtIdParam, allCourts, venues]);
 
   const resolvedVenueId = selectedVenueId === ALL_BRANCHES_ID ? null : selectedVenueId;
 
@@ -2325,10 +2347,17 @@ export default function OwnerPricingPage() {
   }, [loadSchedules]);
 
   if (!resolvedVenueId) {
+    if (venues && venues.length === 0) {
+      return (
+        <main className="flex w-full flex-1 flex-col items-center justify-center gap-2 bg-muted/30 p-8 text-center">
+          <h1 className="text-2xl font-bold">Bảng giá</h1>
+          <p className="text-muted-foreground">Bạn chưa có chi nhánh nào.</p>
+        </main>
+      );
+    }
     return (
       <main className="flex w-full flex-1 flex-col items-center justify-center gap-2 bg-muted/30 p-8 text-center">
-        <h1 className="text-2xl font-bold">Bảng giá</h1>
-        <p className="text-muted-foreground">Chọn chi nhánh để xem bảng giá.</p>
+        <p className="text-muted-foreground">Đang tải...</p>
       </main>
     );
   }
@@ -2439,7 +2468,7 @@ Expected: build succeeds with no type errors and no route conflicts.
 
 Run: `cd apps/api && npm run start:dev` (in one terminal) and `cd apps/web && npm run dev` (in another), then in a browser as a logged-in owner:
 
-1. From the sidebar, click "Bảng giá" — confirm the empty-branch state or the real page loads depending on whether a branch is selected.
+1. From the sidebar, click "Bảng giá" with no branch explicitly selected — confirm the page loads real data immediately (auto-picking the owner's first venue) rather than blocking on a "choose a branch" prompt; that prompt should only appear if the owner truly has zero venues.
 2. From "Danh sách sân", click the eye icon on a court — confirm it lands on `/owner/pricing?courtId=...` with that court pre-selected and the branch switcher synced.
 3. On the "Bảng giá" tab: add a pricing rule (with and without the optional advance-booking/valid-range fields), confirm it appears in the table and the summary card count increases; edit it; delete it; switch the court dropdown and confirm the list changes; use "Sao chép" from another court and confirm rules appear.
 4. Switch to "Đặt cố định": confirm the empty state copy when there are none; add a recurring schedule using both an existing customer (search) and a brand-new customer; confirm the toast reports `generatedCount`/`conflictingDates` correctly; click a row to open the detail dialog, confirm occurrences list and cancel it; confirm the summary cards update.

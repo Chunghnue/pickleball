@@ -7,7 +7,7 @@ import { PricingMetrics } from "./pricing-metrics";
 import { PricingRulesTab } from "./pricing-rules-tab";
 import { RecurringSchedulesTab } from "./recurring-schedules-tab";
 import { RecurringScheduleDetailDialog } from "./recurring-schedule-detail-dialog";
-import type { CourtWithVenueName } from "../types";
+import type { CourtWithVenueName, Venue } from "../types";
 import type {
   PricingRule,
   PricingSummary,
@@ -18,6 +18,7 @@ export default function OwnerPricingPage() {
   const router = useRouter();
   const { selectedVenueId, setSelectedVenueId } = useBranch();
 
+  const [venues, setVenues] = useState<Venue[] | null>(null);
   const [allCourts, setAllCourts] = useState<CourtWithVenueName[] | null>(null);
   const [courtIdParam, setCourtIdParam] = useState<string | null>(null);
   const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
@@ -30,6 +31,16 @@ export default function OwnerPricingPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setCourtIdParam(params.get("courtId"));
+  }, []);
+
+  // Load the owner's venues — used to auto-pick one when the global branch
+  // switcher is at "Tất cả chi nhánh" (no page-level venue-scoped API can
+  // work without a concrete venueId), mirroring how the Bookings page
+  // resolves this exact situation.
+  useEffect(() => {
+    fetch("/api/venues/mine")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data && setVenues(data));
   }, []);
 
   // Load every court the owner has, across all venues — used to resolve
@@ -57,6 +68,17 @@ export default function OwnerPricingPage() {
     setSelectedCourtId(courtIdParam);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allCourts, courtIdParam]);
+
+  // No branch explicitly selected and no ?courtId= to resolve one from —
+  // fall back to the owner's first venue instead of blocking the page.
+  useEffect(() => {
+    if (selectedVenueId !== ALL_BRANCHES_ID) return;
+    if (courtIdParam && allCourts && allCourts.some((c) => c.id === courtIdParam)) return;
+    if (venues && venues.length > 0) {
+      setSelectedVenueId(venues[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedVenueId, courtIdParam, allCourts, venues]);
 
   const resolvedVenueId = selectedVenueId === ALL_BRANCHES_ID ? null : selectedVenueId;
 
@@ -129,10 +151,17 @@ export default function OwnerPricingPage() {
   }, [loadSchedules]);
 
   if (!resolvedVenueId) {
+    if (venues && venues.length === 0) {
+      return (
+        <main className="flex w-full flex-1 flex-col items-center justify-center gap-2 bg-muted/30 p-8 text-center">
+          <h1 className="text-2xl font-bold">Bảng giá</h1>
+          <p className="text-muted-foreground">Bạn chưa có chi nhánh nào.</p>
+        </main>
+      );
+    }
     return (
       <main className="flex w-full flex-1 flex-col items-center justify-center gap-2 bg-muted/30 p-8 text-center">
-        <h1 className="text-2xl font-bold">Bảng giá</h1>
-        <p className="text-muted-foreground">Chọn chi nhánh để xem bảng giá.</p>
+        <p className="text-muted-foreground">Đang tải...</p>
       </main>
     );
   }

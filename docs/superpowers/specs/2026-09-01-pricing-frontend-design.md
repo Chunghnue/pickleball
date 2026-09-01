@@ -34,7 +34,7 @@ Mọi endpoint pricing-rules/recurring-schedules đều cần đúng 1 `venueId`
 **Khi trang load:**
 1. Nếu URL có `?courtId=`: gọi API lấy toàn bộ sân của owner (`/api/venues/mine/courts`), tìm sân có id khớp để suy ra `venueId` + tên sân, rồi gọi `setSelectedVenueId(venueId)` để đồng bộ branch switcher toàn cục với trang này.
 2. Nếu URL không có `courtId`: dùng `selectedVenueId` từ `useBranch()` trực tiếp.
-3. Nếu `venueId` suy ra được vẫn là `ALL_BRANCHES_ID` (chưa chọn courtId và chưa chọn chi nhánh cụ thể): hiện empty state "Chọn chi nhánh để xem bảng giá", không đoán.
+3. Nếu `venueId` suy ra được vẫn là `ALL_BRANCHES_ID` (chưa chọn courtId và chưa chọn chi nhánh cụ thể): tự động chọn chi nhánh đầu tiên của owner (`GET /api/venues/mine`, lấy phần tử đầu) và gọi `setSelectedVenueId` — **không** chặn trang bằng empty state yêu cầu chọn chi nhánh, đúng theo cách trang Đặt lịch (`/owner/bookings`) đã xử lý tình huống này. Chỉ hiện empty state thật sự khi owner chưa có chi nhánh nào (`venues.length === 0`).
 4. Khi đã có `venueId` cụ thể: gọi `/api/venues/mine/{venueId}/courts` để lấy danh sách sân, lưu `selectedCourtId` trong state — mặc định là `courtId` từ URL nếu có, nếu không thì sân đầu tiên (theo `displayOrder`). Có dropdown cạnh tiêu đề trang để đổi sân.
 
 **Phạm vi ảnh hưởng của dropdown chọn sân:** chỉ tác động tab "Bảng giá" (vì `pricing-rules` gắn chặt với 1 sân). Thẻ số liệu tổng hợp và tab "Đặt cố định" luôn tính theo toàn bộ chi nhánh (`venueId`), **không** đổi theo dropdown sân — đúng theo cách các endpoint tương ứng hoạt động (summary mặc định toàn chi nhánh, endpoint danh sách lịch cố định không có filter theo sân).
