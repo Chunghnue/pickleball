@@ -35,4 +35,14 @@ describe('resolveRedirect', () => {
   it('redirects to /login when the token cannot be decoded', () => {
     expect(resolveRedirect('/me', 'not-a-jwt')).toBe('/login?returnTo=%2Fme');
   });
+
+  it('lets a staff account (manager/cashier/staff) through on /owner/*', () => {
+    expect(resolveRedirect('/owner/dashboard', makeToken('staff'))).toBeNull();
+    expect(resolveRedirect('/owner/accounts', makeToken('staff'))).toBeNull();
+  });
+
+  it('redirects a staff account to /owner/dashboard when they hit a mismatched protected route', () => {
+    expect(resolveRedirect('/admin/approvals', makeToken('staff'))).toBe('/owner/dashboard');
+    expect(resolveRedirect('/me', makeToken('staff'))).toBe('/owner/dashboard');
+  });
 });

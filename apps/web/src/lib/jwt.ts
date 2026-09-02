@@ -1,6 +1,6 @@
 export interface JwtPayload {
   sub: string;
-  role: 'customer' | 'owner' | 'admin';
+  role: 'customer' | 'owner' | 'admin' | 'staff';
   iat: number;
   exp: number;
 }
