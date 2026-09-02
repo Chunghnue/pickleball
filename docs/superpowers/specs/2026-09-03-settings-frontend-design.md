@@ -43,7 +43,20 @@ export interface NotificationSettings {
 }
 ```
 
-`Venue` (tab Thông tin sân) và `Profile` (tab Tài khoản) tái dùng type đã có ở `apps/web/src/app/owner/types.ts` và `apps/web/src/app/me/page.tsx` tương ứng — không định nghĩa lại.
+`Venue` (tab Thông tin sân) tái dùng nguyên type đã có ở `apps/web/src/app/owner/types.ts` — không định nghĩa lại.
+
+`Profile` (tab Tài khoản) **không** tái dùng nguyên `Profile` cục bộ của `apps/web/src/app/me/page.tsx` — type đó chỉ có `{email, fullName, phone, avatarUrl}`, thiếu `role`/`staffRole` mà `10-cai-dat.md` §4 yêu cầu hiển thị. `GET /users/me` **đã** trả về đủ 2 field này (nguyên `User` entity, chỉ ẩn `passwordHash`), type ở `/me` chỉ đang thiếu khai báo. Khai báo riêng trong `account-tab.tsx`:
+
+```ts
+interface Profile {
+  email: string;
+  fullName: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  role: "owner" | "staff"; // luôn 1 trong 2 giá trị này ở /owner/settings
+  staffRole: "manager" | "cashier" | "staff" | null;
+}
+```
 
 ### 3.2. `page.tsx`
 
@@ -82,8 +95,8 @@ Venue mục tiêu: dùng chung logic §3.3 (cùng `selectedVenueId`/fallback).
 
 Không phải danh sách nhân viên (`/owner/accounts` — module Staff Accounts, khác hoàn toàn) — đây là hồ sơ của **người đang đăng nhập**.
 
-- Khối hồ sơ: avatar (hiển thị `avatarUrl` hiện có, không thêm upload — giữ đúng cơ chế dán URL đã có ở `/me`, xem backend spec §5 "không đổi"), tên, vai trò (`role`/`staffRole` hiện có, hiển thị tĩnh), ô sửa **Họ và tên**/**Số điện thoại** (Email hiển thị **readonly**, đúng quyết định "ngoài phạm vi" đã chốt). Submit → `PATCH /api/users/me` (đã có, không đổi).
-- Khối **"Đổi mật khẩu"**: 3 ô (Mật khẩu hiện tại/Mật khẩu mới/Xác nhận lại — xác nhận lại chỉ validate client, không gửi lên BE), nút **"Lưu"** riêng cho khối này → `POST /api/users/me/change-password` — **route proxy mới**. Lỗi 400 (sai mật khẩu hiện tại) → inline lỗi dưới ô "Mật khẩu hiện tại" (`getSubmitErrorMessage`). Thành công → toast "Đã đổi mật khẩu", xoá 3 ô, **không** tự đăng xuất trình duyệt hiện tại (chỉ các thiết bị/phiên khác bị thu hồi, theo backend spec §5).
+- Khối hồ sơ: avatar (hiển thị `avatarUrl` hiện có, không thêm upload — giữ đúng cơ chế dán URL đã có ở `/me`, xem backend spec §5 "không đổi"), tên, vai trò hiển thị tĩnh — tái dùng `roleLabel()`/`roleKey()` đã có ở `apps/web/src/app/owner/accounts/staff-format.ts` (đúng nhãn "Chủ sân"/"Quản lý"/"Thu ngân"/"Nhân viên" đã dùng ở trang Tài khoản nhân viên, không định nghĩa map nhãn mới) — ô sửa **Họ và tên**/**Số điện thoại** (Email hiển thị **readonly**, đúng quyết định "ngoài phạm vi" đã chốt). Submit → `PATCH /api/users/me` (đã có, không đổi).
+- Khối **"Đổi mật khẩu"**: 3 ô (Mật khẩu hiện tại/Mật khẩu mới/Xác nhận lại — xác nhận lại chỉ validate client, không gửi lên BE), nút **"Lưu"** riêng cho khối này → `POST /api/auth/change-password` — **route proxy mới** (không phải `/api/users/me/change-password` — backend spec §5 đặt endpoint ở `AuthController` để tránh circular dependency `UsersModule ↔ AuthModule`). Lỗi 400 (sai mật khẩu hiện tại) → inline lỗi dưới ô "Mật khẩu hiện tại" (`getSubmitErrorMessage`). Thành công → toast "Đã đổi mật khẩu", xoá 3 ô, **không** tự đăng xuất trình duyệt hiện tại (chỉ các thiết bị/phiên khác bị thu hồi, theo backend spec §5).
 - Nút **"Đăng xuất"** cuối trang → `POST /api/auth/logout` (đã có) rồi điều hướng `/login`, đúng logic đã có ở `/me`.
 
 ## 4. Route proxy (`apps/web/src/app/api/`)
@@ -92,7 +105,7 @@ Không phải danh sách nhân viên (`/owner/accounts` — module Staff Account
 |---|---|---|
 | `venues/mine/[venueId]/operating-hours/route.ts` | GET, PUT | `/venues/mine/:id/operating-hours` — **file mới** |
 | `notification-settings/mine/route.ts` | GET, PATCH | `/notification-settings/mine` — **file mới** |
-| `users/me/change-password/route.ts` | POST | `/users/me/change-password` — **file mới**, 401 → `clearAuthCookies()` như mẫu các proxy mutating khác |
+| `auth/change-password/route.ts` | POST | `/auth/change-password` — **file mới**, 401 → `clearAuthCookies()` như mẫu các proxy mutating khác |
 
 `venues/mine/[venueId]/route.ts` (PATCH), `venues/mine/[venueId]/logo/route.ts`, `venues/mine/route.ts` (GET), `users/me/route.ts` (GET/PATCH) — **không cần sửa**, đã có sẵn và forward nguyên body/response.
 
@@ -124,7 +137,7 @@ Không phải danh sách nhân viên (`/owner/accounts` — module Staff Account
 
 ## 7. Ngoài phạm vi
 
-- Hiện thực backend (`website` column, `venue_operating_hours`, `notification_settings`, 3 điểm gate/thêm notify-owner, `POST /users/me/change-password`) — thuộc plan **backend**, chạy trước plan frontend của spec này.
+- Hiện thực backend (`website` column, `venue_operating_hours`, `notification_settings`, 3 điểm gate/thêm notify-owner, `POST /auth/change-password`) — thuộc plan **backend**, chạy trước plan frontend của spec này.
 - Hợp nhất UI với trang Branches (đã quyết định giữ trùng lặp, xem backend spec §0/§8).
 - Upload avatar dạng file (giữ nguyên dán URL đã có ở `/me`).
 - Sửa email tài khoản cá nhân.

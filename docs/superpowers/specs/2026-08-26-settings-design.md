@@ -17,7 +17,7 @@ Spec này được viết khi chưa module nào trong 4 tab tồn tại. Từ đ
 
 ## 1. Mục tiêu
 
-4 nhóm cấu hình độc lập, gộp trên cùng 1 trang UI: thông tin venue, giờ hoạt động (hiển thị), bật/tắt loại email thông báo, và tài khoản cá nhân. Tab 1 và 4 chủ yếu tái dùng entity/endpoint đã có (xem §0); phần việc backend mới thực sự còn lại là: cột `website` trên `venues`, bảng `venue_operating_hours` + endpoint, bảng `notification_settings` + gate/thêm 3 điểm bắn email cho owner, và `POST /users/me/change-password`.
+4 nhóm cấu hình độc lập, gộp trên cùng 1 trang UI: thông tin venue, giờ hoạt động (hiển thị), bật/tắt loại email thông báo, và tài khoản cá nhân. Tab 1 và 4 chủ yếu tái dùng entity/endpoint đã có (xem §0); phần việc backend mới thực sự còn lại là: cột `website` trên `venues`, bảng `venue_operating_hours` + endpoint, bảng `notification_settings` + gate/thêm 3 điểm bắn email cho owner, và `POST /auth/change-password`.
 
 ## 2. Tab "Thông tin sân"
 
@@ -97,11 +97,11 @@ Phần lớn đã có sẵn ở [Auth+Users](./2026-08-23-auth-users-module-desi
 **Thêm mới:**
 
 ```
-POST /users/me/change-password
+POST /auth/change-password
   body: { currentPassword, newPassword }
 ```
 
-Đặt trên `UsersController` (`@Post('me/change-password')`), nhưng logic thực thi ở **`AuthService`** (không phải `UsersService`) — vì cần `RefreshTokenRepository` mà chỉ `AuthService` đang inject. Validate `currentPassword` khớp `password_hash` hiện tại (bcrypt compare) → sai trả 400. Đổi thành công → gọi `usersService.updatePassword()` (**đã có sẵn**, hiện chỉ dùng nội bộ bởi luồng quên mật khẩu ở `AuthService.resetPassword`), rồi **thu hồi mọi refresh token** của user đó — tái dùng đúng câu query đã có ở `resetPassword` (`refreshTokenRepository.update({ userId, revokedAt: IsNull() }, { revokedAt: new Date() })`), factor ra 1 private method dùng chung `revokeAllRefreshTokens(userId)` cho cả 2 luồng — buộc đăng nhập lại trên mọi thiết bị, đúng thông lệ bảo mật khi đổi mật khẩu.
+**Đặt trên `AuthController`** (cạnh `forgot-password`/`reset-password` đã có), **không phải** `UsersController` — `AuthService` đã inject sẵn `UsersService` (một chiều: `AuthModule` import `UsersModule`); đặt endpoint ở `UsersController` sẽ buộc `UsersModule` phải import ngược lại `AuthModule` để lấy `AuthService` (cần `RefreshTokenRepository`), tạo circular dependency `UsersModule ↔ AuthModule` — đúng kiểu phức tạp Bookings↔Payments từng phải xử lý bằng `forwardRef`, tránh được hoàn toàn bằng cách đặt endpoint đúng module sở hữu `RefreshTokenRepository`. **Khác với mọi route khác của `AuthController`** (`register`/`login`/`refresh`/`logout`/`forgot-password`/`reset-password` đều không cần JWT — tự thân đã là cơ chế xác thực hoặc pre-auth), route này cần biết *ai* đang đổi mật khẩu nên phải thêm `@UseGuards(JwtAuthGuard)` + `@CurrentUser()` (tái dùng decorator đã có, hiện chỉ dùng ở `UsersController`) riêng cho route này — không áp guard cho cả controller. Validate `currentPassword` khớp `password_hash` hiện tại (bcrypt compare) → sai trả 400. Đổi thành công → gọi `usersService.updatePassword()` (**đã có sẵn**, hiện chỉ dùng nội bộ bởi luồng quên mật khẩu ở `AuthService.resetPassword`), rồi **thu hồi mọi refresh token** của user đó — tái dùng đúng câu query đã có ở `resetPassword` (`refreshTokenRepository.update({ userId, revokedAt: IsNull() }, { revokedAt: new Date() })`), factor ra 1 private method dùng chung `revokeAllRefreshTokens(userId)` cho cả 2 luồng — buộc đăng nhập lại trên mọi thiết bị, đúng thông lệ bảo mật khi đổi mật khẩu.
 
 **Sửa email: ngoài phạm vi.** Email giữ bất biến sau khi verify (quyết định ngầm định đã có từ Auth module — `PATCH /users/me` hiện không nhận field `email`) — cho phép sửa sẽ phải mở lại toàn bộ luồng xác thực email (unique check, gửi lại verification, xử lý trạng thái `email_verified` khi đang chờ xác thực địa chỉ mới), không cần thiết cho MVP này.
 
@@ -109,7 +109,7 @@ POST /users/me/change-password
 
 - Mọi endpoint owner-facing (§2-4): role khác `owner` → 403; venue không thuộc owner → 404.
 - `PUT .../operating-hours`: đúng 7 phần tử, `dayOfWeek` phủ đủ 0-6 không trùng; nếu `isOpen = true` thì `openTime < closeTime` bắt buộc; nếu `isOpen = false` thì `openTime`/`closeTime` phải là null.
-- `POST /users/me/change-password`: `newPassword` áp cùng rule độ mạnh mật khẩu đã dùng ở đăng ký (Auth module); `currentPassword` sai → 400, không tiết lộ thêm chi tiết.
+- `POST /auth/change-password`: `newPassword` áp cùng rule độ mạnh mật khẩu đã dùng ở đăng ký (Auth module); `currentPassword` sai → 400, không tiết lộ thêm chi tiết.
 
 ## 7. Testing
 
