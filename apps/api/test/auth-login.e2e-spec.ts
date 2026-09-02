@@ -1,12 +1,16 @@
 import { INestApplication } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
+import { User } from '../src/users/entities/user.entity';
 
 describe('POST /auth/login (e2e)', () => {
   let app: INestApplication;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     app = await createTestApp();
+    dataSource = app.get(DataSource);
   });
 
   beforeEach(async () => {
@@ -88,5 +92,19 @@ describe('POST /auth/login (e2e)', () => {
       .post('/auth/login')
       .send({ email: 'pending-owner@test.com', password: 'password123' })
       .expect(403);
+  });
+
+  it('logs in with phone as the identifier', async () => {
+    await registerAndVerifyCustomer('phone-login@test.com', 'password123');
+    await dataSource
+      .getRepository(User)
+      .update({ email: 'phone-login@test.com' }, { phone: '0911222333' });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ identifier: '0911222333', password: 'password123' })
+      .expect(201);
+
+    expect(response.body.accessToken).toBeDefined();
   });
 });

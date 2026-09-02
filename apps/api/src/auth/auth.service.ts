@@ -112,9 +112,11 @@ export class AuthService {
   async login(
     dto: LoginDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const user = await this.usersService.findByEmail(dto.email);
+    const user =
+      (await this.usersService.findByEmail(dto.identifier)) ??
+      (await this.usersService.findByPhone(dto.identifier));
     if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      throw new UnauthorizedException('Thông tin đăng nhập không đúng');
     }
 
     this.assertActive(user.status);
@@ -122,6 +124,8 @@ export class AuthService {
     const accessToken = await this.jwtService.signAsync({
       sub: user.id,
       role: user.role,
+      ownerId: user.ownerId,
+      staffRole: user.staffRole,
     });
     const refreshToken = await this.issueRefreshToken(user.id);
 
@@ -179,6 +183,8 @@ export class AuthService {
     const accessToken = await this.jwtService.signAsync({
       sub: user.id,
       role: user.role,
+      ownerId: user.ownerId,
+      staffRole: user.staffRole,
     });
     const refreshToken = await this.issueRefreshToken(user.id);
 

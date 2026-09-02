@@ -39,6 +39,10 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
+  findByPhone(phone: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { phone } });
+  }
+
   findById(id: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { id } });
   }
