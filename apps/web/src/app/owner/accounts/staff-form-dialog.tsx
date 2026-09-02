@@ -51,7 +51,7 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
     setEmail(staff?.email ?? "");
     setStaffRole(staff?.staffRole ?? "staff");
     setPassword("");
-  }, [open]);
+  }, [open, staff]);
 
   async function handleSubmit() {
     if (!fullName.trim() || !phone.trim()) {
