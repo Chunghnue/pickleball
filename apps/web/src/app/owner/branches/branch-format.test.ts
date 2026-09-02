@@ -17,6 +17,7 @@ function makeBranch(overrides: Partial<BranchListItem>): BranchListItem {
     email: null,
     isDefault: false,
     isHidden: false,
+    logoUrl: null,
     status: "active",
     images: [],
     courtsCount: 0,

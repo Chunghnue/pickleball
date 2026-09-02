@@ -43,6 +43,7 @@ export interface Venue {
   email: string | null;
   isDefault: boolean;
   isHidden: boolean;
+  logoUrl: string | null;
   status: "pending_approval" | "active" | "rejected";
   images: VenueImage[];
 }

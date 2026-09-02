@@ -10,14 +10,19 @@ export function BranchCard({ venue, onSaved }: { venue: BranchListItem; onSaved:
     <Card className={cn(venue.isDefault && "ring-2 ring-green-500")}>
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-start gap-3">
-          <div
-            className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-xl text-white",
-              venue.isDefault ? "bg-green-500" : "bg-blue-500",
-            )}
-          >
-            {venue.isDefault ? <Star className="size-5" /> : <MapPin className="size-5" />}
-          </div>
+          {venue.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={venue.logoUrl} alt="" className="size-10 shrink-0 rounded-xl object-cover" />
+          ) : (
+            <div
+              className={cn(
+                "flex size-10 shrink-0 items-center justify-center rounded-xl text-white",
+                venue.isDefault ? "bg-green-500" : "bg-blue-500",
+              )}
+            >
+              {venue.isDefault ? <Star className="size-5" /> : <MapPin className="size-5" />}
+            </div>
+          )}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-semibold">{venue.name}</h3>
