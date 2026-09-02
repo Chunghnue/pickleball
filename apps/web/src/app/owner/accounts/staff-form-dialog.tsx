@@ -102,7 +102,7 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger} />
       <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
-        <div className="flex items-center justify-between bg-blue-600 px-6 py-4">
+        <div className="flex items-center justify-between bg-gradient-to-r from-blue-800 to-blue-500 px-6 py-4">
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-white">
             <UserPlus className="size-5 text-white" />
             {isEdit ? "Sửa nhân viên" : "Thêm nhân viên"}
