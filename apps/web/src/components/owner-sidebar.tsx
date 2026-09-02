@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -50,6 +51,20 @@ const GROUPS = [
 
 export function OwnerSidebar() {
   const pathname = usePathname();
+  // Hidden until confirmed owner — staff accounts (manager/cashier/staff)
+  // never see "Tài khoản", regardless of tier (only the owner manages staff).
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/users/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setIsOwner(data?.role === "owner"));
+  }, []);
+
+  const groups = GROUPS.map((group) => ({
+    ...group,
+    links: group.links.filter((link) => link.href !== "/owner/accounts" || isOwner),
+  }));
 
   return (
     <aside className="flex w-56 flex-col border-r p-4">
@@ -69,7 +84,7 @@ export function OwnerSidebar() {
         <BranchSwitcher />
       </div>
       <nav className="flex flex-1 flex-col gap-4 overflow-y-auto">
-        {GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.label} className="flex flex-col gap-1">
             <p className="px-2 text-xs font-semibold uppercase text-muted-foreground">
               {group.label}
