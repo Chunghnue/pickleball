@@ -21,6 +21,7 @@
 | is_hidden | BOOLEAN, default false — owner tự ẩn/hiện chi nhánh trên trang public, **độc lập** với `status` (`pending_approval`/`active`/`rejected` — quyết định duyệt của admin). Venue `is_hidden = true` không hiện ở `GET /venues` (tìm kiếm public) và `GET /venues/by-slug/:slug`/`GET /venues/:id` trả 404, kể cả khi `status = active`. |
 | district | nullable text — tách khỏi `city` hiện có (doc gốc muốn Tỉnh/Thành phố **và** Quận/Huyện riêng). |
 | latitude, longitude | nullable NUMERIC — toạ độ, chỉ lưu giá trị do frontend gửi lên (component bản đồ chọn tọa độ là việc của spec frontend, backend không xử lý bản đồ). |
+| email | nullable text — email liên hệ chi nhánh, cột mới (bảng `venues` hiện chỉ có `phone`, thêm từ [venue-default-phone-and-branch-dialog-design.md](./2026-08-29-venue-default-phone-and-branch-dialog-design.md), chưa có `email`). |
 
 `logo_url` **không** thêm ở đây — đã có sẵn từ [Settings §2](./2026-08-26-settings-design.md) (dán URL, không upload file). Bỏ yêu cầu "tải ảnh logo tối đa 5MB" của doc gốc để giữ nhất quán với quyết định đó.
 
@@ -36,8 +37,9 @@
 ## 3. API endpoints (owner-facing, mở rộng endpoint đã có ở Courts)
 
 ```
-GET    /venues/mine?status=&search=&sort=          danh sách chi nhánh của owner (status: active|hidden|all — ánh xạ is_hidden, không phải venue.status duyệt)
-PATCH  /venues/mine/:id                             mở rộng nhận thêm slug?, district?, latitude?, longitude?, isHidden?
+POST   /venues                                      (đã có ở Courts module) — CreateVenueDto mở rộng nhận thêm slug?, district?, latitude?, longitude?, email? (cùng bộ trường mở rộng của PATCH bên dưới, trừ isHidden — venue mới tạo luôn is_hidden=false, không nhận qua create)
+GET    /venues/mine?status=&search=&sort=          danh sách chi nhánh của owner (status: active|hidden|all — ánh xạ is_hidden, không phải venue.status duyệt). Mỗi phần tử trả kèm courtsCount, bookingsThisMonth, revenueThisMonth (xem §7) để frontend tính thẻ số liệu mà không cần gọi thêm API
+PATCH  /venues/mine/:id                             mở rộng nhận thêm slug?, district?, latitude?, longitude?, email?, isHidden?
 POST   /venues/mine/:id/set-default                 đặt venue này làm mặc định (bỏ is_default ở venue khác cùng owner trong cùng transaction)
 DELETE /venues/mine/:id                             xem §5 (có điều kiện)
 ```
@@ -80,6 +82,7 @@ Không áp dụng giới hạn này cho lần **tự sinh slug đầu tiên** kh
 - **Booking tháng này** = số `bookings` có `created_at` trong tháng hiện tại, thuộc mọi venue owner sở hữu (cùng định nghĩa "phát sinh trong kỳ" như Dashboard, chỉ đổi cửa sổ thời gian từ "hôm nay" thành "tháng này").
 - **Doanh thu tháng** = tổng `payments.amount` (`status='paid'`, `paidAt` trong tháng hiện tại) — cùng định nghĩa Revenue Report.
 - **Mỗi thẻ chi nhánh riêng** thêm: Sân/Booking tháng/DT tháng (lọc theo đúng venue đó) + **Lượt xem 7D** = `totalViews` 7 ngày gần nhất của venue đó, tái dùng [Page View Analytics](./2026-08-26-page-view-analytics-design.md) `GET /analytics/page-views/summary?venueId=&from=&to=`.
+- Sân/Booking tháng/DT tháng của từng venue được trả trực tiếp trong response `GET /venues/mine` dưới tên `courtsCount`/`bookingsThisMonth`/`revenueThisMonth` (xem §3) — "Lượt xem 7D" vẫn phải gọi riêng vì thuộc service Page View Analytics khác.
 
 ## 8. Validation
 
@@ -100,4 +103,4 @@ Không áp dụng giới hạn này cho lần **tự sinh slug đầu tiên** kh
 - Component bản đồ chọn toạ độ, nút "Vị trí của tôi" — thuần frontend, backend chỉ lưu lat/lng nhận được.
 - Tiền tố `/<môn-thể-thao>/` trong URL công khai (không áp dụng, nền tảng đơn môn — nhất quán với quyết định ở Dashboard).
 - Khôi phục venue đã xoá (hard delete là vĩnh viễn với venue chưa có booking).
-- Frontend (spec riêng, sau khi spec API này được duyệt).
+- Frontend — xem [2026-09-02-branches-frontend-design.md](./2026-09-02-branches-frontend-design.md).

@@ -3,7 +3,7 @@
 **Ngày:** 2026-09-02
 **Trạng thái:** Chờ review
 **Thuộc kiến trúc tổng thể:** [2026-08-23-pickleball-platform-architecture-design.md](./2026-08-23-pickleball-platform-architecture-design.md)
-**Backend liên quan:** [2026-08-26-branches-design.md](./2026-08-26-branches-design.md) (spec đã viết, **chưa hiện thực** — xem §1 điều kiện tiên quyết và gap cần vá ở §2)
+**Backend liên quan:** [2026-08-26-branches-design.md](./2026-08-26-branches-design.md) (spec đã viết, **chưa hiện thực** — xem §1 điều kiện tiên quyết)
 **Nguồn tham khảo UI:** [docs/spec/08-chi-nhanh.md](../../spec/08-chi-nhanh.md)
 
 ## 1. Mục tiêu & phạm vi
@@ -12,14 +12,12 @@ Thay thế 3 trang sơ khai hiện tại (`/owner/branches`, `/owner/branches/ne
 
 **Điều kiện tiên quyết:** spec backend [2026-08-26-branches-design.md](./2026-08-26-branches-design.md) phải được hiện thực trước (slug, district, latitude/longitude, is_hidden, set-default, xoá có điều kiện). Hiện `venues` mới chỉ có `is_default`/`phone` (từ [2026-08-29-venue-default-phone-and-branch-dialog-design.md](./2026-08-29-venue-default-phone-and-branch-dialog-design.md)). Frontend spec này viết đúng theo API mô tả trong backend spec, xem như hợp đồng đã chốt — cần 1 plan backend chạy trước plan frontend của spec này (đúng trình tự đã dùng cho Courts/Bookings/Staff Accounts).
 
-## 2. Khác biệt so với tài liệu khảo sát gốc + gap cần vá ở backend spec
+## 2. Khác biệt so với tài liệu khảo sát gốc
 
 - **Bản đồ chọn toạ độ là bản đồ tương tác thật** (Leaflet + OpenStreetMap tiles — không cần API key, dependency mới: `react-leaflet`, `leaflet`), không phải 2 ô nhập số đơn thuần như phương án tối giản đã cân nhắc.
 - **Kiến trúc chuyển từ trang riêng sang dialog**, nhất quán với Courts/Staff Accounts/Customers: bỏ hẳn `/branches/new` và `/branches/[id]`. "Thêm chi nhánh mới" và "Sửa" đều mở cùng 1 dialog form trên trang danh sách `/owner/branches`. "Ảnh" mở dialog ảnh riêng (tái dùng logic từ `venue-images-section.tsx` hiện có).
 - **Ẩn/hiện chi nhánh** (`isHidden`) không có nút riêng trên thẻ trong tài liệu gốc (§3 chỉ liệt kê Mặc định/Sửa/Ảnh/Xóa) — vì đây là field mới do backend spec quyết định sau khi tài liệu khảo sát UI được viết. Đặt làm 1 checkbox trong dialog Sửa: "Ẩn chi nhánh này khỏi trang đặt sân công khai".
-- **Gap trong backend spec cần bổ sung khi viết plan backend:** [branches-design.md §3](./2026-08-26-branches-design.md) chỉ mô tả `PATCH .../:id` nhận thêm `slug/district/latitude/longitude/isHidden`, không nhắc `POST /venues` (tạo mới) — nhưng form "Thêm chi nhánh mới" theo `08-chi-nhanh.md` §4 cần nhập các trường này ngay lúc tạo. `CreateVenueDto` cần mở rộng tương tự `PATCH`.
-- **Response `GET /venues/mine` cần trả kèm số liệu nhanh mỗi venue** (`courtsCount`, `bookingsThisMonth`, `revenueThisMonth`) để tính thẻ tổng hợp + số liệu trên từng thẻ ở client mà không cần gọi API riêng cho từng venue — backend spec §7 mô tả định nghĩa số liệu nhưng không nói rõ field này nằm trong response nào. Plan backend cần chốt: mở rộng response của `GET /venues/mine` để trả kèm 3 field này.
-- **`venues` chưa có cột `email`** — `08-chi-nhanh.md` §4 liệt kê "Email" là 1 trường của form, nhưng cả entity `Venue` hiện tại lẫn backend spec §2 đều không nhắc tới cột này (chỉ có `phone`). Plan backend cần thêm cột `email` (nullable text) vào `venues`, nhận qua cả `POST /venues` và `PATCH .../:id`, cùng đợt với gap `CreateVenueDto` ở trên.
+- Backend spec §2/§3 đã vá 2 gap phát hiện khi viết spec này: `CreateVenueDto`/response `GET /venues/mine` mở rộng đầy đủ, và cột `email` mới trên `venues` — không còn là gap cần plan backend tự chốt, đã nằm sẵn trong hợp đồng API.
 
 ## 3. Kiến trúc trang (`apps/web/src/app/owner/branches/`)
 
@@ -245,7 +243,7 @@ Leaflet cần import CSS riêng (`leaflet/dist/leaflet.css`) và cấu hình l�
 
 ## 8. Ngoài phạm vi
 
-- Mở rộng `CreateVenueDto`/response `GET /venues/mine` (thêm `courtsCount`/`bookingsThisMonth`/`revenueThisMonth`) — thuộc plan **backend** (xem §1, §2), không phải plan frontend dựa trên spec này.
+- Hiện thực `CreateVenueDto`/response `GET /venues/mine` mở rộng, cột `email` mới (đã mô tả ở [branches-design.md](./2026-08-26-branches-design.md) §2-3) — thuộc plan **backend**, không phải plan frontend dựa trên spec này.
 - Trang Page View Analytics đầy đủ tại `/owner/page-views` (vẫn "Coming Soon") — chỉ thêm 1 proxy hẹp cho endpoint summary dùng riêng cho thẻ "Lượt xem 7D".
 - `BranchSwitcher` (dropdown chọn chi nhánh ở sidebar) — không đổi, đã có thiết kế riêng ở [2026-08-29-venue-default-phone-and-branch-dialog-design.md](./2026-08-29-venue-default-phone-and-branch-dialog-design.md).
 - Khôi phục chi nhánh đã xoá — hard delete là vĩnh viễn (theo backend spec §5).
