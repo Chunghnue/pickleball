@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { StaffRole, User, UserRole, UserStatus } from '../users/entities/user.entity';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { ListStaffDto } from './dto/list-staff.dto';
+import { UpdateStaffDto } from './dto/update-staff.dto';
 
 export interface StaffListItem {
   id: string;
@@ -67,6 +68,37 @@ export class StaffService {
     }
 
     return items.map((u) => this.toListItem(u));
+  }
+
+  async update(ownerId: string, staffId: string, dto: UpdateStaffDto): Promise<StaffListItem> {
+    const staff = await this.getOwnedStaffOrThrow(ownerId, staffId);
+
+    if (dto.phone !== undefined) {
+      await this.assertPhoneAvailable(dto.phone, staffId);
+      staff.phone = dto.phone;
+    }
+    if (dto.email !== undefined) {
+      await this.assertEmailAvailable(dto.email, staffId);
+      staff.email = dto.email;
+    }
+    if (dto.fullName !== undefined) staff.fullName = dto.fullName;
+    if (dto.staffRole !== undefined) staff.staffRole = dto.staffRole;
+
+    const saved = await this.usersRepository.save(staff);
+    return this.toListItem(saved);
+  }
+
+  async deactivate(ownerId: string, staffId: string): Promise<StaffListItem> {
+    const staff = await this.getOwnedStaffOrThrow(ownerId, staffId);
+    staff.status = UserStatus.SUSPENDED;
+    const saved = await this.usersRepository.save(staff);
+    return this.toListItem(saved);
+  }
+
+  async resetPassword(ownerId: string, staffId: string, newPassword: string): Promise<void> {
+    const staff = await this.getOwnedStaffOrThrow(ownerId, staffId);
+    staff.passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.usersRepository.save(staff);
   }
 
   async getOwnedStaffOrThrow(ownerId: string, staffId: string): Promise<User> {

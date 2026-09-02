@@ -86,4 +86,66 @@ describe('Staff (e2e)', () => {
       .send({ fullName: 'X', phone: '0911000055', staffRole: 'staff', password: 'password1' })
       .expect(403);
   });
+
+  it('updates, deactivates, and resets the password of an owned staff account', async () => {
+    const owner = await createUser(dataSource, 'staffowner4@test.com', UserRole.OWNER);
+    const ownerToken = await loginAs(app, 'staffowner4@test.com');
+    const staff = await createStaff(dataSource, owner.id, 'Old Name', '0911000044', StaffRole.STAFF);
+
+    await request(app.getHttpServer())
+      .patch(`/staff/${staff.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ fullName: 'New Name' })
+      .expect(200)
+      .expect((res) => expect(res.body.fullName).toBe('New Name'));
+
+    await request(app.getHttpServer())
+      .post(`/staff/${staff.id}/reset-password`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ newPassword: 'brandnew1' })
+      .expect(201);
+    const relogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ identifier: '0911000044', password: 'brandnew1' })
+      .expect(201);
+    expect(relogin.body.accessToken).toBeDefined();
+
+    await request(app.getHttpServer())
+      .post(`/staff/${staff.id}/deactivate`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ identifier: '0911000044', password: 'brandnew1' })
+      .expect(403);
+  });
+
+  it("404s when acting on another owner's staff", async () => {
+    const owner1 = await createUser(dataSource, 'staffowner5@test.com', UserRole.OWNER);
+    const owner2 = await createUser(dataSource, 'staffowner6@test.com', UserRole.OWNER);
+    const owner2Token = await loginAs(app, 'staffowner6@test.com');
+    const staffOfOwner1 = await createStaff(dataSource, owner1.id, 'A', '0911000033', StaffRole.STAFF);
+
+    await request(app.getHttpServer())
+      .patch(`/staff/${staffOfOwner1.id}`)
+      .set('Authorization', `Bearer ${owner2Token}`)
+      .send({ fullName: 'Hijacked' })
+      .expect(404);
+  });
+
+  it('lets a manager reach full-tier staff endpoints', async () => {
+    const owner = await createUser(dataSource, 'staffowner7@test.com', UserRole.OWNER);
+    const manager = await createStaff(dataSource, owner.id, 'Manager', '0911000022', StaffRole.MANAGER);
+    const managerToken = await loginByPhone(app, '0911000022');
+
+    await request(app.getHttpServer())
+      .get('/staff')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .expect(200)
+      .expect((res) =>
+        expect(res.body).toEqual(
+          expect.arrayContaining([expect.objectContaining({ id: manager.id })]),
+        ),
+      );
+  });
 });
