@@ -37,11 +37,17 @@ export class VenuesController {
   @Get('mine')
   @UseGuards(JwtAuthGuard, OwnerScopeGuard)
   @OwnerScope('full')
-  findMine(
+  async findMine(
     @EffectiveOwnerId() effectiveOwnerId: string,
     @Query() query: ListVenuesDto,
   ) {
-    return this.venuesService.findMineWithMetrics(effectiveOwnerId, query);
+    const venues = await this.venuesService.findMineWithMetrics(effectiveOwnerId, query);
+    return Promise.all(
+      venues.map(async (venue) => ({
+        ...venue,
+        images: await this.venuesService.findImagesByVenue(venue.id),
+      })),
+    );
   }
 
   @Get('mine/courts')

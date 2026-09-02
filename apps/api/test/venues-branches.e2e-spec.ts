@@ -170,4 +170,16 @@ describe('Branches (venues) e2e', () => {
     expect(byId.get(first.id)).toBe(false);
     expect(byId.get(second.id)).toBe(true);
   });
+
+  it('GET /venues/mine returns an images array (even when empty) for every venue', async () => {
+    const { ownerId, token } = await ownerAndToken();
+    await createVenue(dataSource, ownerId, 'Venue A');
+
+    const response = await request(app.getHttpServer())
+      .get('/venues/mine')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(Array.isArray(response.body[0].images)).toBe(true);
+  });
 });
