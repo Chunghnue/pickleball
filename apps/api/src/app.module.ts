@@ -19,6 +19,7 @@ import { DisputesModule } from './disputes/disputes.module';
 import { CustomerContactsModule } from './customer-contacts/customer-contacts.module';
 import { CustomersModule } from './customers/customers.module';
 import { RecurringSchedulesModule } from './recurring-schedules/recurring-schedules.module';
+import { StaffModule } from './staff/staff.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { RecurringSchedulesModule } from './recurring-schedules/recurring-schedu
     CustomerContactsModule,
     CustomersModule,
     RecurringSchedulesModule,
+    StaffModule,
   ],
   controllers: [AppController],
   providers: [

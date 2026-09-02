@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { User, UserRole, UserStatus } from '../../src/users/entities/user.entity';
+import { StaffRole, User, UserRole, UserStatus } from '../../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../../src/courts/entities/court.entity';
 import { Booking, BookingStatus } from '../../src/bookings/entities/booking.entity';
@@ -37,6 +37,37 @@ export async function loginAs(app: INestApplication, email: string): Promise<str
   const res = await request(app.getHttpServer())
     .post('/auth/login')
     .send({ identifier: email, password: 'password123' });
+  return res.body.accessToken as string;
+}
+
+export async function createStaff(
+  ds: DataSource,
+  ownerId: string,
+  fullName: string,
+  phone: string,
+  staffRole: StaffRole,
+): Promise<User> {
+  const passwordHash = await bcrypt.hash('password123', 10);
+  const repo = ds.getRepository(User);
+  return repo.save(
+    repo.create({
+      fullName,
+      phone,
+      email: null,
+      passwordHash,
+      role: UserRole.STAFF,
+      ownerId,
+      staffRole,
+      status: UserStatus.ACTIVE,
+      emailVerified: false,
+    }),
+  );
+}
+
+export async function loginByPhone(app: INestApplication, phone: string): Promise<string> {
+  const res = await request(app.getHttpServer())
+    .post('/auth/login')
+    .send({ identifier: phone, password: 'password123' });
   return res.body.accessToken as string;
 }
 
