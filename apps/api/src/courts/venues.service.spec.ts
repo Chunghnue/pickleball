@@ -5,6 +5,8 @@ import { VenuesService } from './venues.service';
 import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
 import { VenueSlugHistory } from './entities/venue-slug-history.entity';
+import { Court } from './entities/court.entity';
+import { Booking } from '../bookings/entities/booking.entity';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -14,6 +16,7 @@ const mockVenuesRepository = () => ({
   findOne: jest.fn(),
   find: jest.fn(),
   count: jest.fn(),
+  createQueryBuilder: jest.fn(),
 });
 
 const mockVenueImagesRepository = () => ({
@@ -27,6 +30,16 @@ const mockVenueImagesRepository = () => ({
 const mockSlugHistoryRepository = () => ({
   count: jest.fn(),
   findOne: jest.fn(),
+});
+
+const mockCourtsRepository = () => ({
+  find: jest.fn(),
+  createQueryBuilder: jest.fn(),
+});
+
+const mockBookingsRepository = () => ({
+  count: jest.fn(),
+  createQueryBuilder: jest.fn(),
 });
 
 const mockUsersService = () => ({
@@ -55,6 +68,8 @@ async function buildTestingModule() {
         provide: getRepositoryToken(VenueSlugHistory),
         useFactory: mockSlugHistoryRepository,
       },
+      { provide: getRepositoryToken(Court), useFactory: mockCourtsRepository },
+      { provide: getRepositoryToken(Booking), useFactory: mockBookingsRepository },
       { provide: UsersService, useFactory: mockUsersService },
       { provide: NotificationsService, useFactory: mockNotificationsService },
       { provide: DataSource, useFactory: mockDataSource },
@@ -71,6 +86,12 @@ async function buildTestingModule() {
     >,
     slugHistoryRepo: module.get(getRepositoryToken(VenueSlugHistory)) as ReturnType<
       typeof mockSlugHistoryRepository
+    >,
+    courtsRepo: module.get(getRepositoryToken(Court)) as ReturnType<
+      typeof mockCourtsRepository
+    >,
+    bookingsRepo: module.get(getRepositoryToken(Booking)) as ReturnType<
+      typeof mockBookingsRepository
     >,
     usersService: module.get(UsersService) as ReturnType<
       typeof mockUsersService
@@ -458,6 +479,70 @@ describe('VenuesService.setDefault', () => {
     await expect(service.setDefault('owner-1', 'venue-2')).rejects.toThrow(
       'Venue venue-2 không tồn tại',
     );
+  });
+});
+
+describe('VenuesService.remove', () => {
+  it('throws ConflictException when any court in the venue has booking history', async () => {
+    const { service, venuesRepo, courtsRepo, bookingsRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1', isDefault: false });
+    courtsRepo.find.mockResolvedValue([{ id: 'court-1', venueId: 'venue-1' }]);
+    bookingsRepo.count.mockResolvedValue(1);
+
+    await expect(service.remove('owner-1', 'venue-1')).rejects.toThrow(
+      'Chi nhánh đã có lịch sử đặt sân',
+    );
+  });
+
+  it('deletes the venue and its courts when there is no booking history', async () => {
+    const { service, venuesRepo, courtsRepo, bookingsRepo, dataSource } =
+      await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1', isDefault: false });
+    courtsRepo.find.mockResolvedValue([{ id: 'court-1', venueId: 'venue-1' }]);
+    bookingsRepo.count.mockResolvedValue(0);
+    const manager = { delete: jest.fn().mockResolvedValue(undefined) };
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    await service.remove('owner-1', 'venue-1');
+
+    expect(manager.delete).toHaveBeenCalledWith(Venue, { id: 'venue-1' });
+  });
+
+  it('promotes the oldest remaining venue to default when the deleted venue was default', async () => {
+    const { service, venuesRepo, courtsRepo, bookingsRepo, dataSource } =
+      await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1', isDefault: true });
+    courtsRepo.find.mockResolvedValue([]);
+    bookingsRepo.count.mockResolvedValue(0);
+    const manager = { delete: jest.fn().mockResolvedValue(undefined) };
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+    const remainingVenue = { id: 'venue-2', ownerId: 'owner-1', isDefault: false };
+    venuesRepo.find.mockResolvedValue([remainingVenue]);
+    venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+
+    await service.remove('owner-1', 'venue-1');
+
+    expect(venuesRepo.find).toHaveBeenCalledWith({
+      where: { ownerId: 'owner-1' },
+      order: { createdAt: 'ASC' },
+    });
+    expect(venuesRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'venue-2', isDefault: true }),
+    );
+  });
+
+  it('does not touch other venues when the deleted venue was not default', async () => {
+    const { service, venuesRepo, courtsRepo, bookingsRepo, dataSource } =
+      await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1', isDefault: false });
+    courtsRepo.find.mockResolvedValue([]);
+    bookingsRepo.count.mockResolvedValue(0);
+    const manager = { delete: jest.fn().mockResolvedValue(undefined) };
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    await service.remove('owner-1', 'venue-1');
+
+    expect(venuesRepo.find).not.toHaveBeenCalled();
   });
 });
 

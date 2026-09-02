@@ -6,10 +6,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, ILike, MoreThanOrEqual, Repository } from 'typeorm';
+import { DataSource, ILike, In, MoreThanOrEqual, Repository } from 'typeorm';
 import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
 import { VenueSlugHistory } from './entities/venue-slug-history.entity';
+import { Court } from './entities/court.entity';
+import { CourtImage } from './entities/court-image.entity';
+import { Booking } from '../bookings/entities/booking.entity';
+import { PricingRule } from '../pricing/entities/pricing-rule.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { AddVenueImageDto } from './dto/add-venue-image.dto';
@@ -26,6 +30,10 @@ export class VenuesService {
     private readonly venueImagesRepository: Repository<VenueImage>,
     @InjectRepository(VenueSlugHistory)
     private readonly slugHistoryRepository: Repository<VenueSlugHistory>,
+    @InjectRepository(Court)
+    private readonly courtsRepository: Repository<Court>,
+    @InjectRepository(Booking)
+    private readonly bookingsRepository: Repository<Booking>,
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly usersService: UsersService,
@@ -156,6 +164,45 @@ export class VenuesService {
       await manager.update(Venue, { id }, { isDefault: true });
     });
     return this.getOwnedVenueOrThrow(ownerId, id);
+  }
+
+  async remove(ownerId: string, id: string): Promise<void> {
+    const venue = await this.getOwnedVenueOrThrow(ownerId, id);
+    const courts = await this.courtsRepository.find({ where: { venueId: id } });
+    const courtIds = courts.map((court) => court.id);
+
+    if (courtIds.length > 0) {
+      const bookingCount = await this.bookingsRepository.count({
+        where: { courtId: In(courtIds) },
+      });
+      if (bookingCount > 0) {
+        throw new ConflictException(
+          'Chi nhánh đã có lịch sử đặt sân, không thể xoá. Hãy dùng tính năng "Ẩn" thay thế.',
+        );
+      }
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      if (courtIds.length > 0) {
+        await manager.delete(PricingRule, { courtId: In(courtIds) });
+        await manager.delete(CourtImage, { courtId: In(courtIds) });
+        await manager.delete(Court, { id: In(courtIds) });
+      }
+      await manager.delete(VenueImage, { venueId: id });
+      await manager.delete(VenueSlugHistory, { venueId: id });
+      await manager.delete(Venue, { id });
+    });
+
+    if (venue.isDefault) {
+      const remaining = await this.venuesRepository.find({
+        where: { ownerId },
+        order: { createdAt: 'ASC' },
+      });
+      if (remaining.length > 0) {
+        remaining[0].isDefault = true;
+        await this.venuesRepository.save(remaining[0]);
+      }
+    }
   }
 
   async addImage(
