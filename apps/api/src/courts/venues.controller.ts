@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,8 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OwnerScopeGuard } from '../auth/guards/owner-scope.guard';
 import { OwnerScope } from '../auth/decorators/owner-scope.decorator';
@@ -19,6 +23,7 @@ import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { AddVenueImageDto } from './dto/add-venue-image.dto';
 import { ListVenuesDto } from './dto/list-venues.dto';
+import { venueLogoUploadOptions } from './venue-logo-upload.config';
 
 @Controller('venues')
 export class VenuesController {
@@ -98,6 +103,21 @@ export class VenuesController {
     @Param('id') id: string,
   ) {
     return this.venuesService.remove(effectiveOwnerId, id);
+  }
+
+  @Post('mine/:id/logo')
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
+  @UseInterceptors(FileInterceptor('file', venueLogoUploadOptions))
+  uploadLogo(
+    @EffectiveOwnerId() effectiveOwnerId: string,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Vui lòng chọn file ảnh');
+    }
+    return this.venuesService.uploadLogo(effectiveOwnerId, id, file);
   }
 
   @Post('mine/:id/images')

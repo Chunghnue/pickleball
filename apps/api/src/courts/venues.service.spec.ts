@@ -183,6 +183,31 @@ describe('VenuesService.create — isDefault', () => {
   });
 });
 
+describe('VenuesService.create — phone', () => {
+  it('sets phone when provided, null otherwise', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(0);
+    venuesRepo.findOne.mockResolvedValue(null);
+    venuesRepo.create.mockImplementation((data) => data);
+    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-1', ...data }));
+
+    const withPhone = await service.create('owner-1', {
+      name: 'ABC Pickleball',
+      address: '123 Le Loi',
+      city: 'Ho Chi Minh',
+      phone: '0901234567',
+    });
+    expect(withPhone.phone).toBe('0901234567');
+
+    const withoutPhone = await service.create('owner-1', {
+      name: 'XYZ Pickleball',
+      address: '456 Le Loi',
+      city: 'Ho Chi Minh',
+    });
+    expect(withoutPhone.phone).toBeNull();
+  });
+});
+
 describe('VenuesService.create — slug', () => {
   it('generates a slug from the name when not provided', async () => {
     const { service, venuesRepo } = await buildTestingModule();
@@ -654,6 +679,29 @@ describe('VenuesService.findMineWithMetrics', () => {
     const result = await service.findMineWithMetrics('owner-1', { sort: 'name' });
 
     expect(result.map((v) => v.id)).toEqual(['venue-a', 'venue-b']);
+  });
+});
+
+describe('VenuesService.uploadLogo', () => {
+  it('sets logoUrl from the uploaded filename', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1', logoUrl: null });
+    venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.uploadLogo('owner-1', 'venue-1', {
+      filename: 'abc123.png',
+    } as Express.Multer.File);
+
+    expect(result.logoUrl).toBe('/uploads/venues/venue-1/abc123.png');
+  });
+
+  it('throws NotFoundException for a venue not owned by the caller', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.uploadLogo('owner-1', 'venue-1', { filename: 'abc.png' } as Express.Multer.File),
+    ).rejects.toThrow('Venue venue-1 không tồn tại');
   });
 });
 

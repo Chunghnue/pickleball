@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, ILike, In, MoreThanOrEqual, Repository } from 'typeorm';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
 import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
 import { VenueSlugHistory } from './entities/venue-slug-history.entity';
@@ -22,6 +24,7 @@ import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { slugify } from './slug.util';
 import { getCurrentMonthRange } from '../common/date-range.utils';
+import { getUploadsDir } from './court-image-upload.config';
 
 export interface VenueWithMetrics extends Venue {
   courtsCount: number;
@@ -62,6 +65,7 @@ export class VenuesService {
       latitude: dto.latitude ?? null,
       longitude: dto.longitude ?? null,
       email: dto.email ?? null,
+      phone: dto.phone ?? null,
       description: dto.description ?? null,
       status: VenueStatus.PENDING_APPROVAL,
       isDefault: existingCount === 0,
@@ -214,6 +218,22 @@ export class VenuesService {
         await this.venuesRepository.save(remaining[0]);
       }
     }
+  }
+
+  async uploadLogo(
+    ownerId: string,
+    venueId: string,
+    file: Express.Multer.File,
+  ): Promise<Venue> {
+    const venue = await this.getOwnedVenueOrThrow(ownerId, venueId);
+    const oldLogoUrl = venue.logoUrl;
+    venue.logoUrl = `/uploads/venues/${venueId}/${file.filename}`;
+    const saved = await this.venuesRepository.save(venue);
+    if (oldLogoUrl) {
+      const oldPath = join(getUploadsDir(), oldLogoUrl.replace('/uploads/', ''));
+      await unlink(oldPath).catch(() => undefined);
+    }
+    return saved;
   }
 
   async addImage(

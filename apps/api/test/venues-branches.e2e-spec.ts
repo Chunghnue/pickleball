@@ -1,11 +1,14 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { rm } from 'fs/promises';
+import { join } from 'path';
 import request from 'supertest';
 import { createTestApp, clearDatabase } from './utils/test-app';
 import { createUser, loginAs, createVenue, createCourt, createBooking, createContact } from './utils/owner-fixtures';
 import { UserRole } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { VenueSlugHistory } from '../src/courts/entities/venue-slug-history.entity';
+import { getUploadsDir } from '../src/courts/court-image-upload.config';
 
 describe('Branches (venues) e2e', () => {
   let app: INestApplication;
@@ -181,5 +184,31 @@ describe('Branches (venues) e2e', () => {
       .expect(200);
 
     expect(Array.isArray(response.body[0].images)).toBe(true);
+  });
+
+  it('POST /venues/mine/:id/logo uploads a file and sets logoUrl', async () => {
+    const { ownerId, token } = await ownerAndToken();
+    const venue = await createVenue(dataSource, ownerId, 'Venue A');
+
+    const response = await request(app.getHttpServer())
+      .post(`/venues/mine/${venue.id}/logo`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('fake-png-bytes'), 'logo.png')
+      .expect(201);
+
+    expect(response.body.logoUrl).toMatch(new RegExp(`^/uploads/venues/${venue.id}/.+\\.png$`));
+
+    await rm(join(getUploadsDir(), 'venues', venue.id), { recursive: true, force: true });
+  });
+
+  it('POST /venues/mine/:id/logo rejects a non-image file with 400', async () => {
+    const { ownerId, token } = await ownerAndToken();
+    const venue = await createVenue(dataSource, ownerId, 'Venue A');
+
+    await request(app.getHttpServer())
+      .post(`/venues/mine/${venue.id}/logo`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('not an image'), 'notes.txt')
+      .expect(400);
   });
 });

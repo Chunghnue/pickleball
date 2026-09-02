@@ -44,4 +44,8 @@ export class CreateVenueDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
 }

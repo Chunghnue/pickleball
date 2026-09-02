@@ -66,6 +66,9 @@ export class Venue {
   @Column({ name: 'is_hidden', default: false })
   isHidden: boolean;
 
+  @Column({ name: 'logo_url', nullable: true, type: 'varchar' })
+  logoUrl: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
