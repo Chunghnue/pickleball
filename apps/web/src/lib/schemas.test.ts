@@ -51,15 +51,29 @@ describe('registerSchema', () => {
 });
 
 describe('loginSchema', () => {
-  it('accepts a valid payload', () => {
+  it('accepts a valid payload with an email identifier', () => {
     expect(
-      loginSchema.safeParse({ email: 'a@test.com', password: 'anything' }).success,
+      loginSchema.safeParse({ identifier: 'a@test.com', password: 'anything' })
+        .success,
     ).toBe(true);
+  });
+
+  it('accepts a valid payload with a phone identifier', () => {
+    expect(
+      loginSchema.safeParse({ identifier: '0911000001', password: 'anything' })
+        .success,
+    ).toBe(true);
+  });
+
+  it('rejects an empty identifier', () => {
+    expect(
+      loginSchema.safeParse({ identifier: '', password: 'anything' }).success,
+    ).toBe(false);
   });
 
   it('rejects an empty password', () => {
     expect(
-      loginSchema.safeParse({ email: 'a@test.com', password: '' }).success,
+      loginSchema.safeParse({ identifier: 'a@test.com', password: '' }).success,
     ).toBe(false);
   });
 });

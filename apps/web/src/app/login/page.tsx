@@ -32,7 +32,7 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { identifier: "", password: "" },
   });
 
   async function onSubmit(values: LoginInput) {
@@ -64,15 +64,17 @@ function LoginPageContent() {
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">Email hoặc số điện thoại</Label>
               <Input
-                id="email"
-                type="email"
-                aria-invalid={!!errors.email}
-                {...form.register("email")}
+                id="identifier"
+                type="text"
+                aria-invalid={!!errors.identifier}
+                {...form.register("identifier")}
               />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
+              {errors.identifier && (
+                <p className="text-sm text-destructive">
+                  {errors.identifier.message}
+                </p>
               )}
             </div>
             <div className="space-y-2">
