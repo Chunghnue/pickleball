@@ -5,10 +5,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, ILike, MoreThanOrEqual, Repository } from 'typeorm';
 import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
+import { VenueSlugHistory } from './entities/venue-slug-history.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { AddVenueImageDto } from './dto/add-venue-image.dto';
@@ -23,6 +24,10 @@ export class VenuesService {
     private readonly venuesRepository: Repository<Venue>,
     @InjectRepository(VenueImage)
     private readonly venueImagesRepository: Repository<VenueImage>,
+    @InjectRepository(VenueSlugHistory)
+    private readonly slugHistoryRepository: Repository<VenueSlugHistory>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     private readonly usersService: UsersService,
     private readonly notificationsService: NotificationsService,
   ) {}
@@ -98,7 +103,50 @@ export class VenuesService {
       venue.cancellationCutoffHours = dto.cancellationCutoffHours;
     }
     if (dto.phone !== undefined) venue.phone = dto.phone;
+    if (dto.district !== undefined) venue.district = dto.district;
+    if (dto.latitude !== undefined) venue.latitude = dto.latitude;
+    if (dto.longitude !== undefined) venue.longitude = dto.longitude;
+    if (dto.email !== undefined) venue.email = dto.email;
+    if (dto.isHidden !== undefined) venue.isHidden = dto.isHidden;
+    if (dto.slug !== undefined && dto.slug !== venue.slug) {
+      await this.changeSlug(venue, dto.slug);
+    }
     return this.venuesRepository.save(venue);
+  }
+
+  private async changeSlug(venue: Venue, nextSlug: string): Promise<void> {
+    const taken = await this.venuesRepository.findOne({ where: { slug: nextSlug } });
+    if (taken && taken.id !== venue.id) {
+      throw new ConflictException('Đường dẫn này đã được sử dụng');
+    }
+
+    const cutoff180 = new Date();
+    cutoff180.setDate(cutoff180.getDate() - 180);
+    const recentChangeCount = await this.slugHistoryRepository.count({
+      where: { venueId: venue.id, changedAt: MoreThanOrEqual(cutoff180) },
+    });
+    if (recentChangeCount >= 3) {
+      throw new BadRequestException('Đã đạt giới hạn đổi đường dẫn (3 lần/180 ngày)');
+    }
+
+    const lastChange = await this.slugHistoryRepository.findOne({
+      where: { venueId: venue.id },
+      order: { changedAt: 'DESC' },
+    });
+    const lastChangeAt = lastChange?.changedAt ?? venue.updatedAt;
+    const cutoff60 = new Date();
+    cutoff60.setDate(cutoff60.getDate() - 60);
+    if (lastChangeAt > cutoff60) {
+      throw new BadRequestException('Cần đợi đủ 60 ngày kể từ lần đổi trước');
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.insert(VenueSlugHistory, {
+        venueId: venue.id,
+        oldSlug: venue.slug,
+      });
+    });
+    venue.slug = nextSlug;
   }
 
   async addImage(

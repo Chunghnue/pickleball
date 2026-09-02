@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { VenuesService } from './venues.service';
 import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
+import { VenueSlugHistory } from './entities/venue-slug-history.entity';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -22,6 +24,11 @@ const mockVenueImagesRepository = () => ({
   find: jest.fn(),
 });
 
+const mockSlugHistoryRepository = () => ({
+  count: jest.fn(),
+  findOne: jest.fn(),
+});
+
 const mockUsersService = () => ({
   findById: jest.fn(),
 });
@@ -29,6 +36,10 @@ const mockUsersService = () => ({
 const mockNotificationsService = () => ({
   notifyVenueApproved: jest.fn().mockResolvedValue(undefined),
   notifyVenueRejected: jest.fn().mockResolvedValue(undefined),
+});
+
+const mockDataSource = () => ({
+  transaction: jest.fn(),
 });
 
 async function buildTestingModule() {
@@ -40,8 +51,13 @@ async function buildTestingModule() {
         provide: getRepositoryToken(VenueImage),
         useFactory: mockVenueImagesRepository,
       },
+      {
+        provide: getRepositoryToken(VenueSlugHistory),
+        useFactory: mockSlugHistoryRepository,
+      },
       { provide: UsersService, useFactory: mockUsersService },
       { provide: NotificationsService, useFactory: mockNotificationsService },
+      { provide: DataSource, useFactory: mockDataSource },
     ],
   }).compile();
 
@@ -53,12 +69,16 @@ async function buildTestingModule() {
     venueImagesRepo: module.get(getRepositoryToken(VenueImage)) as ReturnType<
       typeof mockVenueImagesRepository
     >,
+    slugHistoryRepo: module.get(getRepositoryToken(VenueSlugHistory)) as ReturnType<
+      typeof mockSlugHistoryRepository
+    >,
     usersService: module.get(UsersService) as ReturnType<
       typeof mockUsersService
     >,
     notificationsService: module.get(NotificationsService) as ReturnType<
       typeof mockNotificationsService
     >,
+    dataSource: module.get(DataSource) as ReturnType<typeof mockDataSource>,
   };
 }
 
@@ -293,6 +313,121 @@ describe('VenuesService.update', () => {
     });
 
     expect(result.cancellationCutoffHours).toBe(4);
+  });
+});
+
+describe('VenuesService.update — district/coordinates/email/isHidden', () => {
+  it('sets district/latitude/longitude/email/isHidden when provided', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      slug: 'venue-1-slug',
+    });
+    venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.update('owner-1', 'venue-1', {
+      district: 'Quan 1',
+      latitude: 10.77,
+      longitude: 106.7,
+      email: 'branch@test.com',
+      isHidden: true,
+    });
+
+    expect(result.district).toBe('Quan 1');
+    expect(result.latitude).toBe(10.77);
+    expect(result.longitude).toBe(106.7);
+    expect(result.email).toBe('branch@test.com');
+    expect(result.isHidden).toBe(true);
+  });
+});
+
+describe('VenuesService.update — slug', () => {
+  const FIXED_NOW = new Date('2026-09-02T12:00:00Z');
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(FIXED_NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('changes the slug and records history when available and under the limit', async () => {
+    const { service, venuesRepo, slugHistoryRepo, dataSource } = await buildTestingModule();
+    venuesRepo.findOne
+      .mockResolvedValueOnce({
+        id: 'venue-1',
+        ownerId: 'owner-1',
+        slug: 'old-slug',
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+      })
+      .mockResolvedValueOnce(null);
+    slugHistoryRepo.count.mockResolvedValue(0);
+    slugHistoryRepo.findOne.mockResolvedValue(null);
+    venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+    const manager = { insert: jest.fn().mockResolvedValue(undefined) };
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    const result = await service.update('owner-1', 'venue-1', { slug: 'new-slug' });
+
+    expect(result.slug).toBe('new-slug');
+    expect(manager.insert).toHaveBeenCalledWith(VenueSlugHistory, {
+      venueId: 'venue-1',
+      oldSlug: 'old-slug',
+    });
+  });
+
+  it('does nothing slug-related when the slug is unchanged', async () => {
+    const { service, venuesRepo, slugHistoryRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      slug: 'same-slug',
+    });
+    venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+
+    await service.update('owner-1', 'venue-1', { slug: 'same-slug' });
+
+    expect(slugHistoryRepo.count).not.toHaveBeenCalled();
+  });
+
+  it('throws ConflictException when the new slug is already used by another venue', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne
+      .mockResolvedValueOnce({ id: 'venue-1', ownerId: 'owner-1', slug: 'old-slug' })
+      .mockResolvedValueOnce({ id: 'venue-2', slug: 'taken-slug' });
+
+    await expect(
+      service.update('owner-1', 'venue-1', { slug: 'taken-slug' }),
+    ).rejects.toThrow('Đường dẫn này đã được sử dụng');
+  });
+
+  it('throws BadRequestException at 3 changes already within the last 180 days', async () => {
+    const { service, venuesRepo, slugHistoryRepo } = await buildTestingModule();
+    venuesRepo.findOne
+      .mockResolvedValueOnce({ id: 'venue-1', ownerId: 'owner-1', slug: 'old-slug' })
+      .mockResolvedValueOnce(null);
+    slugHistoryRepo.count.mockResolvedValue(3);
+
+    await expect(
+      service.update('owner-1', 'venue-1', { slug: 'new-slug' }),
+    ).rejects.toThrow('Đã đạt giới hạn đổi đường dẫn (3 lần/180 ngày)');
+  });
+
+  it('throws BadRequestException when the last change was under 60 days ago', async () => {
+    const { service, venuesRepo, slugHistoryRepo } = await buildTestingModule();
+    venuesRepo.findOne
+      .mockResolvedValueOnce({ id: 'venue-1', ownerId: 'owner-1', slug: 'old-slug' })
+      .mockResolvedValueOnce(null);
+    slugHistoryRepo.count.mockResolvedValue(1);
+    slugHistoryRepo.findOne.mockResolvedValue({
+      changedAt: new Date('2026-08-20T00:00:00Z'),
+    });
+
+    await expect(
+      service.update('owner-1', 'venue-1', { slug: 'new-slug' }),
+    ).rejects.toThrow('Cần đợi đủ 60 ngày kể từ lần đổi trước');
   });
 });
 
