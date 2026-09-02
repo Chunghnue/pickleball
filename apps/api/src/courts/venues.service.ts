@@ -13,6 +13,7 @@ import { VenueSlugHistory } from './entities/venue-slug-history.entity';
 import { Court } from './entities/court.entity';
 import { CourtImage } from './entities/court-image.entity';
 import { Booking } from '../bookings/entities/booking.entity';
+import { Payment, PaymentStatus } from '../payments/entities/payment.entity';
 import { PricingRule } from '../pricing/entities/pricing-rule.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
@@ -20,6 +21,13 @@ import { AddVenueImageDto } from './dto/add-venue-image.dto';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { slugify } from './slug.util';
+import { getCurrentMonthRange } from '../common/date-range.utils';
+
+export interface VenueWithMetrics extends Venue {
+  courtsCount: number;
+  bookingsThisMonth: number;
+  revenueThisMonth: number;
+}
 
 @Injectable()
 export class VenuesService {
@@ -34,6 +42,8 @@ export class VenuesService {
     private readonly courtsRepository: Repository<Court>,
     @InjectRepository(Booking)
     private readonly bookingsRepository: Repository<Booking>,
+    @InjectRepository(Payment)
+    private readonly paymentsRepository: Repository<Payment>,
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly usersService: UsersService,
@@ -336,5 +346,107 @@ export class VenuesService {
       throw new NotFoundException(`Venue ${id} không tồn tại`);
     }
     return venue;
+  }
+
+  async findMineWithMetrics(
+    ownerId: string,
+    opts: {
+      status?: 'active' | 'hidden' | 'all';
+      search?: string;
+      sort?: 'default' | 'name' | 'newest';
+    } = {},
+  ): Promise<VenueWithMetrics[]> {
+    const qb = this.venuesRepository
+      .createQueryBuilder('venue')
+      .where('venue.owner_id = :ownerId', { ownerId });
+    if (opts.status === 'active') {
+      qb.andWhere('venue.is_hidden = false');
+    } else if (opts.status === 'hidden') {
+      qb.andWhere('venue.is_hidden = true');
+    }
+    if (opts.search) {
+      qb.andWhere(
+        '(venue.name ILIKE :search OR venue.address ILIKE :search OR venue.city ILIKE :search)',
+        { search: `%${opts.search}%` },
+      );
+    }
+    const venues = await qb.getMany();
+    if (venues.length === 0) {
+      return [];
+    }
+
+    const courts = await this.courtsRepository.find({
+      where: { venueId: In(venues.map((venue) => venue.id)) },
+    });
+    const courtIds = courts.map((court) => court.id);
+    const venueIdByCourtId = new Map(courts.map((court) => [court.id, court.venueId]));
+    const courtsCountByVenue = new Map<string, number>();
+    for (const court of courts) {
+      courtsCountByVenue.set(
+        court.venueId,
+        (courtsCountByVenue.get(court.venueId) ?? 0) + 1,
+      );
+    }
+
+    const bookingsByVenue = new Map<string, number>();
+    const revenueByVenue = new Map<string, number>();
+    if (courtIds.length > 0) {
+      const { start: monthStart, end: monthEnd } = getCurrentMonthRange();
+
+      const bookingRows = await this.bookingsRepository
+        .createQueryBuilder('booking')
+        .select('booking.court_id', 'courtId')
+        .addSelect('COUNT(*)', 'count')
+        .where('booking.court_id IN (:...courtIds)', { courtIds })
+        .andWhere('booking.created_at >= :monthStart', { monthStart })
+        .andWhere('booking.created_at < :monthEnd', { monthEnd })
+        .groupBy('booking.court_id')
+        .getRawMany<{ courtId: string; count: string }>();
+      for (const row of bookingRows) {
+        const venueId = venueIdByCourtId.get(row.courtId);
+        if (!venueId) continue;
+        bookingsByVenue.set(venueId, (bookingsByVenue.get(venueId) ?? 0) + Number(row.count));
+      }
+
+      const revenueRows = await this.paymentsRepository
+        .createQueryBuilder('payment')
+        .innerJoin('bookings', 'booking', 'booking.id::text = payment.booking_id')
+        .select('booking.court_id', 'courtId')
+        .addSelect('SUM(booking.total_price)', 'revenue')
+        .where('booking.court_id IN (:...courtIds)', { courtIds })
+        .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
+        .andWhere('payment.paid_at >= :monthStart', { monthStart })
+        .andWhere('payment.paid_at < :monthEnd', { monthEnd })
+        .groupBy('booking.court_id')
+        .getRawMany<{ courtId: string; revenue: string }>();
+      for (const row of revenueRows) {
+        const venueId = venueIdByCourtId.get(row.courtId);
+        if (!venueId) continue;
+        revenueByVenue.set(venueId, (revenueByVenue.get(venueId) ?? 0) + Number(row.revenue));
+      }
+    }
+
+    const enriched: VenueWithMetrics[] = venues.map((venue) => ({
+      ...venue,
+      courtsCount: courtsCountByVenue.get(venue.id) ?? 0,
+      bookingsThisMonth: bookingsByVenue.get(venue.id) ?? 0,
+      revenueThisMonth: revenueByVenue.get(venue.id) ?? 0,
+    }));
+
+    return this.sortVenues(enriched, opts.sort ?? 'default');
+  }
+
+  private sortVenues<T extends { isDefault: boolean; name: string; createdAt: Date }>(
+    venues: T[],
+    sort: 'default' | 'name' | 'newest',
+  ): T[] {
+    const copy = [...venues];
+    if (sort === 'name') {
+      return copy.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    if (sort === 'newest') {
+      return copy.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }
+    return copy.sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
   }
 }

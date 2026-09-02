@@ -7,6 +7,7 @@ import { VenueImage } from './entities/venue-image.entity';
 import { VenueSlugHistory } from './entities/venue-slug-history.entity';
 import { Court } from './entities/court.entity';
 import { Booking } from '../bookings/entities/booking.entity';
+import { Payment } from '../payments/entities/payment.entity';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -42,6 +43,10 @@ const mockBookingsRepository = () => ({
   createQueryBuilder: jest.fn(),
 });
 
+const mockPaymentsRepository = () => ({
+  createQueryBuilder: jest.fn(),
+});
+
 const mockUsersService = () => ({
   findById: jest.fn(),
 });
@@ -70,6 +75,7 @@ async function buildTestingModule() {
       },
       { provide: getRepositoryToken(Court), useFactory: mockCourtsRepository },
       { provide: getRepositoryToken(Booking), useFactory: mockBookingsRepository },
+      { provide: getRepositoryToken(Payment), useFactory: mockPaymentsRepository },
       { provide: UsersService, useFactory: mockUsersService },
       { provide: NotificationsService, useFactory: mockNotificationsService },
       { provide: DataSource, useFactory: mockDataSource },
@@ -93,6 +99,9 @@ async function buildTestingModule() {
     bookingsRepo: module.get(getRepositoryToken(Booking)) as ReturnType<
       typeof mockBookingsRepository
     >,
+    paymentsRepo: module.get(getRepositoryToken(Payment)) as ReturnType<
+      typeof mockPaymentsRepository
+    >,
     usersService: module.get(UsersService) as ReturnType<
       typeof mockUsersService
     >,
@@ -101,6 +110,26 @@ async function buildTestingModule() {
     >,
     dataSource: module.get(DataSource) as ReturnType<typeof mockDataSource>,
   };
+}
+
+function buildMockQueryBuilder<T>(result: T[]) {
+  const qb: Record<string, jest.Mock> = {};
+  qb.where = jest.fn().mockReturnValue(qb);
+  qb.andWhere = jest.fn().mockReturnValue(qb);
+  qb.getMany = jest.fn().mockResolvedValue(result);
+  return qb;
+}
+
+function buildMockRawQueryBuilder<T>(result: T[]) {
+  const qb: Record<string, jest.Mock> = {};
+  qb.select = jest.fn().mockReturnValue(qb);
+  qb.addSelect = jest.fn().mockReturnValue(qb);
+  qb.innerJoin = jest.fn().mockReturnValue(qb);
+  qb.where = jest.fn().mockReturnValue(qb);
+  qb.andWhere = jest.fn().mockReturnValue(qb);
+  qb.groupBy = jest.fn().mockReturnValue(qb);
+  qb.getRawMany = jest.fn().mockResolvedValue(result);
+  return qb;
 }
 
 describe('VenuesService.create', () => {
@@ -543,6 +572,67 @@ describe('VenuesService.remove', () => {
     await service.remove('owner-1', 'venue-1');
 
     expect(venuesRepo.find).not.toHaveBeenCalled();
+  });
+});
+
+describe('VenuesService.findMineWithMetrics', () => {
+  it('returns venues enriched with courtsCount/bookingsThisMonth/revenueThisMonth', async () => {
+    const { service, venuesRepo, courtsRepo, bookingsRepo, paymentsRepo } =
+      await buildTestingModule();
+    venuesRepo.createQueryBuilder.mockReturnValue(
+      buildMockQueryBuilder([
+        {
+          id: 'venue-1',
+          name: 'A',
+          ownerId: 'owner-1',
+          isDefault: true,
+          createdAt: new Date('2026-01-01'),
+        },
+      ]),
+    );
+    courtsRepo.find.mockResolvedValue([{ id: 'court-1', venueId: 'venue-1' }]);
+    bookingsRepo.createQueryBuilder.mockReturnValue(
+      buildMockRawQueryBuilder([{ courtId: 'court-1', count: '2' }]),
+    );
+    paymentsRepo.createQueryBuilder.mockReturnValue(
+      buildMockRawQueryBuilder([{ courtId: 'court-1', revenue: '300000' }]),
+    );
+
+    const result = await service.findMineWithMetrics('owner-1');
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: 'venue-1',
+        courtsCount: 1,
+        bookingsThisMonth: 2,
+        revenueThisMonth: 300000,
+      }),
+    ]);
+  });
+
+  it('returns an empty array without querying courts/bookings when the owner has no venues', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.createQueryBuilder.mockReturnValue(buildMockQueryBuilder([]));
+
+    const result = await service.findMineWithMetrics('owner-1');
+
+    expect(result).toEqual([]);
+    expect(courtsRepo.find).not.toHaveBeenCalled();
+  });
+
+  it('sorts by name when sort is "name"', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.createQueryBuilder.mockReturnValue(
+      buildMockQueryBuilder([
+        { id: 'venue-b', name: 'B Venue', ownerId: 'owner-1', isDefault: false, createdAt: new Date('2026-01-01') },
+        { id: 'venue-a', name: 'A Venue', ownerId: 'owner-1', isDefault: true, createdAt: new Date('2026-02-01') },
+      ]),
+    );
+    courtsRepo.find.mockResolvedValue([]);
+
+    const result = await service.findMineWithMetrics('owner-1', { sort: 'name' });
+
+    expect(result.map((v) => v.id)).toEqual(['venue-a', 'venue-b']);
   });
 });
 

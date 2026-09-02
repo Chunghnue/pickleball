@@ -18,6 +18,7 @@ import { CourtsService } from './courts.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { AddVenueImageDto } from './dto/add-venue-image.dto';
+import { ListVenuesDto } from './dto/list-venues.dto';
 
 @Controller('venues')
 export class VenuesController {
@@ -36,8 +37,11 @@ export class VenuesController {
   @Get('mine')
   @UseGuards(JwtAuthGuard, OwnerScopeGuard)
   @OwnerScope('full')
-  findMine(@EffectiveOwnerId() effectiveOwnerId: string) {
-    return this.venuesService.findMineByOwner(effectiveOwnerId);
+  findMine(
+    @EffectiveOwnerId() effectiveOwnerId: string,
+    @Query() query: ListVenuesDto,
+  ) {
+    return this.venuesService.findMineWithMetrics(effectiveOwnerId, query);
   }
 
   @Get('mine/courts')
