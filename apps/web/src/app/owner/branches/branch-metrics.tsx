@@ -1,4 +1,4 @@
-import { Building2, CalendarCheck, LayoutGrid, Wallet } from "lucide-react";
+import { Building2, CalendarCheck, MapPin, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatMoney } from "./branch-format";
@@ -47,14 +47,14 @@ export function BranchMetrics({ items }: { items: BranchListItem[] }) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
       <MetricCard icon={Building2} color="blue" label="Chi nhánh" value={String(items.length)} />
-      <MetricCard icon={LayoutGrid} color="purple" label="Tổng sân" value={String(totalCourts)} />
+      <MetricCard icon={MapPin} color="green" label="Tổng sân" value={String(totalCourts)} />
       <MetricCard
         icon={CalendarCheck}
-        color="green"
+        color="amber"
         label="Booking tháng này"
         value={String(totalBookings)}
       />
-      <MetricCard icon={Wallet} color="amber" label="Doanh thu tháng" value={formatMoney(totalRevenue)} />
+      <MetricCard icon={Wallet} color="purple" label="Doanh thu tháng" value={formatMoney(totalRevenue)} />
     </div>
   );
 }

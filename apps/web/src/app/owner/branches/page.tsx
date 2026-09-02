@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { BarChart3, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { filterBranches, sortBranches, countByTab } from "./branch-format";
 import { BranchMetrics } from "./branch-metrics";
@@ -74,14 +74,24 @@ export default function OwnerBranchesPage() {
   return (
     <main className="flex w-full flex-1 flex-col gap-6 bg-muted/30 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Chi nhánh</h1>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
+            <BarChart3 className="size-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Quản lý chi nhánh</h1>
+            <p className="text-sm text-muted-foreground">
+              Theo dõi và quản lý toàn bộ chi nhánh sân thể thao của bạn
+            </p>
+          </div>
+        </div>
         <BranchFormDialog
           mode="create"
           onSaved={loadBranches}
           trigger={
             <Button type="button" className="h-10 gap-2 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700">
               <Plus className="size-4" />
-              Thêm chi nhánh mới
+              Thêm chi nhánh
             </Button>
           }
         />
