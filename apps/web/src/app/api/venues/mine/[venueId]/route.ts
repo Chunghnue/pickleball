@@ -15,6 +15,18 @@ export async function GET(
   return toNextResponse(upstream);
 }
 
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ venueId: string }> },
+) {
+  const { venueId } = await params;
+  const upstream = await fetchApi(`/venues/mine/${venueId}`, { method: 'DELETE' });
+  if (upstream.status === 401) {
+    await clearAuthCookies();
+  }
+  return toNextResponse(upstream);
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ venueId: string }> },
