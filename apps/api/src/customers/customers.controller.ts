@@ -1,35 +1,33 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../users/entities/user.entity';
+import { OwnerScopeGuard } from '../auth/guards/owner-scope.guard';
+import { OwnerScope } from '../auth/decorators/owner-scope.decorator';
+import { EffectiveOwnerId } from '../auth/decorators/effective-owner-id.decorator';
 import { CustomersService } from './customers.service';
 import { ListCustomersDto } from './dto/list-customers.dto';
 
 @Controller('customers')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.OWNER)
+@UseGuards(JwtAuthGuard, OwnerScopeGuard)
+@OwnerScope('operational')
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   @Get('summary')
-  getSummary(@CurrentUser() user: AuthenticatedUser, @Query('venueId') venueId?: string) {
-    return this.customersService.getSummary(user.userId, venueId);
+  getSummary(@EffectiveOwnerId() effectiveOwnerId: string, @Query('venueId') venueId?: string) {
+    return this.customersService.getSummary(effectiveOwnerId, venueId);
   }
 
   @Get()
-  list(@CurrentUser() user: AuthenticatedUser, @Query() query: ListCustomersDto) {
-    return this.customersService.listCustomers(user.userId, query);
+  list(@EffectiveOwnerId() effectiveOwnerId: string, @Query() query: ListCustomersDto) {
+    return this.customersService.listCustomers(effectiveOwnerId, query);
   }
 
   @Get(':kind/:id')
   detail(
-    @CurrentUser() user: AuthenticatedUser,
+    @EffectiveOwnerId() effectiveOwnerId: string,
     @Param('kind') kind: string,
     @Param('id') id: string,
   ) {
-    return this.customersService.getCustomerDetail(user.userId, kind, id);
+    return this.customersService.getCustomerDetail(effectiveOwnerId, kind, id);
   }
 }
