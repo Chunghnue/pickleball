@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, ZoomControl, useMap, useMapEvents } from "react-leaflet";
 
 // Hà Nội — chỉ là điểm neo mặc định khi chưa có toạ độ, không có ý nghĩa nghiệp vụ.
 const DEFAULT_CENTER: [number, number] = [21.0278, 105.8342];
@@ -47,7 +47,13 @@ export default function BranchLocationMap({ latitude, longitude, onChange }: Bra
     latitude !== null && longitude !== null ? [latitude, longitude] : DEFAULT_CENTER;
 
   return (
-    <MapContainer center={center} zoom={13} style={{ height: "220px", width: "100%", borderRadius: "0.75rem" }}>
+    <MapContainer
+      center={center}
+      zoom={13}
+      zoomControl={false}
+      style={{ height: "220px", width: "100%", borderRadius: "0.75rem" }}
+    >
+      <ZoomControl position="topright" />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

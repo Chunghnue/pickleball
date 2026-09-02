@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
-import { Check, CirclePlus, Lightbulb, MapPin, Pencil, Upload, X } from "lucide-react";
+import { Check, CirclePlus, Lightbulb, MapPin, MousePointerClick, Pencil, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -330,30 +330,61 @@ export function BranchFormDialog(props: CreateProps | EditProps) {
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="font-semibold">Vị trí trên bản đồ</Label>
-              <button
-                type="button"
-                onClick={handleUseMyLocation}
-                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
-              >
-                <MapPin className="size-3.5" />
-                Vị trí của tôi
-              </button>
+            <Label className="font-semibold">Vị trí trên bản đồ</Label>
+            <div className="relative overflow-hidden rounded-lg">
+              <div className="pointer-events-none absolute left-3 top-3 z-[1000] flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium shadow-md dark:bg-slate-800">
+                <MousePointerClick className="size-3.5" />
+                Bấm vào bản đồ để chọn vị trí
+              </div>
+              <BranchLocationMap
+                latitude={latitude}
+                longitude={longitude}
+                onChange={(lat, lng) => {
+                  setLatitude(lat);
+                  setLongitude(lng);
+                }}
+              />
             </div>
-            <BranchLocationMap
-              latitude={latitude}
-              longitude={longitude}
-              onChange={(lat, lng) => {
-                setLatitude(lat);
-                setLongitude(lng);
-              }}
-            />
+          </div>
+
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-1.5">
+              <Label className="font-semibold">Latitude</Label>
+              <Input
+                value={latitude !== null ? String(latitude) : ""}
+                placeholder="Chưa chọn"
+                readOnly
+                className="h-9 bg-muted/40"
+              />
+            </div>
+            <div className="flex-1 space-y-1.5">
+              <Label className="font-semibold">Longitude</Label>
+              <Input
+                value={longitude !== null ? String(longitude) : ""}
+                placeholder="Chưa chọn"
+                readOnly
+                className="h-9 bg-muted/40"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleUseMyLocation}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-input px-3 text-sm font-medium hover:bg-muted"
+            >
+              <MapPin className="size-3.5" />
+              Vị trí của tôi
+            </button>
           </div>
 
           <div className="space-y-1.5">
             <Label className="font-semibold">Mô tả</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} autoComplete="off" className="h-9" />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Ghi chú về chi nhánh, dịch vụ đặc biệt..."
+              rows={3}
+              className="w-full resize-none rounded-lg border border-input px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+            />
           </div>
 
           {isEdit && (
@@ -380,7 +411,7 @@ export function BranchFormDialog(props: CreateProps | EditProps) {
             className="h-10 gap-1.5 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
           >
             <Check className="size-4" />
-            {isEdit ? "Cập nhật" : "Tạo chi nhánh"}
+            {isEdit ? "Cập nhật" : "Lưu chi nhánh"}
           </Button>
         </div>
       </DialogContent>
