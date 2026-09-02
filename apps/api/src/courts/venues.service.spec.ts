@@ -775,24 +775,50 @@ describe('VenuesService.findByIdOrThrow', () => {
 });
 
 describe('VenuesService public reads', () => {
-  it('searchPublic without a query returns only active venues', async () => {
+  it('searchPublic without a query returns only active, non-hidden venues', async () => {
     const { service, venuesRepo } = await buildTestingModule();
     venuesRepo.find.mockResolvedValue([{ id: 'venue-1' }]);
 
     const result = await service.searchPublic();
 
     expect(venuesRepo.find).toHaveBeenCalledWith({
-      where: { status: VenueStatus.ACTIVE },
+      where: { status: VenueStatus.ACTIVE, isHidden: false },
     });
     expect(result).toEqual([{ id: 'venue-1' }]);
   });
 
-  it('findPublicById throws NotFoundException for an inactive or missing venue', async () => {
+  it('findPublicById throws NotFoundException for an inactive, hidden, or missing venue', async () => {
     const { service, venuesRepo } = await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue(null);
 
     await expect(service.findPublicById('venue-1')).rejects.toThrow(
       'Venue venue-1 không tồn tại',
+    );
+    expect(venuesRepo.findOne).toHaveBeenCalledWith({
+      where: { id: 'venue-1', status: VenueStatus.ACTIVE, isHidden: false },
+    });
+  });
+});
+
+describe('VenuesService.findPublicBySlug', () => {
+  it('returns the venue for an active, non-hidden slug', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', slug: 'abc' });
+
+    const result = await service.findPublicBySlug('abc');
+
+    expect(venuesRepo.findOne).toHaveBeenCalledWith({
+      where: { slug: 'abc', status: VenueStatus.ACTIVE, isHidden: false },
+    });
+    expect(result.id).toBe('venue-1');
+  });
+
+  it('throws NotFoundException when the slug does not match any active, visible venue', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.findPublicBySlug('missing')).rejects.toThrow(
+      'Venue với slug missing không tồn tại',
     );
   });
 });

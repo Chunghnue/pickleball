@@ -121,6 +121,14 @@ export class VenuesController {
     return this.venuesService.searchPublic(query);
   }
 
+  @Get('by-slug/:slug')
+  async findBySlug(@Param('slug') slug: string) {
+    const venue = await this.venuesService.findPublicBySlug(slug);
+    const courts = await this.courtsService.findActiveByVenue(venue.id);
+    const images = await this.venuesService.findImagesByVenue(venue.id);
+    return { ...venue, courts, images };
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const venue = await this.venuesService.findPublicById(id);

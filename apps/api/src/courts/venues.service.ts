@@ -326,24 +326,34 @@ export class VenuesService {
   searchPublic(query?: string): Promise<Venue[]> {
     if (!query) {
       return this.venuesRepository.find({
-        where: { status: VenueStatus.ACTIVE },
+        where: { status: VenueStatus.ACTIVE, isHidden: false },
       });
     }
     return this.venuesRepository.find({
       where: [
-        { status: VenueStatus.ACTIVE, name: ILike(`%${query}%`) },
-        { status: VenueStatus.ACTIVE, address: ILike(`%${query}%`) },
-        { status: VenueStatus.ACTIVE, city: ILike(`%${query}%`) },
+        { status: VenueStatus.ACTIVE, isHidden: false, name: ILike(`%${query}%`) },
+        { status: VenueStatus.ACTIVE, isHidden: false, address: ILike(`%${query}%`) },
+        { status: VenueStatus.ACTIVE, isHidden: false, city: ILike(`%${query}%`) },
       ],
     });
   }
 
   async findPublicById(id: string): Promise<Venue> {
     const venue = await this.venuesRepository.findOne({
-      where: { id, status: VenueStatus.ACTIVE },
+      where: { id, status: VenueStatus.ACTIVE, isHidden: false },
     });
     if (!venue) {
       throw new NotFoundException(`Venue ${id} không tồn tại`);
+    }
+    return venue;
+  }
+
+  async findPublicBySlug(slug: string): Promise<Venue> {
+    const venue = await this.venuesRepository.findOne({
+      where: { slug, status: VenueStatus.ACTIVE, isHidden: false },
+    });
+    if (!venue) {
+      throw new NotFoundException(`Venue với slug ${slug} không tồn tại`);
     }
     return venue;
   }
