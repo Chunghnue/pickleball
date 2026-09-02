@@ -34,8 +34,15 @@ export interface Venue {
   name: string;
   address: string;
   city: string;
+  district: string | null;
+  slug: string | null;
+  latitude: number | null;
+  longitude: number | null;
   description: string | null;
   phone: string | null;
+  email: string | null;
+  isDefault: boolean;
+  isHidden: boolean;
   status: "pending_approval" | "active" | "rejected";
   images: VenueImage[];
 }
