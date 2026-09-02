@@ -1,7 +1,7 @@
 # Module: Staff Accounts (Quản lý tài khoản nhân viên) — Thiết kế chi tiết
 
 **Ngày:** 2026-08-26
-**Trạng thái:** Chờ review
+**Trạng thái:** Đã duyệt — backend đã triển khai đầy đủ ([plan](../plans/2026-09-02-staff-accounts-module-backend.md)), frontend chưa
 **Thuộc kiến trúc tổng thể:** [2026-08-23-pickleball-platform-architecture-design.md](./2026-08-23-pickleball-platform-architecture-design.md)
 **Nguồn tham khảo:** [docs/spec/09-tai-khoan.md](../../spec/09-tai-khoan.md) (khảo sát UI sanbong.vn thực tế)
 **Sửa đổi:** [2026-08-23-auth-users-module-design.md](./2026-08-23-auth-users-module-design.md) (login theo SĐT, schema `users`, luồng tạo tài khoản không qua verify). Áp dụng **guard mới lên mọi module owner-facing đã duyệt** — xem §4 (không sửa từng file spec riêng lẻ, xem lý do ở đầu §4).
