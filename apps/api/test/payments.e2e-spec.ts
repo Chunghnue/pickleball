@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
-import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
+import { StaffRole, User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../src/courts/entities/court.entity';
 
@@ -201,5 +201,42 @@ describe('Payments (e2e)', () => {
       .set('Authorization', `Bearer ${otherOwner.token}`)
       .send({})
       .expect(404);
+  });
+
+  it('lets a cashier staff mark a booking paid (operational tier)', async () => {
+    const owner = await createActiveUserAndLogin('payowner-staff@test.com', UserRole.OWNER);
+    const { venueId, courtId } = await createActiveVenueAndCourt(owner.userId);
+    const passwordHash = await bcrypt.hash('password123', 10);
+    const usersRepo = dataSource.getRepository(User);
+    await usersRepo.save(
+      usersRepo.create({
+        fullName: 'Cashier',
+        phone: '0911000009',
+        email: null,
+        passwordHash,
+        role: UserRole.STAFF,
+        ownerId: owner.userId,
+        staffRole: StaffRole.CASHIER,
+        status: UserStatus.ACTIVE,
+        emailVerified: false,
+      }),
+    );
+    const cashierLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ identifier: '0911000009', password: 'password123' });
+    const cashierToken = cashierLogin.body.accessToken as string;
+
+    const customer = await createActiveUserAndLogin('paycustomer-staff@test.com', UserRole.CUSTOMER);
+    const bookingResponse = await request(app.getHttpServer())
+      .post('/bookings')
+      .set('Authorization', `Bearer ${customer.token}`)
+      .send({ courtId, date: '2099-04-01', startTime: '08:00', endTime: '09:00' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/venues/mine/${venueId}/bookings/${bookingResponse.body.id}/payment/mark-paid`)
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .send({ note: 'Tiền mặt' })
+      .expect(201);
   });
 });
