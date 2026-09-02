@@ -58,7 +58,9 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
       toast.error("Vui lòng nhập họ tên và số điện thoại");
       return;
     }
-    if (!isEdit && password.trim().length < 6) {
+    const trimmedPassword = password.trim();
+    const changingPassword = isEdit && trimmedPassword.length > 0;
+    if ((!isEdit || changingPassword) && trimmedPassword.length < 6) {
       toast.error("Mật khẩu tối thiểu 6 ký tự");
       return;
     }
@@ -76,7 +78,7 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
           phone: phone.trim(),
           email: email.trim() || undefined,
           staffRole,
-          password,
+          password: trimmedPassword,
         };
     const response = await fetch(isEdit ? `/api/staff/${staff!.id}` : "/api/staff", {
       method: isEdit ? "PATCH" : "POST",
@@ -84,8 +86,8 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
       body: JSON.stringify(body),
     });
     const data = await response.json().catch(() => null);
-    setSubmitting(false);
     if (!response.ok) {
+      setSubmitting(false);
       toast.error(getSubmitErrorMessage(response, data));
       if (isEdit && response.status === 404) {
         onSaved();
@@ -93,6 +95,31 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
       }
       return;
     }
+
+    // PATCH /staff/:id deliberately doesn't accept a password (backend
+    // spec §5) — an edited password goes through the same reset-password
+    // endpoint the row's key icon uses, as a second call after the info
+    // update succeeds.
+    if (changingPassword) {
+      const pwResponse = await fetch(`/api/staff/${staff!.id}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword: trimmedPassword }),
+      });
+      setSubmitting(false);
+      if (!pwResponse.ok) {
+        const pwData = await pwResponse.json().catch(() => null);
+        toast.error(
+          `Đã cập nhật thông tin nhưng đổi mật khẩu thất bại: ${getSubmitErrorMessage(pwResponse, pwData)}`,
+        );
+        onSaved();
+        setOpen(false);
+        return;
+      }
+    } else {
+      setSubmitting(false);
+    }
+
     toast.success(isEdit ? "Đã cập nhật nhân viên" : "Đã thêm nhân viên");
     onSaved();
     setOpen(false);
@@ -165,21 +192,27 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
                 ))}
               </select>
             </div>
-            {!isEdit && (
-              <div className="space-y-1.5">
-                <Label className="font-semibold">
-                  Mật khẩu <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                  className="h-9"
-                />
-                <p className="text-xs text-muted-foreground">Tối thiểu 6 ký tự</p>
-              </div>
-            )}
+            <div className="space-y-1.5">
+              <Label className="font-semibold">
+                {isEdit ? (
+                  "Mật khẩu mới (tùy chọn)"
+                ) : (
+                  <>
+                    Mật khẩu <span className="text-destructive">*</span>
+                  </>
+                )}
+              </Label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                className="h-9"
+              />
+              <p className="text-xs text-muted-foreground">
+                {isEdit ? "Để trống nếu không đổi mật khẩu" : "Tối thiểu 6 ký tự"}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -194,7 +227,7 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
             className="h-10 gap-1.5 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
           >
             <Check className="size-4" />
-            {isEdit ? "Lưu" : "Tạo"}
+            {isEdit ? "Cập nhật" : "Tạo"}
           </Button>
         </div>
       </DialogContent>
