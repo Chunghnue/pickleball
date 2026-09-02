@@ -35,7 +35,7 @@ describe('Password reset (e2e)', () => {
     await registerAndVerify('reset-me@test.com', 'oldpassword1');
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'reset-me@test.com', password: 'oldpassword1' });
+      .send({ identifier: 'reset-me@test.com', password: 'oldpassword1' });
     const oldRefreshToken = loginResponse.body.refreshToken as string;
 
     await request(app.getHttpServer())
@@ -51,12 +51,12 @@ describe('Password reset (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'reset-me@test.com', password: 'oldpassword1' })
+      .send({ identifier: 'reset-me@test.com', password: 'oldpassword1' })
       .expect(401);
 
     await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'reset-me@test.com', password: 'newpassword1' })
+      .send({ identifier: 'reset-me@test.com', password: 'newpassword1' })
       .expect(201);
 
     await request(app.getHttpServer())

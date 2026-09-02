@@ -45,7 +45,7 @@ describe('Disputes (e2e)', () => {
     );
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email, password: 'password123' });
+      .send({ identifier: email, password: 'password123' });
     return { user, token: loginResponse.body.accessToken as string };
   }
 

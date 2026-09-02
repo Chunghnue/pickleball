@@ -43,7 +43,7 @@ describe('Recurring schedule auto-renewal (e2e)', () => {
     );
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'owner@test.com', password: 'password123' });
+      .send({ identifier: 'owner@test.com', password: 'password123' });
     const token = loginResponse.body.accessToken as string;
 
     const venuesRepo = dataSource.getRepository(Venue);

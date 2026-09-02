@@ -39,7 +39,7 @@ describe('GET /venues/mine/courts (e2e)', () => {
     );
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'owner@test.com', password: 'password123' });
+      .send({ identifier: 'owner@test.com', password: 'password123' });
     return { ownerId: owner.id, token: loginResponse.body.accessToken as string };
   }
 

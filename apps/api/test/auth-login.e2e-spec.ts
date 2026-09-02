@@ -39,7 +39,7 @@ describe('POST /auth/login (e2e)', () => {
 
     const response = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'login-me@test.com', password: 'password123' })
+      .send({ identifier: 'login-me@test.com', password: 'password123' })
       .expect(201);
 
     expect(typeof response.body.accessToken).toBe('string');
@@ -51,14 +51,14 @@ describe('POST /auth/login (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'wrong-pass@test.com', password: 'nope-nope-nope' })
+      .send({ identifier: 'wrong-pass@test.com', password: 'nope-nope-nope' })
       .expect(401);
   });
 
   it('rejects an unknown email with 401', async () => {
     await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'nobody@test.com', password: 'password123' })
+      .send({ identifier: 'nobody@test.com', password: 'password123' })
       .expect(401);
   });
 
@@ -71,7 +71,7 @@ describe('POST /auth/login (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'unverified@test.com', password: 'password123' })
+      .send({ identifier: 'unverified@test.com', password: 'password123' })
       .expect(403);
   });
 
@@ -90,7 +90,7 @@ describe('POST /auth/login (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'pending-owner@test.com', password: 'password123' })
+      .send({ identifier: 'pending-owner@test.com', password: 'password123' })
       .expect(403);
   });
 

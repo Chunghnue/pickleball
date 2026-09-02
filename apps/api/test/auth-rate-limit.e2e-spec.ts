@@ -19,7 +19,7 @@ describe('Auth rate limiting (e2e)', () => {
 
   it('returns 429 after exceeding the login rate limit', async () => {
     const payload = {
-      email: 'rate-limit@test.com',
+      identifier: 'rate-limit@test.com',
       password: 'wrong-password',
     };
 

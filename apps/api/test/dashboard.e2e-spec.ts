@@ -26,6 +26,8 @@ describe('Owner dashboard summary (e2e)', () => {
     await app.close();
   });
 
+  let phoneCounter = 0;
+
   async function createUser(
     email: string,
     role: UserRole,
@@ -33,12 +35,13 @@ describe('Owner dashboard summary (e2e)', () => {
   ): Promise<User> {
     const passwordHash = await bcrypt.hash('password123', 10);
     const repo = dataSource.getRepository(User);
+    phoneCounter += 1;
     return repo.save(
       repo.create({
         email,
         passwordHash,
         fullName: `User ${email}`,
-        phone: '0900000000',
+        phone: `090${String(phoneCounter).padStart(7, '0')}`,
         role,
         status,
         emailVerified: true,
@@ -49,7 +52,7 @@ describe('Owner dashboard summary (e2e)', () => {
   async function loginAs(email: string): Promise<string> {
     const response = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email, password: 'password123' });
+      .send({ identifier: email, password: 'password123' });
     return response.body.accessToken as string;
   }
 

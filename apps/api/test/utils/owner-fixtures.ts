@@ -9,6 +9,8 @@ import { Booking, BookingStatus } from '../../src/bookings/entities/booking.enti
 import { Payment, PaymentStatus } from '../../src/payments/entities/payment.entity';
 import { CustomerContact } from '../../src/customer-contacts/entities/customer-contact.entity';
 
+let userFixturePhoneCounter = 0;
+
 export async function createUser(
   ds: DataSource,
   email: string,
@@ -17,12 +19,13 @@ export async function createUser(
 ): Promise<User> {
   const passwordHash = await bcrypt.hash('password123', 10);
   const repo = ds.getRepository(User);
+  userFixturePhoneCounter += 1;
   return repo.save(
     repo.create({
       email,
       passwordHash,
       fullName: `User ${email}`,
-      phone: '0900000000',
+      phone: `090${String(userFixturePhoneCounter).padStart(7, '0')}`,
       role,
       status,
       emailVerified: true,
@@ -33,7 +36,7 @@ export async function createUser(
 export async function loginAs(app: INestApplication, email: string): Promise<string> {
   const res = await request(app.getHttpServer())
     .post('/auth/login')
-    .send({ email, password: 'password123' });
+    .send({ identifier: email, password: 'password123' });
   return res.body.accessToken as string;
 }
 

@@ -49,11 +49,11 @@ describe('Booking price uses pricing rules (e2e)', () => {
     );
     const ownerLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'owner@test.com', password: 'password123' });
+      .send({ identifier: 'owner@test.com', password: 'password123' });
     const ownerToken = ownerLogin.body.accessToken as string;
     const customerLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'customer@test.com', password: 'password123' });
+      .send({ identifier: 'customer@test.com', password: 'password123' });
     const customerToken = customerLogin.body.accessToken as string;
 
     const venuesRepo = dataSource.getRepository(Venue);

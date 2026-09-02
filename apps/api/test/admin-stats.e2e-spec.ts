@@ -48,7 +48,7 @@ describe('Admin platform stats (e2e)', () => {
   async function loginAs(email: string): Promise<string> {
     const response = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email, password: 'password123' });
+      .send({ identifier: email, password: 'password123' });
     return response.body.accessToken as string;
   }
 

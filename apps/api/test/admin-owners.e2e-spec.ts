@@ -38,7 +38,7 @@ describe('Admin owner approval (e2e)', () => {
     );
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@test.com', password: 'adminpass123' });
+      .send({ identifier: 'admin@test.com', password: 'adminpass123' });
     return loginResponse.body.accessToken as string;
   }
 
@@ -85,7 +85,7 @@ describe('Admin owner approval (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'approve-me@test.com', password: 'password123' })
+      .send({ identifier: 'approve-me@test.com', password: 'password123' })
       .expect(201);
   });
 
@@ -104,7 +104,7 @@ describe('Admin owner approval (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'reject-me@test.com', password: 'password123' })
+      .send({ identifier: 'reject-me@test.com', password: 'password123' })
       .expect(403);
   });
 
@@ -122,7 +122,7 @@ describe('Admin owner approval (e2e)', () => {
       .query({ token: call![1] });
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'customer@test.com', password: 'password123' });
+      .send({ identifier: 'customer@test.com', password: 'password123' });
 
     await request(app.getHttpServer())
       .get('/admin/owners/pending')

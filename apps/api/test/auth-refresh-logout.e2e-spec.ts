@@ -30,7 +30,7 @@ describe('POST /auth/refresh and /auth/logout (e2e)', () => {
       .query({ token: call![1] });
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email, password });
+      .send({ identifier: email, password });
     return loginResponse.body as { accessToken: string; refreshToken: string };
   }
 
