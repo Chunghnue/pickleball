@@ -59,7 +59,14 @@ export default function OwnerAccountsPage() {
   return (
     <main className="flex w-full flex-1 flex-col gap-6 bg-muted/30 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Tài khoản</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Quản lý tài khoản</h1>
+          {allItems && (
+            <p className="text-sm text-muted-foreground">
+              Tổng {allItems.length} tài khoản · {counts.owner} chủ sân
+            </p>
+          )}
+        </div>
         <StaffFormDialog
           mode="create"
           onSaved={loadStaff}

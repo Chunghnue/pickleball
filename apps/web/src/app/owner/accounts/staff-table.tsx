@@ -1,43 +1,11 @@
 import { useState } from "react";
-import { Ban, KeyRound, Pencil } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { KeyRound, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { avatarColor, avatarInitials, roleBadgeClasses, roleLabel } from "./staff-format";
 import { StaffFormDialog } from "./staff-form-dialog";
 import { ResetPasswordDialog } from "./reset-password-dialog";
 import { DeactivateStaffDialog } from "./deactivate-staff-dialog";
-import type { AccountStatus, StaffListItem } from "./types";
-
-const STATUS_META: Record<AccountStatus, { label: string; cls: string }> = {
-  active: {
-    label: "Hoạt động",
-    cls: "bg-green-100 text-green-600 dark:bg-green-950/40 dark:text-green-400",
-  },
-  suspended: {
-    label: "Đã khoá",
-    cls: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-  },
-  pending_verification: {
-    label: "Chờ xác thực",
-    cls: "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
-  },
-  pending_approval: {
-    label: "Chờ duyệt",
-    cls: "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
-  },
-  rejected: {
-    label: "Bị từ chối",
-    cls: "bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400",
-  },
-};
+import type { StaffListItem } from "./types";
 
 export function StaffTable({
   items,
@@ -46,77 +14,58 @@ export function StaffTable({
   items: StaffListItem[];
   onSaved: () => void;
 }) {
+  if (items.length === 0) {
+    return (
+      <div className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">
+        Chưa có tài khoản nào.
+      </div>
+    );
+  }
+
   return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/60 hover:bg-muted/60">
-              <TableHead>TÀI KHOẢN</TableHead>
-              <TableHead>SĐT</TableHead>
-              <TableHead>EMAIL</TableHead>
-              <TableHead>VAI TRÒ</TableHead>
-              <TableHead>TRẠNG THÁI</TableHead>
-              <TableHead className="text-right"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  Chưa có tài khoản nào.
-                </TableCell>
-              </TableRow>
-            )}
-            {items.map((item) => (
-              <StaffRow key={item.id} item={item} onSaved={onSaved} />
-            ))}
-          </TableBody>
-        </Table>
-        <div className="border-t px-4 py-3 text-sm text-muted-foreground">
-          {items.length} tài khoản
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-3">
+      {items.map((item) => (
+        <StaffRow key={item.id} item={item} onSaved={onSaved} />
+      ))}
+    </div>
   );
 }
 
 function StaffRow({ item, onSaved }: { item: StaffListItem; onSaved: () => void }) {
   const [resetOpen, setResetOpen] = useState(false);
   const [deactivateOpen, setDeactivateOpen] = useState(false);
-  const status = STATUS_META[item.status];
 
   return (
-    <TableRow>
-      <TableCell>
-        <div className="flex items-center gap-2.5">
-          <span
-            className={`flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${avatarColor(item.fullName)}`}
-          >
-            {avatarInitials(item.fullName)}
-          </span>
-          <span className="font-semibold">{item.fullName}</span>
-        </div>
-      </TableCell>
-      <TableCell>{item.phone ?? "—"}</TableCell>
-      <TableCell>{item.email ?? "—"}</TableCell>
-      <TableCell>
+    <div className="flex items-center justify-between rounded-xl border bg-card px-5 py-4">
+      <div className="flex items-center gap-3">
         <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${roleBadgeClasses(item)}`}
+          className={`flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${avatarColor(item.fullName)}`}
+        >
+          {avatarInitials(item.fullName)}
+        </span>
+        <div>
+          <p className="font-semibold">{item.fullName}</p>
+          <p className="text-sm text-muted-foreground">
+            {item.phone ?? "—"}
+            {item.email && <> · {item.email}</>}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        {item.status === "suspended" && (
+          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            Đã khoá
+          </span>
+        )}
+        <span
+          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${roleBadgeClasses(item)}`}
         >
           {roleLabel(item)}
         </span>
-      </TableCell>
-      <TableCell>
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${status.cls}`}
-        >
-          {status.label}
-        </span>
-      </TableCell>
-      <TableCell className="text-right">
-        {item.role === "staff" && (
-          <div className="flex justify-end gap-1.5">
+
+        {item.role === "staff" ? (
+          <div className="flex gap-1.5">
             <StaffFormDialog
               mode="edit"
               staff={item}
@@ -126,7 +75,7 @@ function StaffRow({ item, onSaved }: { item: StaffListItem; onSaved: () => void 
                   variant="outline"
                   size="icon-sm"
                   aria-label="Sửa nhân viên"
-                  className="border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/40"
+                  className="text-muted-foreground hover:bg-muted"
                 >
                   <Pencil className="size-3.5" />
                 </Button>
@@ -158,7 +107,7 @@ function StaffRow({ item, onSaved }: { item: StaffListItem; onSaved: () => void 
                   onClick={() => setDeactivateOpen(true)}
                   className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
                 >
-                  <Ban className="size-3.5" />
+                  <Trash2 className="size-3.5" />
                 </Button>
                 <DeactivateStaffDialog
                   open={deactivateOpen}
@@ -170,8 +119,10 @@ function StaffRow({ item, onSaved }: { item: StaffListItem; onSaved: () => void 
               </>
             )}
           </div>
+        ) : (
+          <span className="w-[72px] text-center text-muted-foreground">—</span>
         )}
-      </TableCell>
-    </TableRow>
+      </div>
+    </div>
   );
 }

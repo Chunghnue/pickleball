@@ -42,10 +42,10 @@ export function roleLabel(item: Pick<StaffListItem, "role" | "staffRole">): stri
 }
 
 const ROLE_BADGE_CLASSES: Record<AccountRole, string> = {
-  owner: "bg-purple-100 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400",
-  manager: "bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400",
-  cashier: "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
-  staff: "bg-green-100 text-green-600 dark:bg-green-950/40 dark:text-green-400",
+  owner: "bg-red-600 text-white dark:bg-red-700",
+  manager: "bg-blue-600 text-white dark:bg-blue-700",
+  cashier: "bg-green-600 text-white dark:bg-green-700",
+  staff: "bg-slate-500 text-white dark:bg-slate-600",
 };
 
 export function roleBadgeClasses(item: Pick<StaffListItem, "role" | "staffRole">): string {
