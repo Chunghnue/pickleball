@@ -15,6 +15,9 @@ import { getSubmitErrorMessage } from "@/lib/error-message";
 
 const ROLE_HOME: Record<string, string> = {
   customer: "/me",
+  // Staff accounts (manager/cashier/staff) share the owner's /owner/*
+  // section — there's no separate staff area.
+  staff: "/owner/dashboard",
   owner: "/owner/dashboard",
   admin: "/admin/approvals",
 };
