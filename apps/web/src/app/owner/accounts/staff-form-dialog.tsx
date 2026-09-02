@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Check, Mail, Phone, User, UserPlus, X } from "lucide-react";
+import { Check, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,7 +102,7 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger} />
       <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
-        <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 to-cyan-400 px-6 py-4">
+        <div className="flex items-center justify-between bg-blue-600 px-6 py-4">
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-white">
             <UserPlus className="size-5 text-white" />
             {isEdit ? "Sửa nhân viên" : "Thêm nhân viên"}
@@ -118,45 +118,34 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
               <Label className="font-semibold">
                 Họ và tên <span className="text-destructive">*</span>
               </Label>
-              <div className="flex items-center gap-2 rounded-lg border border-input px-2.5">
-                <User className="size-4 shrink-0 text-muted-foreground" />
-                <Input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Nguyễn Văn A"
-                  className="h-9 border-0 px-0 focus-visible:ring-0"
-                />
-              </div>
+              <Input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="h-9"
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="font-semibold">
                 Số điện thoại <span className="text-destructive">*</span>
               </Label>
-              <div className="flex items-center gap-2 rounded-lg border border-input px-2.5">
-                <Phone className="size-4 shrink-0 text-muted-foreground" />
-                <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0901 234 567"
-                  className="h-9 border-0 px-0 focus-visible:ring-0"
-                />
-              </div>
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="h-9"
+              />
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <Label className="font-semibold">Email</Label>
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-9"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="font-semibold">Email</Label>
-              <div className="flex items-center gap-2 rounded-lg border border-input px-2.5">
-                <Mail className="size-4 shrink-0 text-muted-foreground" />
-                <Input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                  className="h-9 border-0 px-0 focus-visible:ring-0"
-                />
-              </div>
-            </div>
             <div className="space-y-1.5">
               <Label className="font-semibold">
                 Vai trò <span className="text-destructive">*</span>
@@ -173,22 +162,21 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
                 ))}
               </select>
             </div>
+            {!isEdit && (
+              <div className="space-y-1.5">
+                <Label className="font-semibold">
+                  Mật khẩu <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-9"
+                />
+                <p className="text-xs text-muted-foreground">Tối thiểu 6 ký tự</p>
+              </div>
+            )}
           </div>
-
-          {!isEdit && (
-            <div className="space-y-1.5">
-              <Label className="font-semibold">
-                Mật khẩu <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Tối thiểu 6 ký tự"
-                className="h-9"
-              />
-            </div>
-          )}
         </div>
 
         <div className="flex justify-end gap-2 border-t px-6 py-4">
@@ -202,7 +190,7 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
             className="h-10 gap-1.5 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
           >
             <Check className="size-4" />
-            Lưu
+            {isEdit ? "Lưu" : "Tạo"}
           </Button>
         </div>
       </DialogContent>
