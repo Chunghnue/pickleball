@@ -48,6 +48,24 @@ export class Venue {
   @Column({ nullable: true, type: 'varchar' })
   phone: string | null;
 
+  @Column({ nullable: true, type: 'varchar' })
+  slug: string | null;
+
+  @Column({ nullable: true, type: 'varchar' })
+  district: string | null;
+
+  @Column({ type: 'double precision', nullable: true })
+  latitude: number | null;
+
+  @Column({ type: 'double precision', nullable: true })
+  longitude: number | null;
+
+  @Column({ nullable: true, type: 'varchar' })
+  email: string | null;
+
+  @Column({ name: 'is_hidden', default: false })
+  isHidden: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

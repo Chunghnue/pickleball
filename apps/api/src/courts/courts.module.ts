@@ -5,6 +5,7 @@ import { VenueImage } from './entities/venue-image.entity';
 import { Court } from './entities/court.entity';
 import { CourtImage } from './entities/court-image.entity';
 import { Booking } from '../bookings/entities/booking.entity';
+import { VenueSlugHistory } from './entities/venue-slug-history.entity';
 import { VenuesService } from './venues.service';
 import { CourtsService } from './courts.service';
 import { VenuesController } from './venues.controller';
@@ -15,7 +16,7 @@ import { PricingModule } from '../pricing/pricing.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Venue, VenueImage, Court, CourtImage, Booking]),
+    TypeOrmModule.forFeature([Venue, VenueImage, Court, CourtImage, Booking, VenueSlugHistory]),
     UsersModule,
     NotificationsModule,
     PricingModule,
