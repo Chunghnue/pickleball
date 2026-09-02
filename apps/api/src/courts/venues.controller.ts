@@ -10,11 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../users/entities/user.entity';
+import { OwnerScopeGuard } from '../auth/guards/owner-scope.guard';
+import { OwnerScope } from '../auth/decorators/owner-scope.decorator';
+import { EffectiveOwnerId } from '../auth/decorators/effective-owner-id.decorator';
 import { VenuesService } from './venues.service';
 import { CourtsService } from './courts.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
@@ -29,69 +27,69 @@ export class VenuesController {
   ) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER)
-  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateVenueDto) {
-    return this.venuesService.create(user.userId, dto);
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
+  create(@EffectiveOwnerId() effectiveOwnerId: string, @Body() dto: CreateVenueDto) {
+    return this.venuesService.create(effectiveOwnerId, dto);
   }
 
   @Get('mine')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER)
-  findMine(@CurrentUser() user: AuthenticatedUser) {
-    return this.venuesService.findMineByOwner(user.userId);
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
+  findMine(@EffectiveOwnerId() effectiveOwnerId: string) {
+    return this.venuesService.findMineByOwner(effectiveOwnerId);
   }
 
   @Get('mine/courts')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER)
-  findAllMineCourts(@CurrentUser() user: AuthenticatedUser) {
-    return this.courtsService.findAllForOwner(user.userId);
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
+  findAllMineCourts(@EffectiveOwnerId() effectiveOwnerId: string) {
+    return this.courtsService.findAllForOwner(effectiveOwnerId);
   }
 
   @Get('mine/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER)
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
   async findMineById(
-    @CurrentUser() user: AuthenticatedUser,
+    @EffectiveOwnerId() effectiveOwnerId: string,
     @Param('id') id: string,
   ) {
-    const venue = await this.venuesService.findMineById(user.userId, id);
+    const venue = await this.venuesService.findMineById(effectiveOwnerId, id);
     const images = await this.venuesService.findImagesByVenue(id);
     return { ...venue, images };
   }
 
   @Patch('mine/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER)
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
   update(
-    @CurrentUser() user: AuthenticatedUser,
+    @EffectiveOwnerId() effectiveOwnerId: string,
     @Param('id') id: string,
     @Body() dto: UpdateVenueDto,
   ) {
-    return this.venuesService.update(user.userId, id, dto);
+    return this.venuesService.update(effectiveOwnerId, id, dto);
   }
 
   @Post('mine/:id/images')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER)
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
   addImage(
-    @CurrentUser() user: AuthenticatedUser,
+    @EffectiveOwnerId() effectiveOwnerId: string,
     @Param('id') id: string,
     @Body() dto: AddVenueImageDto,
   ) {
-    return this.venuesService.addImage(user.userId, id, dto);
+    return this.venuesService.addImage(effectiveOwnerId, id, dto);
   }
 
   @Delete('mine/:id/images/:imageId')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER)
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
   removeImage(
-    @CurrentUser() user: AuthenticatedUser,
+    @EffectiveOwnerId() effectiveOwnerId: string,
     @Param('id') id: string,
     @Param('imageId') imageId: string,
   ) {
-    return this.venuesService.removeImage(user.userId, id, imageId);
+    return this.venuesService.removeImage(effectiveOwnerId, id, imageId);
   }
 
   @Get()

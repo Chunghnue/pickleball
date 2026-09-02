@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { createTestApp, clearDatabase } from './utils/test-app';
-import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
+import { StaffRole, User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../src/courts/entities/court.entity';
 
@@ -82,5 +82,33 @@ describe('GET /venues/mine/courts (e2e)', () => {
       name: 'Sân 1',
       venueName: 'Sân ABC',
     });
+  });
+
+  it('rejects a cashier staff from creating a venue (full tier only)', async () => {
+    const { ownerId } = await createOwnerAndLogin();
+    const passwordHash = await bcrypt.hash('password123', 10);
+    const usersRepo = dataSource.getRepository(User);
+    await usersRepo.save(
+      usersRepo.create({
+        fullName: 'Cashier',
+        phone: '0911000011',
+        email: null,
+        passwordHash,
+        role: UserRole.STAFF,
+        ownerId,
+        staffRole: StaffRole.CASHIER,
+        status: UserStatus.ACTIVE,
+        emailVerified: false,
+      }),
+    );
+    const cashierLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ identifier: '0911000011', password: 'password123' });
+
+    await request(app.getHttpServer())
+      .post('/venues')
+      .set('Authorization', `Bearer ${cashierLogin.body.accessToken}`)
+      .send({ name: 'Sân X', address: '1 Đường A', city: 'HCM' })
+      .expect(403);
   });
 });
