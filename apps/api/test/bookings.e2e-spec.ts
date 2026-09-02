@@ -1,9 +1,10 @@
 import { INestApplication } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
-import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
+import { StaffRole, User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../src/courts/entities/court.entity';
 import { Booking } from '../src/bookings/entities/booking.entity';
@@ -272,5 +273,53 @@ describe('Bookings (e2e)', () => {
 
     expect(response.body).toHaveLength(1);
     expect(response.body[0]).toMatchObject({ courtId, date: '2099-01-04' });
+  });
+
+  it('lets a cashier staff create and cancel an owner-facing booking (operational tier)', async () => {
+    const owner = await createActiveUserAndLogin('bookingsowner-staff@test.com', UserRole.OWNER);
+    const { venueId, courtId } = await createActiveVenueAndCourt(owner.userId);
+    const passwordHash = await bcrypt.hash('password123', 10);
+    const usersRepo = dataSource.getRepository(User);
+    const cashier = await usersRepo.save(
+      usersRepo.create({
+        fullName: 'Cashier',
+        phone: '0911000010',
+        email: null,
+        passwordHash,
+        role: UserRole.STAFF,
+        ownerId: owner.userId,
+        staffRole: StaffRole.CASHIER,
+        status: UserStatus.ACTIVE,
+        emailVerified: false,
+      }),
+    );
+    // Signs the JWT directly instead of going through /auth/login — that
+    // endpoint is throttled to 10 req/60s and this file's other tests
+    // already use the full budget; login-by-phone itself is covered by
+    // staff.e2e-spec.ts.
+    const jwtService = app.get(JwtService);
+    const cashierToken = await jwtService.signAsync({
+      sub: cashier.id,
+      role: UserRole.STAFF,
+      ownerId: owner.userId,
+      staffRole: StaffRole.CASHIER,
+    });
+
+    const createResponse = await request(app.getHttpServer())
+      .post(`/venues/mine/${venueId}/bookings`)
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .send({
+        courtId,
+        date: '2099-03-01',
+        startTime: '08:00',
+        endTime: '09:00',
+        newCustomer: { fullName: 'Khách vãng lai', phone: '0922000001' },
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/venues/mine/${venueId}/bookings/${createResponse.body.id}/cancel`)
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .expect(201);
   });
 });

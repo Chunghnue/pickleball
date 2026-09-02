@@ -12,6 +12,9 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
+import { OwnerScopeGuard } from '../auth/guards/owner-scope.guard';
+import { OwnerScope } from '../auth/decorators/owner-scope.decorator';
+import { EffectiveOwnerId } from '../auth/decorators/effective-owner-id.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -56,40 +59,40 @@ export class BookingsController {
   }
 
   @Get('venues/mine/:venueId/bookings')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER)
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('operational')
   findForVenue(
-    @CurrentUser() user: AuthenticatedUser,
+    @EffectiveOwnerId() effectiveOwnerId: string,
     @Param('venueId') venueId: string,
     @Query('date') date?: string,
     @Query('courtId') courtId?: string,
   ) {
-    return this.bookingsService.findByVenueForOwner(user.userId, venueId, {
+    return this.bookingsService.findByVenueForOwner(effectiveOwnerId, venueId, {
       date,
       courtId,
     });
   }
 
   @Post('venues/mine/:venueId/bookings')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER)
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('operational')
   createForVenue(
-    @CurrentUser() user: AuthenticatedUser,
+    @EffectiveOwnerId() effectiveOwnerId: string,
     @Param('venueId') venueId: string,
     @Body() dto: CreateOwnerBookingDto,
   ) {
-    return this.bookingsService.createForOwner(user.userId, venueId, dto);
+    return this.bookingsService.createForOwner(effectiveOwnerId, venueId, dto);
   }
 
   @Post('venues/mine/:venueId/bookings/:id/cancel')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.OWNER)
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('operational')
   cancelForVenue(
-    @CurrentUser() user: AuthenticatedUser,
+    @EffectiveOwnerId() effectiveOwnerId: string,
     @Param('venueId') venueId: string,
     @Param('id') id: string,
   ) {
-    return this.bookingsService.cancelByOwner(user.userId, venueId, id);
+    return this.bookingsService.cancelByOwner(effectiveOwnerId, venueId, id);
   }
 
   @Get('bookings/availability')
