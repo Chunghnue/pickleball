@@ -428,6 +428,27 @@ describe('VenuesService.update — slug', () => {
     });
   });
 
+  it('allows the first-ever slug change even if the venue itself was just updated', async () => {
+    const { service, venuesRepo, slugHistoryRepo, dataSource } = await buildTestingModule();
+    venuesRepo.findOne
+      .mockResolvedValueOnce({
+        id: 'venue-1',
+        ownerId: 'owner-1',
+        slug: 'old-slug',
+        updatedAt: FIXED_NOW,
+      })
+      .mockResolvedValueOnce(null);
+    slugHistoryRepo.count.mockResolvedValue(0);
+    slugHistoryRepo.findOne.mockResolvedValue(null);
+    venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+    const manager = { insert: jest.fn().mockResolvedValue(undefined) };
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    const result = await service.update('owner-1', 'venue-1', { slug: 'new-slug' });
+
+    expect(result.slug).toBe('new-slug');
+  });
+
   it('does nothing slug-related when the slug is unchanged', async () => {
     const { service, venuesRepo, slugHistoryRepo } = await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue({

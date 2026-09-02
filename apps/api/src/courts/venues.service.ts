@@ -151,11 +151,12 @@ export class VenuesService {
       where: { venueId: venue.id },
       order: { changedAt: 'DESC' },
     });
-    const lastChangeAt = lastChange?.changedAt ?? venue.updatedAt;
-    const cutoff60 = new Date();
-    cutoff60.setDate(cutoff60.getDate() - 60);
-    if (lastChangeAt > cutoff60) {
-      throw new BadRequestException('Cần đợi đủ 60 ngày kể từ lần đổi trước');
+    if (lastChange) {
+      const cutoff60 = new Date();
+      cutoff60.setDate(cutoff60.getDate() - 60);
+      if (lastChange.changedAt > cutoff60) {
+        throw new BadRequestException('Cần đợi đủ 60 ngày kể từ lần đổi trước');
+      }
     }
 
     await this.dataSource.transaction(async (manager) => {
