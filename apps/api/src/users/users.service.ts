@@ -90,14 +90,16 @@ export class UsersService {
     }
     user.status = nextStatus;
     const saved = await this.usersRepository.save(user);
+    // this method only ever transitions role='owner' accounts (checked above),
+    // which always register with email — only staff accounts can be null.
     if (nextStatus === UserStatus.ACTIVE) {
       await this.notificationsService.notifyOwnerApproved({
-        to: saved.email,
+        to: saved.email!,
         fullName: saved.fullName,
       });
     } else {
       await this.notificationsService.notifyOwnerRejected({
-        to: saved.email,
+        to: saved.email!,
         fullName: saved.fullName,
         reason,
       });

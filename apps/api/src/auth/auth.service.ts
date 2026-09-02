@@ -74,9 +74,11 @@ export class AuthService {
         expiresAt,
       }),
     );
-    await this.mailService.sendVerificationEmail(user.email, raw);
+    // customer/owner registration always supplies email (RegisterDto requires it) —
+    // only staff accounts (created via /staff, never through this flow) can be null.
+    await this.mailService.sendVerificationEmail(user.email!, raw);
 
-    return { id: user.id, email: user.email };
+    return { id: user.id, email: user.email! };
   }
 
   async verifyEmail(rawToken: string): Promise<{ status: UserStatus }> {
@@ -211,7 +213,8 @@ export class AuthService {
         expiresAt,
       }),
     );
-    await this.mailService.sendPasswordResetEmail(user.email, raw);
+    // found via findByEmail(email), so user.email is that same non-null string
+    await this.mailService.sendPasswordResetEmail(user.email!, raw);
   }
 
   async resetPassword(rawToken: string, newPassword: string): Promise<void> {

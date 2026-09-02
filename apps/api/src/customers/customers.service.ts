@@ -244,7 +244,7 @@ export class CustomersService {
     }
     return {
       ...row,
-      email: user.email,
+      email: user.email ?? undefined,
       joinedAt: user.createdAt.toISOString(),
     };
   }

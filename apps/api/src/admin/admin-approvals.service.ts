@@ -46,11 +46,13 @@ export class AdminApprovalsService {
     );
     const ownersById = new Map(owners.map((owner) => [owner.id, owner]));
 
+    // pending owners always registered with email (RegisterDto requires it) —
+    // only staff accounts (never owners) can have a null email.
     const ownerRows: PendingOwnerRow[] = pendingOwners.map((owner) => ({
       type: 'owner',
       id: owner.id,
       fullName: owner.fullName,
-      email: owner.email,
+      email: owner.email!,
       phone: owner.phone,
       submittedAt: owner.createdAt,
     }));

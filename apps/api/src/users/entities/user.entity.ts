@@ -11,6 +11,13 @@ export enum UserRole {
   CUSTOMER = 'customer',
   OWNER = 'owner',
   ADMIN = 'admin',
+  STAFF = 'staff',
+}
+
+export enum StaffRole {
+  MANAGER = 'manager',
+  CASHIER = 'cashier',
+  STAFF = 'staff',
 }
 
 export enum UserStatus {
@@ -26,8 +33,8 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
-  email: string;
+  @Column({ nullable: true, type: 'varchar' })
+  email: string | null;
 
   @Column({ name: 'password_hash' })
   @Exclude()
@@ -41,6 +48,17 @@ export class User {
 
   @Column({ name: 'avatar_url', nullable: true, type: 'varchar' })
   avatarUrl: string | null;
+
+  @Column({ name: 'owner_id', nullable: true, type: 'uuid' })
+  ownerId: string | null;
+
+  @Column({
+    name: 'staff_role',
+    type: 'enum',
+    enum: StaffRole,
+    nullable: true,
+  })
+  staffRole: StaffRole | null;
 
   @Column({ type: 'enum', enum: UserRole })
   role: UserRole;

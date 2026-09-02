@@ -151,16 +151,18 @@ export class VenuesService {
     venue.status = nextStatus;
     const saved = await this.venuesRepository.save(venue);
     const owner = await this.usersService.findById(saved.ownerId);
+    // venue owners always register with email (RegisterDto requires it) —
+    // only staff accounts (never venue owners) can have a null email.
     if (owner) {
       if (nextStatus === VenueStatus.ACTIVE) {
         await this.notificationsService.notifyVenueApproved({
-          to: owner.email,
+          to: owner.email!,
           ownerName: owner.fullName,
           venueName: saved.name,
         });
       } else {
         await this.notificationsService.notifyVenueRejected({
-          to: owner.email,
+          to: owner.email!,
           ownerName: owner.fullName,
           venueName: saved.name,
           reason,
