@@ -76,6 +76,7 @@ export function ResetPasswordDialog({
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Tối thiểu 6 ký tự"
+              autoComplete="new-password"
               className="h-9"
             />
           </div>

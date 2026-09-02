@@ -121,6 +121,7 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
               <Input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                autoComplete="off"
                 className="h-9"
               />
             </div>
@@ -131,6 +132,7 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
               <Input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                autoComplete="off"
                 className="h-9"
               />
             </div>
@@ -141,6 +143,7 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
             <Input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="off"
               className="h-9"
             />
           </div>
@@ -171,6 +174,7 @@ export function StaffFormDialog(props: CreateProps | EditProps) {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
                   className="h-9"
                 />
                 <p className="text-xs text-muted-foreground">Tối thiểu 6 ký tự</p>

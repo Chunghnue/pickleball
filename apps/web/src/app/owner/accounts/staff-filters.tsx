@@ -51,6 +51,7 @@ export function StaffFilters({
           <Input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
+            autoComplete="off"
             placeholder="Tìm tên, SĐT, email..."
             className="h-9 w-56 border-0 px-0 focus-visible:ring-0"
           />
