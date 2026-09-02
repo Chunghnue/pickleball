@@ -7,6 +7,7 @@ import { StaffRole, UserRole } from '../../users/entities/user.entity';
 const TIER_RANK: Record<OwnerScopeTier, number> = {
   operational: 0,
   full: 1,
+  owner: 2,
 };
 
 @Injectable()
@@ -45,7 +46,7 @@ export class OwnerScopeGuard implements CanActivate {
     user: AuthenticatedUser,
   ): { effectiveOwnerId: string; tier: OwnerScopeTier } | null {
     if (user.role === UserRole.OWNER) {
-      return { effectiveOwnerId: user.userId, tier: 'full' };
+      return { effectiveOwnerId: user.userId, tier: 'owner' };
     }
     if (user.role === UserRole.STAFF && user.ownerId) {
       const tier: OwnerScopeTier =

@@ -12,7 +12,7 @@ function buildContext(user: unknown, request: { effectiveOwnerId?: string } = {}
   } as unknown as ExecutionContext;
 }
 
-function buildReflector(tier: 'full' | 'operational' | undefined) {
+function buildReflector(tier: 'full' | 'operational' | 'owner' | undefined) {
   return { getAllAndOverride: () => tier } as unknown as Reflector;
 }
 
@@ -61,6 +61,26 @@ describe('OwnerScopeGuard', () => {
 
     expect(guard.canActivate(ctx)).toBe(true);
     expect((ctx.switchToHttp().getRequest() as any).effectiveOwnerId).toBe('owner-1');
+  });
+
+  it('allows an owner on an owner-tier route', () => {
+    const guard = new OwnerScopeGuard(buildReflector('owner'));
+    const ctx = buildContext({ userId: 'owner-1', role: UserRole.OWNER, ownerId: null, staffRole: null });
+
+    expect(guard.canActivate(ctx)).toBe(true);
+    expect((ctx.switchToHttp().getRequest() as any).effectiveOwnerId).toBe('owner-1');
+  });
+
+  it('rejects a manager staff on an owner-tier route (owner-tier excludes even full-tier staff)', () => {
+    const guard = new OwnerScopeGuard(buildReflector('owner'));
+    const ctx = buildContext({
+      userId: 'staff-1',
+      role: UserRole.STAFF,
+      ownerId: 'owner-1',
+      staffRole: StaffRole.MANAGER,
+    });
+
+    expect(guard.canActivate(ctx)).toBe(false);
   });
 
   it('rejects a customer on any owner-scoped route', () => {

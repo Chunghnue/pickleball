@@ -133,19 +133,14 @@ describe('Staff (e2e)', () => {
       .expect(404);
   });
 
-  it('lets a manager reach full-tier staff endpoints', async () => {
+  it('rejects a manager from staff endpoints (owner-only tier, not full)', async () => {
     const owner = await createUser(dataSource, 'staffowner7@test.com', UserRole.OWNER);
-    const manager = await createStaff(dataSource, owner.id, 'Manager', '0911000022', StaffRole.MANAGER);
+    await createStaff(dataSource, owner.id, 'Manager', '0911000022', StaffRole.MANAGER);
     const managerToken = await loginByPhone(app, '0911000022');
 
     await request(app.getHttpServer())
       .get('/staff')
       .set('Authorization', `Bearer ${managerToken}`)
-      .expect(200)
-      .expect((res) =>
-        expect(res.body).toEqual(
-          expect.arrayContaining([expect.objectContaining({ id: manager.id })]),
-        ),
-      );
+      .expect(403);
   });
 });

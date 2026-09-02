@@ -42,10 +42,10 @@ Server tra `users` theo `email = identifier` trước, không thấy thì tra `p
 
 **Vì sao không sửa từng file spec cũ:** thay đổi là **cơ học và đồng nhất** — mọi endpoint hiện có gắn guard `role === 'owner'` chuyển sang dùng guard mới `OwnerScopeGuard` bên dưới, không đổi logic nghiệp vụ bên trong. Ghi nhận toàn bộ ở đây một lần, thay vì thêm ghi chú lặp lại ở 9 file spec khác.
 
-**Guard mới:** `@OwnerScope('full' | 'operational')` thay cho `@Roles('owner')`.
+**Guard mới:** `@OwnerScope('owner' | 'full' | 'operational')` thay cho `@Roles('owner')`. Thứ tự tầng: `owner` > `full` > `operational` (tầng cao hơn luôn thoả yêu cầu của tầng thấp hơn).
 
 1. Xác định **effective owner id** của request: `role = 'owner'` → chính `user.id`; `role = 'staff'` → `user.ownerId`.
-2. Kiểm tra tầng: `full` yêu cầu `role = 'owner'` hoặc (`role = 'staff'` và `staffRole = 'manager'`); `operational` yêu cầu `full` **hoặc** (`role = 'staff'` và `staffRole` là `cashier`/`staff`). Không đạt → 403.
+2. Kiểm tra tầng: chủ sân luôn ở tầng `owner`; `full` đạt được bởi chủ sân hoặc (`role = 'staff'` và `staffRole = 'manager'`); `operational` đạt được bởi `full` **hoặc** (`role = 'staff'` và `staffRole` là `cashier`/`staff`). Không đạt yêu cầu tầng của route → 403.
 3. Gắn `request.effectiveOwnerId` — **mọi query đang lọc theo `user.id` làm `ownerId`** (vd `getOwnedVenueOrThrow`, `findMineByOwner`, mọi endpoint `venues/mine/*`) đổi sang dùng `effectiveOwnerId`. Đây là điểm chạm thật sự tới các module cũ — cơ học (đổi 1 biến), không đổi logic.
 
 **Bảng phân tầng cho các endpoint đã duyệt:**
@@ -62,11 +62,12 @@ Server tra `users` theo `email = identifier` trước, không thấy thì tra `p
 | Page View Analytics | Toàn bộ | Không truy cập |
 | Chat Inbox | Toàn bộ (kể cả assign/close/reopen) | Xem/trả lời hội thoại (không assign/close) |
 | Settings | Toàn bộ | Không truy cập |
-| Staff Accounts (module này) | Toàn bộ | Không truy cập |
 
 Đây là phân loại mặc định theo mức độ nhạy cảm nghiệp vụ (cấu hình/tài chính tổng quan = `full`; vận hành hàng ngày = `operational`) — có thể điều chỉnh khi review.
 
-## 5. API endpoints (module Staff Accounts, tầng `full` — chỉ owner/quản lý)
+**Cập nhật 2026-09-02 — Staff Accounts đổi sang tầng `owner` riêng, không còn `full`:** quản lý quyết định (qua UI) rằng **quản lý (manager) không được thấy hay thao tác lên module Tài khoản/Staff Accounts** — chỉ chủ sân mới tạo/sửa/vô hiệu hoá/đặt lại mật khẩu nhân viên khác. Đây là ngoại lệ duy nhất dùng tầng `owner` (mọi module khác trong bảng trên vẫn giữ nguyên `full`/`operational`, không đổi). `StaffController` chuyển từ `@OwnerScope('full')` sang `@OwnerScope('owner')`; frontend không cần route guard riêng vì trang `/owner/accounts` đã tự hiển thị "Không có quyền truy cập" khi API trả 403 (xem [staff-accounts-frontend-design.md §6](./2026-09-02-staff-accounts-frontend-design.md)), và sidebar ẩn hẳn mục "Tài khoản" khi `role !== 'owner'`.
+
+## 5. API endpoints (module Staff Accounts, tầng `owner` — chỉ chủ sân, xem cập nhật 2026-09-02 ở §4)
 
 ```
 POST   /staff

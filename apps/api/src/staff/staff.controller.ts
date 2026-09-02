@@ -11,7 +11,7 @@ import { ResetStaffPasswordDto } from './dto/reset-staff-password.dto';
 
 @Controller('staff')
 @UseGuards(JwtAuthGuard, OwnerScopeGuard)
-@OwnerScope('full')
+@OwnerScope('owner')
 export class StaffController {
   constructor(private readonly staffService: StaffService) {}
 

@@ -211,12 +211,13 @@ State: `allItems: StaffListItem[] | null`, `roleTab: RoleTab` (mặc định `"a
 - Bố cục `<main>` theo mẫu owner: tiêu đề "Tài khoản" + nút "+ Thêm nhân viên" (phải, mở `StaffFormDialog mode="create"`), rồi `StaffMetrics`, `StaffFilters`, `StaffTable` (hoặc thông báo lỗi nếu `loadError`).
 - `onSaved` của mọi dialog con → gọi lại `loadStaff()`.
 
-## 6. Quyền truy cập trang (frontend chưa có route guard theo staffRole)
+## 6. Quyền truy cập trang
 
-Trang này gọi API tầng `full` (`@OwnerScope('full')` toàn bộ, backend spec §4-5) — chỉ owner/quản lý dùng được. Codebase hiện **chưa có** cơ chế đọc `staffRole` từ JWT ở phía client (không có hook `useCurrentUser()`), và `ROLE_HOME` trong `login/page.tsx` cũng chưa map route riêng cho `role: "staff"` (điều hướng về `/` sau đăng nhập — xem thảo luận trước). Vì vậy:
+**Cập nhật 2026-09-02:** trang này gọi API tầng `owner` (`@OwnerScope('owner')` toàn bộ — đổi từ `full`, xem [staff-accounts-design.md §4](./2026-08-26-staff-accounts-design.md#4-phân-quyền-2-tầng--áp-dụng-lên-toàn-hệ-thống)) — **chỉ chủ sân**, kể cả quản lý (manager) cũng không dùng được, khác các module khác trong app.
 
-- Trang **không** tự ẩn/chặn truy cập bằng route guard — dựa hoàn toàn vào backend trả 403 (xử lý ở §5.9).
-- Đây là hạn chế đã biết, để ngoài phạm vi spec này (thuộc về việc thêm `useCurrentUser()`/route guard chung cho toàn bộ owner section — vượt phạm vi riêng module Tài khoản).
+- **Sidebar** (`components/owner-sidebar.tsx`) tự gọi `GET /api/users/me` khi mount, ẩn hẳn mục "Tài khoản" trừ khi `role === "owner"` — mặc định ẩn trong lúc đang tải, không có hiệu ứng chớp nhoáng cho tài khoản không có quyền.
+- **Trang** (`/owner/accounts`) vẫn **không** có route guard riêng ở phía client trước khi gọi API — nếu một tài khoản quản lý/thu ngân/nhân viên vào thẳng URL, `GET /api/staff` trả 403 và trang hiện thông báo "Bạn không có quyền truy cập trang này" (§5.9). Vì tầng đã siết ở backend (`owner`, không còn `full`), hành vi này đúng cho **cả 3 vai trò** staff, không chỉ tầng `operational` như trước.
+- `ROLE_HOME` trong `login/page.tsx` vẫn chưa map route riêng cho `role: "staff"` (điều hướng về `/` sau đăng nhập) — hạn chế này để ngoài phạm vi, không liên quan tới việc ẩn menu/chặn trang.
 
 ## 7. Validation & lỗi (phía UI)
 
