@@ -149,6 +149,15 @@ export class VenuesService {
     venue.slug = nextSlug;
   }
 
+  async setDefault(ownerId: string, id: string): Promise<Venue> {
+    await this.getOwnedVenueOrThrow(ownerId, id);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.update(Venue, { ownerId }, { isDefault: false });
+      await manager.update(Venue, { id }, { isDefault: true });
+    });
+    return this.getOwnedVenueOrThrow(ownerId, id);
+  }
+
   async addImage(
     ownerId: string,
     venueId: string,

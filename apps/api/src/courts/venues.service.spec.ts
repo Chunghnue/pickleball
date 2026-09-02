@@ -431,6 +431,36 @@ describe('VenuesService.update — slug', () => {
   });
 });
 
+describe('VenuesService.setDefault', () => {
+  it('unsets every other venue of the owner and sets the target as default', async () => {
+    const { service, venuesRepo, dataSource } = await buildTestingModule();
+    venuesRepo.findOne
+      .mockResolvedValueOnce({ id: 'venue-2', ownerId: 'owner-1', isDefault: false })
+      .mockResolvedValueOnce({ id: 'venue-2', ownerId: 'owner-1', isDefault: true });
+    const manager = { update: jest.fn().mockResolvedValue(undefined) };
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    const result = await service.setDefault('owner-1', 'venue-2');
+
+    expect(manager.update).toHaveBeenCalledWith(
+      Venue,
+      { ownerId: 'owner-1' },
+      { isDefault: false },
+    );
+    expect(manager.update).toHaveBeenCalledWith(Venue, { id: 'venue-2' }, { isDefault: true });
+    expect(result.isDefault).toBe(true);
+  });
+
+  it('throws NotFoundException for a venue not owned by the caller', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.setDefault('owner-1', 'venue-2')).rejects.toThrow(
+      'Venue venue-2 không tồn tại',
+    );
+  });
+});
+
 describe('VenuesService images', () => {
   it('addImage creates an image for an owned venue', async () => {
     const { service, venuesRepo, venueImagesRepo } = await buildTestingModule();

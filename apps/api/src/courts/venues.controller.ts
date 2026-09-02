@@ -70,6 +70,16 @@ export class VenuesController {
     return this.venuesService.update(effectiveOwnerId, id, dto);
   }
 
+  @Post('mine/:id/set-default')
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
+  setDefault(
+    @EffectiveOwnerId() effectiveOwnerId: string,
+    @Param('id') id: string,
+  ) {
+    return this.venuesService.setDefault(effectiveOwnerId, id);
+  }
+
   @Post('mine/:id/images')
   @UseGuards(JwtAuthGuard, OwnerScopeGuard)
   @OwnerScope('full')
