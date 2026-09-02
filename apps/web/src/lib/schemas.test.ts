@@ -5,8 +5,6 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   updateProfileSchema,
-  createVenueSchema,
-  updateVenueSchema,
   addVenueImageSchema,
   createCourtSchema,
   updateCourtSchema,
@@ -125,45 +123,6 @@ describe('updateProfileSchema', () => {
 
   it('accepts an empty string avatarUrl (an untouched optional field)', () => {
     expect(updateProfileSchema.safeParse({ avatarUrl: '' }).success).toBe(true);
-  });
-});
-
-describe('createVenueSchema', () => {
-  it('accepts a valid payload', () => {
-    expect(
-      createVenueSchema.safeParse({
-        name: 'ABC Pickleball',
-        address: '123 Le Loi',
-        city: 'Ho Chi Minh',
-      }).success,
-    ).toBe(true);
-  });
-
-  it('rejects an empty name', () => {
-    expect(
-      createVenueSchema.safeParse({ name: '', address: 'X', city: 'Y' }).success,
-    ).toBe(false);
-  });
-
-  it('accepts an optional description', () => {
-    expect(
-      createVenueSchema.safeParse({
-        name: 'A',
-        address: 'B',
-        city: 'C',
-        description: 'Mô tả',
-      }).success,
-    ).toBe(true);
-  });
-});
-
-describe('updateVenueSchema', () => {
-  it('accepts an empty object (no fields required)', () => {
-    expect(updateVenueSchema.safeParse({}).success).toBe(true);
-  });
-
-  it('rejects an empty name when provided', () => {
-    expect(updateVenueSchema.safeParse({ name: '' }).success).toBe(false);
   });
 });
 

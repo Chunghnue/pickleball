@@ -36,23 +36,6 @@ export const updateProfileSchema = z.object({
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
-export const createVenueSchema = z.object({
-  name: z.string().min(1, 'Vui lòng nhập tên địa điểm'),
-  address: z.string().min(1, 'Vui lòng nhập địa chỉ'),
-  city: z.string().min(1, 'Vui lòng nhập thành phố'),
-  description: z.string().optional(),
-});
-export type CreateVenueInput = z.infer<typeof createVenueSchema>;
-
-export const updateVenueSchema = z.object({
-  name: z.string().min(1, 'Vui lòng nhập tên địa điểm').optional(),
-  address: z.string().min(1, 'Vui lòng nhập địa chỉ').optional(),
-  city: z.string().min(1, 'Vui lòng nhập thành phố').optional(),
-  description: z.string().optional(),
-  phone: z.string().optional(),
-});
-export type UpdateVenueInput = z.infer<typeof updateVenueSchema>;
-
 export const addVenueImageSchema = z.object({
   url: z.string().url('URL không hợp lệ'),
 });

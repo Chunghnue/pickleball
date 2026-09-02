@@ -125,7 +125,7 @@ export default function OwnerCourtsPage() {
       {venues.length === 0 && (
         <p className="text-muted-foreground">
           Bạn chưa có chi nhánh nào.{" "}
-          <Link href="/owner/branches/new" className="text-primary underline">
+          <Link href="/owner/branches" className="text-primary underline">
             Tạo chi nhánh mới
           </Link>{" "}
           trước khi thêm sân.
