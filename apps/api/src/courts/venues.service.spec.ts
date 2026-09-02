@@ -113,6 +113,106 @@ describe('VenuesService.create — isDefault', () => {
   });
 });
 
+describe('VenuesService.create — slug', () => {
+  it('generates a slug from the name when not provided', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(0);
+    venuesRepo.findOne.mockResolvedValue(null);
+    venuesRepo.create.mockImplementation((data) => data);
+    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-1', ...data }));
+
+    const result = await service.create('owner-1', {
+      name: 'Sân Đình Văn Chung',
+      address: '123 Le Loi',
+      city: 'Ho Chi Minh',
+    });
+
+    expect(result.slug).toBe('san-dinh-van-chung');
+  });
+
+  it('appends a random 4-digit suffix when the generated slug is taken', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(0);
+    venuesRepo.findOne
+      .mockResolvedValueOnce({ id: 'other-venue', slug: 'abc-pickleball' })
+      .mockResolvedValueOnce(null);
+    venuesRepo.create.mockImplementation((data) => data);
+    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-2', ...data }));
+
+    const result = await service.create('owner-1', {
+      name: 'ABC Pickleball',
+      address: '123 Le Loi',
+      city: 'Ho Chi Minh',
+    });
+
+    expect(result.slug).toMatch(/^abc-pickleball-\d{4}$/);
+  });
+
+  it('uses the requested slug when provided and available', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(0);
+    venuesRepo.findOne.mockResolvedValue(null);
+    venuesRepo.create.mockImplementation((data) => data);
+    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-1', ...data }));
+
+    const result = await service.create('owner-1', {
+      name: 'ABC Pickleball',
+      address: '123 Le Loi',
+      city: 'Ho Chi Minh',
+      slug: 'my-custom-slug',
+    });
+
+    expect(result.slug).toBe('my-custom-slug');
+  });
+
+  it('throws ConflictException when the requested slug is already taken', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(0);
+    venuesRepo.findOne.mockResolvedValue({ id: 'other-venue', slug: 'taken-slug' });
+
+    await expect(
+      service.create('owner-1', {
+        name: 'ABC Pickleball',
+        address: '123 Le Loi',
+        city: 'Ho Chi Minh',
+        slug: 'taken-slug',
+      }),
+    ).rejects.toThrow('Đường dẫn này đã được sử dụng');
+  });
+
+  it('sets district/latitude/longitude/email when provided, null otherwise', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(0);
+    venuesRepo.findOne.mockResolvedValue(null);
+    venuesRepo.create.mockImplementation((data) => data);
+    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-1', ...data }));
+
+    const withFields = await service.create('owner-1', {
+      name: 'ABC Pickleball',
+      address: '123 Le Loi',
+      city: 'Ho Chi Minh',
+      district: 'Quan 1',
+      latitude: 10.77,
+      longitude: 106.7,
+      email: 'branch@test.com',
+    });
+    expect(withFields.district).toBe('Quan 1');
+    expect(withFields.latitude).toBe(10.77);
+    expect(withFields.longitude).toBe(106.7);
+    expect(withFields.email).toBe('branch@test.com');
+
+    const withoutFields = await service.create('owner-1', {
+      name: 'XYZ Pickleball',
+      address: '456 Le Loi',
+      city: 'Ho Chi Minh',
+    });
+    expect(withoutFields.district).toBeNull();
+    expect(withoutFields.latitude).toBeNull();
+    expect(withoutFields.longitude).toBeNull();
+    expect(withoutFields.email).toBeNull();
+  });
+});
+
 describe('VenuesService.update — phone', () => {
   it('sets phone when provided', async () => {
     const { service, venuesRepo } = await buildTestingModule();

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -13,6 +14,7 @@ import { UpdateVenueDto } from './dto/update-venue.dto';
 import { AddVenueImageDto } from './dto/add-venue-image.dto';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { slugify } from './slug.util';
 
 @Injectable()
 export class VenuesService {
@@ -27,16 +29,51 @@ export class VenuesService {
 
   async create(ownerId: string, dto: CreateVenueDto): Promise<Venue> {
     const existingCount = await this.venuesRepository.count({ where: { ownerId } });
+    const slug = await this.resolveSlugForCreate(dto.slug, dto.name);
     const venue = this.venuesRepository.create({
       ownerId,
       name: dto.name,
       address: dto.address,
       city: dto.city,
+      district: dto.district ?? null,
+      latitude: dto.latitude ?? null,
+      longitude: dto.longitude ?? null,
+      email: dto.email ?? null,
       description: dto.description ?? null,
       status: VenueStatus.PENDING_APPROVAL,
       isDefault: existingCount === 0,
+      slug,
     });
     return this.venuesRepository.save(venue);
+  }
+
+  private async resolveSlugForCreate(
+    requested: string | undefined,
+    name: string,
+  ): Promise<string> {
+    const trimmed = requested?.trim();
+    if (trimmed) {
+      const taken = await this.venuesRepository.findOne({ where: { slug: trimmed } });
+      if (taken) {
+        throw new ConflictException('Đường dẫn này đã được sử dụng');
+      }
+      return trimmed;
+    }
+    return this.generateUniqueSlug(name);
+  }
+
+  private async generateUniqueSlug(name: string): Promise<string> {
+    const base = slugify(name);
+    let candidate = base;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const taken = await this.venuesRepository.findOne({ where: { slug: candidate } });
+      if (!taken) {
+        return candidate;
+      }
+      const suffix = Math.floor(1000 + Math.random() * 9000);
+      candidate = `${base}-${suffix}`;
+    }
+    throw new ConflictException('Không thể tạo đường dẫn duy nhất, vui lòng thử lại');
   }
 
   findMineByOwner(ownerId: string): Promise<Venue[]> {
