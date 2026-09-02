@@ -122,7 +122,7 @@ describe('Staff (e2e)', () => {
 
   it("404s when acting on another owner's staff", async () => {
     const owner1 = await createUser(dataSource, 'staffowner5@test.com', UserRole.OWNER);
-    const owner2 = await createUser(dataSource, 'staffowner6@test.com', UserRole.OWNER);
+    await createUser(dataSource, 'staffowner6@test.com', UserRole.OWNER);
     const owner2Token = await loginAs(app, 'staffowner6@test.com');
     const staffOfOwner1 = await createStaff(dataSource, owner1.id, 'A', '0911000033', StaffRole.STAFF);
 
