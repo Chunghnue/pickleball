@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { Check, CirclePlus, Lightbulb, MapPin, MousePointerClick, Pencil, Upload, X } from "lucide-react";
@@ -69,6 +69,11 @@ export function BranchFormDialog(props: CreateProps | EditProps) {
     setLogoFile(null);
     setLogoPreviewUrl(venue?.logoUrl ?? null);
   }, [open, venue]);
+
+  const handleMapChange = useCallback((lat: number, lng: number) => {
+    setLatitude(lat);
+    setLongitude(lng);
+  }, []);
 
   function handleUseMyLocation() {
     if (!navigator.geolocation) {
@@ -336,14 +341,7 @@ export function BranchFormDialog(props: CreateProps | EditProps) {
                 <MousePointerClick className="size-3.5" />
                 Bấm vào bản đồ để chọn vị trí
               </div>
-              <BranchLocationMap
-                latitude={latitude}
-                longitude={longitude}
-                onChange={(lat, lng) => {
-                  setLatitude(lat);
-                  setLongitude(lng);
-                }}
-              />
+              <BranchLocationMap latitude={latitude} longitude={longitude} onChange={handleMapChange} />
             </div>
           </div>
 

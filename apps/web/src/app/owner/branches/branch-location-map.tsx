@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { memo, useEffect } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, Marker, TileLayer, ZoomControl, useMap, useMapEvents } from "react-leaflet";
@@ -42,7 +42,7 @@ export interface BranchLocationMapProps {
   onChange: (latitude: number, longitude: number) => void;
 }
 
-export default function BranchLocationMap({ latitude, longitude, onChange }: BranchLocationMapProps) {
+function BranchLocationMap({ latitude, longitude, onChange }: BranchLocationMapProps) {
   const center: [number, number] =
     latitude !== null && longitude !== null ? [latitude, longitude] : DEFAULT_CENTER;
 
@@ -64,3 +64,10 @@ export default function BranchLocationMap({ latitude, longitude, onChange }: Bra
     </MapContainer>
   );
 }
+
+// react-leaflet@5 + React 19: re-rendering MapContainer with a "changed" prop
+// (e.g. a fresh inline onChange closure from the parent on every render) makes
+// it try to re-initialize Leaflet on the same DOM node, crashing with "Map
+// container is being reused by another instance". memo() + a stable onChange
+// (useCallback in the parent) skip that re-render unless lat/lng actually change.
+export default memo(BranchLocationMap);
