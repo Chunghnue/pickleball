@@ -240,8 +240,25 @@ export class AuthService {
     tokenRecord.usedAt = new Date();
     await this.passwordResetTokens.save(tokenRecord);
 
+    await this.revokeAllRefreshTokens(tokenRecord.userId);
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.usersService.findById(userId);
+    if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      throw new BadRequestException('Mật khẩu hiện tại không đúng');
+    }
+    await this.usersService.updatePassword(userId, newPassword);
+    await this.revokeAllRefreshTokens(userId);
+  }
+
+  private async revokeAllRefreshTokens(userId: string): Promise<void> {
     await this.refreshTokenRepository.update(
-      { userId: tokenRecord.userId, revokedAt: IsNull() },
+      { userId, revokedAt: IsNull() },
       { revokedAt: new Date() },
     );
   }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -6,6 +6,10 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
+import type { AuthenticatedUser } from './decorators/current-user.decorator';
 
 const AUTH_THROTTLE = { default: { limit: 10, ttl: 60000 } };
 
@@ -66,5 +70,16 @@ export class AuthController {
   ): Promise<{ message: string }> {
     await this.authService.resetPassword(dto.token, dto.newPassword);
     return { message: 'Đặt lại mật khẩu thành công' };
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(200)
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    await this.authService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
+    return { message: 'Đổi mật khẩu thành công' };
   }
 }
