@@ -2,6 +2,8 @@ import {
   getTodayRange,
   getCurrentMonthRange,
   getLast30Days,
+  getDaysBetween,
+  parseDateRangeBoundaries,
   fillRevenueByDay,
 } from './date-range.utils';
 
@@ -68,6 +70,58 @@ describe('getLast30Days', () => {
     const uniqueDays = new Set(days);
 
     expect(uniqueDays.size).toBe(30);
+  });
+});
+
+describe('getDaysBetween', () => {
+  it('returns every date string between from and to, inclusive, ascending', () => {
+    expect(getDaysBetween('2026-08-24', '2026-08-26')).toEqual([
+      '2026-08-24',
+      '2026-08-25',
+      '2026-08-26',
+    ]);
+  });
+
+  it('returns a single-element array when from equals to', () => {
+    expect(getDaysBetween('2026-08-24', '2026-08-24')).toEqual(['2026-08-24']);
+  });
+
+  it('rolls over a month boundary', () => {
+    expect(getDaysBetween('2026-07-30', '2026-08-01')).toEqual([
+      '2026-07-30',
+      '2026-07-31',
+      '2026-08-01',
+    ]);
+  });
+});
+
+describe('parseDateRangeBoundaries', () => {
+  it('returns [start of from, start of the day after to)', () => {
+    const { start, end } = parseDateRangeBoundaries('2026-08-01', '2026-08-25');
+
+    expect(start.getFullYear()).toBe(2026);
+    expect(start.getMonth()).toBe(7);
+    expect(start.getDate()).toBe(1);
+    expect(start.getHours()).toBe(0);
+
+    expect(end.getFullYear()).toBe(2026);
+    expect(end.getMonth()).toBe(7);
+    expect(end.getDate()).toBe(26);
+    expect(end.getHours()).toBe(0);
+  });
+
+  it('handles a single-day range', () => {
+    const { start, end } = parseDateRangeBoundaries('2026-08-10', '2026-08-10');
+
+    expect(start.getDate()).toBe(10);
+    expect(end.getDate()).toBe(11);
+  });
+
+  it('rolls the end over a month boundary', () => {
+    const { end } = parseDateRangeBoundaries('2026-08-20', '2026-08-31');
+
+    expect(end.getMonth()).toBe(8);
+    expect(end.getDate()).toBe(1);
   });
 });
 

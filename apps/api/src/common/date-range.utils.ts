@@ -34,6 +34,28 @@ export function getLast30Days(now: Date = new Date()): string[] {
   return days;
 }
 
+export function getDaysBetween(from: string, to: string): string[] {
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  const cursor = new Date(fy, fm - 1, fd);
+  const end = new Date(ty, tm - 1, td);
+  const days: string[] = [];
+  while (cursor.getTime() <= end.getTime()) {
+    days.push(formatLocalDate(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+}
+
+export function parseDateRangeBoundaries(from: string, to: string): DateRange {
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  const start = new Date(fy, fm - 1, fd);
+  const end = new Date(ty, tm - 1, td);
+  end.setDate(end.getDate() + 1);
+  return { start, end };
+}
+
 export interface RevenueByDayRow {
   date: string;
   revenue: string | number;
