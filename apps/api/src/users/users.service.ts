@@ -70,6 +70,12 @@ export class UsersService {
     });
   }
 
+  findActiveOwners(): Promise<User[]> {
+    return this.usersRepository.find({
+      where: { role: UserRole.OWNER, status: UserStatus.ACTIVE },
+    });
+  }
+
   approveOwner(id: string): Promise<User> {
     return this.transitionOwnerStatus(id, UserStatus.ACTIVE);
   }

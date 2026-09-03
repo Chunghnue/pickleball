@@ -203,3 +203,17 @@ describe('UsersService.findByIds', () => {
     expect(repo.find).not.toHaveBeenCalled();
   });
 });
+
+describe('UsersService.findActiveOwners', () => {
+  it('queries for active owners', async () => {
+    const { service, repo } = await buildTestingModule();
+    repo.find.mockResolvedValue([{ id: 'owner-1', role: UserRole.OWNER, status: UserStatus.ACTIVE }]);
+
+    const result = await service.findActiveOwners();
+
+    expect(repo.find).toHaveBeenCalledWith({
+      where: { role: UserRole.OWNER, status: UserStatus.ACTIVE },
+    });
+    expect(result).toHaveLength(1);
+  });
+});
