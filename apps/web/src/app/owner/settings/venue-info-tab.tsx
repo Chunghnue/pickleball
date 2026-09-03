@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Check, Trophy, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 import { useSettingsVenueId } from "./use-settings-venue-id";
 import type { Venue } from "../types";
@@ -142,23 +142,33 @@ export function VenueInfoTab() {
 
   return (
     <Card>
+      <CardHeader>
+        <CardTitle className="text-base font-semibold">Thông tin sân thể thao</CardTitle>
+        <CardDescription>Cập nhật thông tin cơ sở của bạn</CardDescription>
+      </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="space-y-1.5">
-          <Label className="font-semibold">Logo</Label>
-          <div className="flex flex-wrap items-start gap-3">
-            <label
-              className="flex size-20 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border border-dashed text-center text-muted-foreground hover:border-foreground hover:text-foreground"
-              aria-disabled={uploadingLogo}
-            >
-              {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt="" className="size-20 object-cover" />
-              ) : (
-                <>
-                  <Upload className="size-5" />
-                  <span className="px-1 text-[10px] leading-tight">Bấm hoặc kéo thả ảnh</span>
-                </>
-              )}
+        <div className="flex flex-wrap items-center gap-3">
+          <label
+            className="relative flex size-16 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-blue-600 text-white"
+            aria-disabled={uploadingLogo}
+          >
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="" className="size-16 object-cover" />
+            ) : (
+              <Trophy className="size-7" />
+            )}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleLogoChange}
+              disabled={uploadingLogo}
+            />
+          </label>
+          <div className="flex flex-col gap-1.5">
+            <label className="inline-flex h-8 w-fit cursor-pointer items-center rounded-lg border border-blue-200 px-3 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:hover:bg-blue-950/40">
+              Đổi logo
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -167,38 +177,20 @@ export function VenueInfoTab() {
                 disabled={uploadingLogo}
               />
             </label>
-            <div className="flex flex-col gap-1.5">
-              <label className="inline-flex h-9 w-fit cursor-pointer items-center gap-1.5 rounded-lg border border-input px-3 text-sm font-medium hover:bg-muted">
-                <Upload className="size-3.5" />
-                Đổi logo
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={handleLogoChange}
-                  disabled={uploadingLogo}
-                />
-              </label>
-              <p className="text-xs text-muted-foreground">PNG, JPG, WEBP · tối đa 5MB</p>
-            </div>
+            <p className="text-xs text-muted-foreground">PNG, JPG, WEBP - Tối đa 5MB</p>
           </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="font-semibold">
-            Tên sân <span className="text-destructive">*</span>
-          </Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" className="h-9" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label className="font-semibold">Số điện thoại</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="off" className="h-9" />
+            <Label className="font-semibold">
+              Tên sân <span className="text-destructive">*</span>
+            </Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" className="h-9" />
           </div>
           <div className="space-y-1.5">
-            <Label className="font-semibold">Email</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" className="h-9" />
+            <Label className="font-semibold">Số điện thoại</Label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="off" className="h-9" />
           </div>
         </div>
 
@@ -207,15 +199,21 @@ export function VenueInfoTab() {
           <Input value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="off" className="h-9" />
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="font-semibold">Website</Label>
-          <Input
-            value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-            autoComplete="off"
-            placeholder="https://..."
-            className="h-9"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="font-semibold">Email</Label>
+            <Input value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" className="h-9" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="font-semibold">Website</Label>
+            <Input
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              autoComplete="off"
+              placeholder="https://..."
+              className="h-9"
+            />
+          </div>
         </div>
 
         <div className="space-y-1.5">
@@ -234,8 +232,9 @@ export function VenueInfoTab() {
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="h-10 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
+            className="h-10 gap-1.5 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
           >
+            <Check className="size-4" />
             Lưu thay đổi
           </Button>
         </div>

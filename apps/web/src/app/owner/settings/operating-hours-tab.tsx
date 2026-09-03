@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useSettingsVenueId } from "./use-settings-venue-id";
 import { orderForDisplay, validateOperatingHours, DAY_LABELS } from "./operating-hours-format";
@@ -92,6 +93,10 @@ export function OperatingHoursTab() {
 
   return (
     <Card>
+      <CardHeader>
+        <CardTitle className="text-base font-semibold">Giờ hoạt động</CardTitle>
+        <CardDescription>Cấu hình khung giờ mở/đóng cửa cho từng ngày trong tuần</CardDescription>
+      </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {rows.map((row) => (
           <div
@@ -125,8 +130,9 @@ export function OperatingHoursTab() {
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="h-10 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
+            className="h-10 gap-1.5 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
           >
+            <Check className="size-4" />
             Lưu
           </Button>
         </div>

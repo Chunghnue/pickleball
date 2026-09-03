@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import type { NotificationSettings } from "./types";
 
@@ -65,6 +65,10 @@ export function NotificationsTab() {
 
   return (
     <Card>
+      <CardHeader>
+        <CardTitle className="text-base font-semibold">Thông báo</CardTitle>
+        <CardDescription>Bật/tắt từng loại thông báo bạn muốn nhận</CardDescription>
+      </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {ROWS.map((row) => (
           <div

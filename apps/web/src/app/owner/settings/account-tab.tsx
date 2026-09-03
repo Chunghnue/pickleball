@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 import { changePasswordSchema, type ChangePasswordInput } from "@/lib/schemas";
 import { roleLabel } from "../accounts/staff-format";
@@ -115,6 +116,10 @@ export function AccountTab() {
   return (
     <div className="flex flex-col gap-6">
       <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">Tài khoản cá nhân</CardTitle>
+          <CardDescription>Quản lý thông tin tài khoản đang đăng nhập</CardDescription>
+        </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             {profile.avatarUrl ? (
@@ -152,8 +157,9 @@ export function AccountTab() {
               type="button"
               onClick={handleSaveProfile}
               disabled={savingProfile}
-              className="h-10 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
+              className="h-10 gap-1.5 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
             >
+              <Check className="size-4" />
               Lưu
             </Button>
           </div>
@@ -161,8 +167,11 @@ export function AccountTab() {
       </Card>
 
       <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">Đổi mật khẩu</CardTitle>
+          <CardDescription>Cập nhật mật khẩu đăng nhập của bạn</CardDescription>
+        </CardHeader>
         <CardContent>
-          <h3 className="mb-4 font-semibold">Đổi mật khẩu</h3>
           <form onSubmit={passwordForm.handleSubmit(onChangePassword)} className="flex flex-col gap-4">
             <div className="space-y-1.5">
               <Label className="font-semibold">Mật khẩu hiện tại</Label>
@@ -202,8 +211,9 @@ export function AccountTab() {
               <Button
                 type="submit"
                 disabled={passwordForm.formState.isSubmitting}
-                className="h-10 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
+                className="h-10 gap-1.5 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
               >
+                <Check className="size-4" />
                 Lưu
               </Button>
             </div>

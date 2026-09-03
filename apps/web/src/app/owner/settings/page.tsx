@@ -33,7 +33,7 @@ export default function OwnerSettingsPage() {
   return (
     <main className="flex w-full flex-1 flex-col gap-6 bg-muted/30 p-8">
       <div>
-        <h1 className="text-2xl font-bold">Cài đặt</h1>
+        <h1 className="text-2xl font-bold">Cài đặt hệ thống</h1>
         <p className="text-sm text-muted-foreground">
           Cấu hình thông tin sân, giờ hoạt động, thông báo và tài khoản
         </p>
