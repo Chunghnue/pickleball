@@ -211,4 +211,32 @@ describe('Branches (venues) e2e', () => {
       .attach('file', Buffer.from('not an image'), 'notes.txt')
       .expect(400);
   });
+
+  it('PATCH /venues/mine/:id accepts and returns website', async () => {
+    const { ownerId, token } = await ownerAndToken();
+    const venuesRepo = dataSource.getRepository(Venue);
+    const venue = await venuesRepo.save(
+      venuesRepo.create({
+        ownerId,
+        name: 'Sân ABC',
+        address: '1 Le Loi',
+        city: 'Ho Chi Minh',
+        status: VenueStatus.ACTIVE,
+        slug: 'san-abc-website-test',
+      }),
+    );
+
+    const response = await request(app.getHttpServer())
+      .patch(`/venues/mine/${venue.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ website: 'https://san-abc.example.com' })
+      .expect(200);
+
+    expect(response.body.website).toBe('https://san-abc.example.com');
+
+    const publicView = await request(app.getHttpServer())
+      .get(`/venues/${venue.id}`)
+      .expect(200);
+    expect(publicView.body.website).toBe('https://san-abc.example.com');
+  });
 });

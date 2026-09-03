@@ -73,4 +73,8 @@ export class UpdateVenueDto {
   @IsOptional()
   @IsBoolean()
   isHidden?: boolean;
+
+  @IsOptional()
+  @IsString()
+  website?: string;
 }

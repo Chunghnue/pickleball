@@ -69,6 +69,9 @@ export class Venue {
   @Column({ name: 'logo_url', nullable: true, type: 'varchar' })
   logoUrl: string | null;
 
+  @Column({ nullable: true, type: 'varchar' })
+  website: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

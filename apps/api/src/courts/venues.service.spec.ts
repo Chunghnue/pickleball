@@ -389,6 +389,22 @@ describe('VenuesService.update', () => {
 
     expect(result.cancellationCutoffHours).toBe(4);
   });
+
+  it('updates the website field when provided', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      website: null,
+    });
+    venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.update('owner-1', 'venue-1', {
+      website: 'https://example.com',
+    });
+
+    expect(result.website).toBe('https://example.com');
+  });
 });
 
 describe('VenuesService.update — district/coordinates/email/isHidden', () => {

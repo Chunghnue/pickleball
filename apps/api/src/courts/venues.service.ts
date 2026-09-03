@@ -130,6 +130,7 @@ export class VenuesService {
     if (dto.longitude !== undefined) venue.longitude = dto.longitude;
     if (dto.email !== undefined) venue.email = dto.email;
     if (dto.isHidden !== undefined) venue.isHidden = dto.isHidden;
+    if (dto.website !== undefined) venue.website = dto.website;
     if (dto.slug !== undefined && dto.slug !== venue.slug) {
       await this.changeSlug(venue, dto.slug);
     }
