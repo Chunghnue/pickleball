@@ -74,6 +74,31 @@ export interface DisputeRejectionParams {
   reason?: string;
 }
 
+export interface BookingCancelledForOwnerParams {
+  to: string;
+  venueName: string;
+  courtName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface PaymentConfirmedForOwnerParams {
+  to: string;
+  venueName: string;
+  courtName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  totalPrice: number;
+}
+
+export interface DailyReportParams {
+  to: string;
+  bookingsCount: number;
+  revenue: number;
+}
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -142,6 +167,28 @@ Tổng tiền: ${currencyFormatter.format(params.totalPrice)} đ</p>`;
     const reasonHtml = params.reason ? `<p>Lý do: ${params.reason}</p>` : '';
     const html = `<p>Chào ${params.customerName}, khiếu nại của bạn về một booking đã bị từ chối.</p>${reasonHtml}`;
     return this.sendSafely(params.to, 'Khiếu nại của bạn đã bị từ chối', html);
+  }
+
+  notifyBookingCancelledForOwner(params: BookingCancelledForOwnerParams): Promise<void> {
+    const html = `<p>Booking sau đã bị khách hàng huỷ:<br/>
+Sân: ${params.courtName} - ${params.venueName}<br/>
+Ngày: ${params.date}, ${params.startTime} - ${params.endTime}</p>`;
+    return this.sendSafely(params.to, 'Khách hàng đã huỷ booking', html);
+  }
+
+  notifyPaymentConfirmedForOwner(params: PaymentConfirmedForOwnerParams): Promise<void> {
+    const html = `<p>Bạn vừa nhận thanh toán cho booking:<br/>
+Sân: ${params.courtName} - ${params.venueName}<br/>
+Ngày: ${params.date}, ${params.startTime} - ${params.endTime}<br/>
+Số tiền: ${currencyFormatter.format(params.totalPrice)} đ</p>`;
+    return this.sendSafely(params.to, 'Đã nhận thanh toán', html);
+  }
+
+  notifyDailyReport(params: DailyReportParams): Promise<void> {
+    const html = `<p>Báo cáo hôm nay:<br/>
+Số lượt đặt sân: ${params.bookingsCount}<br/>
+Doanh thu: ${currencyFormatter.format(params.revenue)} đ</p>`;
+    return this.sendSafely(params.to, 'Báo cáo ngày', html);
   }
 
   private async sendSafely(

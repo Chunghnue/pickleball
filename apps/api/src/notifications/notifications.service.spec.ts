@@ -243,6 +243,67 @@ describe('NotificationsService.notifyDisputeRejected', () => {
   });
 });
 
+describe('NotificationsService.notifyBookingCancelledForOwner', () => {
+  it('sends the owner an email when a customer cancels', async () => {
+    const { service, mailService } = await buildTestingModule();
+
+    await service.notifyBookingCancelledForOwner({
+      to: 'owner@test.com',
+      venueName: 'Venue A',
+      courtName: 'Sân 1',
+      date: '2099-01-01',
+      startTime: '08:00',
+      endTime: '09:00',
+    });
+
+    expect(mailService.send).toHaveBeenCalledWith(
+      'owner@test.com',
+      'Khách hàng đã huỷ booking',
+      expect.stringContaining('Sân 1'),
+    );
+  });
+});
+
+describe('NotificationsService.notifyPaymentConfirmedForOwner', () => {
+  it('sends the owner an email with the amount received', async () => {
+    const { service, mailService } = await buildTestingModule();
+
+    await service.notifyPaymentConfirmedForOwner({
+      to: 'owner@test.com',
+      venueName: 'Venue A',
+      courtName: 'Sân 1',
+      date: '2099-01-01',
+      startTime: '08:00',
+      endTime: '09:00',
+      totalPrice: 150000,
+    });
+
+    expect(mailService.send).toHaveBeenCalledWith(
+      'owner@test.com',
+      'Đã nhận thanh toán',
+      expect.stringContaining('150.000'),
+    );
+  });
+});
+
+describe('NotificationsService.notifyDailyReport', () => {
+  it('sends the owner a summary email', async () => {
+    const { service, mailService } = await buildTestingModule();
+
+    await service.notifyDailyReport({
+      to: 'owner@test.com',
+      bookingsCount: 5,
+      revenue: 500000,
+    });
+
+    expect(mailService.send).toHaveBeenCalledWith(
+      'owner@test.com',
+      'Báo cáo ngày',
+      expect.stringContaining('500.000'),
+    );
+  });
+});
+
 describe('NotificationsService best-effort error handling', () => {
   it('resolves without throwing when MailService.send rejects', async () => {
     const { service, mailService } = await buildTestingModule();
