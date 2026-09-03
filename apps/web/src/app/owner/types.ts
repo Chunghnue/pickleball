@@ -44,6 +44,7 @@ export interface Venue {
   isDefault: boolean;
   isHidden: boolean;
   logoUrl: string | null;
+  website: string | null;
   status: "pending_approval" | "active" | "rejected";
   images: VenueImage[];
 }
