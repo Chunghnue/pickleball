@@ -7,9 +7,12 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { useSettingsVenueId } from "./use-settings-venue-id";
 import { orderForDisplay, validateOperatingHours, DAY_LABELS } from "./operating-hours-format";
 import type { OperatingHourRow } from "./types";
+
+const WEEKEND_DAYS = new Set([0, 6]); // Chủ Nhật, Thứ 7
 
 export function OperatingHoursTab() {
   const router = useRouter();
@@ -95,47 +98,56 @@ export function OperatingHoursTab() {
     <Card>
       <CardHeader>
         <CardTitle className="text-base font-semibold">Giờ hoạt động</CardTitle>
-        <CardDescription>Cấu hình khung giờ mở/đóng cửa cho từng ngày trong tuần</CardDescription>
+        <CardDescription>Cài đặt giờ mở cửa và đóng cửa</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {rows.map((row) => (
           <div
             key={row.dayOfWeek}
-            className="flex flex-wrap items-center gap-4 border-b pb-3 last:border-b-0 last:pb-0"
+            className="flex flex-wrap items-center gap-4 rounded-lg bg-muted/50 px-4 py-3.5"
           >
-            <Switch checked={row.isOpen} onCheckedChange={(checked) => handleToggle(row.dayOfWeek, checked)} />
-            <span className="w-20 shrink-0 text-sm font-medium">{DAY_LABELS[row.dayOfWeek]}</span>
+            <Switch
+              checked={row.isOpen}
+              onCheckedChange={(checked) => handleToggle(row.dayOfWeek, checked)}
+              className="data-[checked]:bg-green-500"
+            />
+            <span
+              className={cn(
+                "w-20 shrink-0 text-sm font-semibold",
+                WEEKEND_DAYS.has(row.dayOfWeek) && "text-blue-600 dark:text-blue-400",
+              )}
+            >
+              {DAY_LABELS[row.dayOfWeek]}
+            </span>
             <div className="flex items-center gap-2">
               <input
                 type="time"
                 value={row.openTime ?? ""}
                 disabled={!row.isOpen}
                 onChange={(e) => updateRow(row.dayOfWeek, { openTime: e.target.value })}
-                className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
               />
-              <span className="text-sm text-muted-foreground">-</span>
+              <span className="text-sm text-muted-foreground">đến</span>
               <input
                 type="time"
                 value={row.closeTime ?? ""}
                 disabled={!row.isOpen}
                 onChange={(e) => updateRow(row.dayOfWeek, { closeTime: e.target.value })}
-                className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
           </div>
         ))}
 
-        <div className="flex justify-end pt-2">
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="h-10 gap-1.5 rounded-xl bg-blue-600 px-4 font-medium text-white hover:bg-blue-700"
-          >
-            <Check className="size-4" />
-            Lưu
-          </Button>
-        </div>
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="h-11 w-full gap-1.5 rounded-xl bg-blue-600 font-medium text-white hover:bg-blue-700"
+        >
+          <Check className="size-4" />
+          Lưu
+        </Button>
       </CardContent>
     </Card>
   );
