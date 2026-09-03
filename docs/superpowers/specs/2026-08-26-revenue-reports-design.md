@@ -6,6 +6,13 @@
 **Nguồn tham khảo:** [docs/spec/06-bao-cao-doanh-thu.md](../../spec/06-bao-cao-doanh-thu.md) (khảo sát UI sanbong.vn thực tế)
 **Dựa trên quyết định của:** [2026-08-25-dashboard-design.md](./2026-08-25-dashboard-design.md) (định nghĩa doanh thu, cách scope venue), [2026-08-26-customers-module-design.md](./2026-08-26-customers-module-design.md) (khách walk-in qua `customer_contacts`)
 
+## 0. Cập nhật 2026-09-03 — đối chiếu lại với những gì đã build từ 2026-08-26
+
+Spec này viết trước khi module Staff Accounts (`OwnerScopeGuard`/tier `operational|full|owner`) tồn tại, và trước khi xác nhận lại schema `payments` thực tế. 2 điểm sau **thay thế** nội dung tương ứng ở §4/§5 bên dưới, phần còn lại giữ nguyên:
+
+- **Không có cột `payments.amount`** (bảng `payments` chỉ có `status`/`paidAt`/`note`/`paidBy`/`refundedAt`/`refundedBy`). Số tiền của một giao dịch luôn là `bookings.total_price` của booking gắn với payment đó (join `payment.booking_id = booking.id`) — đúng cách Dashboard (`dashboard.service.ts`) và Customers (`customers.service.ts`) đã làm. Mọi chỗ ghi "`payments.amount`" bên dưới đọc là "`bookings.total_price` của booking tương ứng payment đó".
+- **Quyền truy cập dùng tier `operational`** (`@OwnerScope('operational')`), không phải "role owner → 403" thuần tuý — khớp với quyền của Dashboard: owner và mọi nhân viên (`manager`/`cashier`/`staff`) đều xem được. `EffectiveOwnerId` (không phải `userId` thô) dùng để scope venue, đúng pattern `DashboardController`.
+
 ## 1. Mục tiêu
 
 Thống kê tài chính chi tiết theo khoảng thời gian tuỳ chọn: doanh thu kỳ này so với kỳ trước, biểu đồ doanh thu theo ngày, danh sách từng giao dịch, và xuất báo cáo ra file.
@@ -78,7 +85,7 @@ Trả về file CSV (`Content-Type: text/csv`, header `Content-Disposition: atta
 
 ## 5. Validation
 
-- Role khác `owner` → 403.
+- Chưa đăng nhập → 401; role/tier dưới `operational` (không phải owner/staff của venue) → 403 (xem §0).
 - `from`/`to` bắt buộc, đúng định dạng `YYYY-MM-DD`, và `from <= to` → 400 nếu vi phạm.
 - `venueId` (nếu có) không thuộc owner đang đăng nhập → 404.
 - Owner chưa có venue nào hoặc không có giao dịch nào trong kỳ → trả về số liệu = 0 / mảng rỗng, không lỗi.
