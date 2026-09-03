@@ -48,6 +48,12 @@ const DEFAULT_OPERATING_HOURS: OperatingHourView[] = [0, 1, 2, 3, 4, 5, 6].map((
   closeTime: '22:00',
 }));
 
+// Postgres `time` columns round-trip through node-postgres/TypeORM as
+// "HH:mm:ss" strings, not "HH:mm" — normalize before returning to callers.
+function toHhMm(value: string | null): string | null {
+  return value ? value.slice(0, 5) : null;
+}
+
 @Injectable()
 export class VenuesService {
   constructor(
@@ -512,8 +518,8 @@ export class VenuesService {
     return rows.map((row) => ({
       dayOfWeek: row.dayOfWeek,
       isOpen: row.isOpen,
-      openTime: row.openTime,
-      closeTime: row.closeTime,
+      openTime: toHhMm(row.openTime),
+      closeTime: toHhMm(row.closeTime),
     }));
   }
 

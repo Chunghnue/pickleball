@@ -5,8 +5,10 @@ import {
   Delete,
   Get,
   Param,
+  ParseArrayPipe,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -23,6 +25,7 @@ import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { AddVenueImageDto } from './dto/add-venue-image.dto';
 import { ListVenuesDto } from './dto/list-venues.dto';
+import { OperatingHourItemDto } from './dto/operating-hour-item.dto';
 import { venueLogoUploadOptions } from './venue-logo-upload.config';
 
 @Controller('venues')
@@ -83,6 +86,28 @@ export class VenuesController {
     @Body() dto: UpdateVenueDto,
   ) {
     return this.venuesService.update(effectiveOwnerId, id, dto);
+  }
+
+  @Get('mine/:id/operating-hours')
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
+  getOperatingHours(
+    @EffectiveOwnerId() effectiveOwnerId: string,
+    @Param('id') id: string,
+  ) {
+    return this.venuesService.getOperatingHours(effectiveOwnerId, id);
+  }
+
+  @Put('mine/:id/operating-hours')
+  @UseGuards(JwtAuthGuard, OwnerScopeGuard)
+  @OwnerScope('full')
+  setOperatingHours(
+    @EffectiveOwnerId() effectiveOwnerId: string,
+    @Param('id') id: string,
+    @Body(new ParseArrayPipe({ items: OperatingHourItemDto }))
+    items: OperatingHourItemDto[],
+  ) {
+    return this.venuesService.setOperatingHours(effectiveOwnerId, id, items);
   }
 
   @Post('mine/:id/set-default')

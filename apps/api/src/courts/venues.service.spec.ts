@@ -968,6 +968,20 @@ describe('VenuesService.getOperatingHours', () => {
       { dayOfWeek: 1, isOpen: false, openTime: null, closeTime: null },
     ]);
   });
+
+  it('normalizes Postgres HH:mm:ss time values down to HH:mm', async () => {
+    const { service, venuesRepo, operatingHoursRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    operatingHoursRepo.find.mockResolvedValue([
+      { id: 'row-1', venueId: 'venue-1', dayOfWeek: 1, isOpen: true, openTime: '07:00:00', closeTime: '21:00:00' },
+    ]);
+
+    const result = await service.getOperatingHours('owner-1', 'venue-1');
+
+    expect(result).toEqual([
+      { dayOfWeek: 1, isOpen: true, openTime: '07:00', closeTime: '21:00' },
+    ]);
+  });
 });
 
 describe('VenuesService.setOperatingHours', () => {
