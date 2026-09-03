@@ -8,6 +8,9 @@ import { BookingsService } from '../bookings/bookings.service';
 import { Booking } from '../bookings/entities/booking.entity';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationSettingsService } from '../notification-settings/notification-settings.service';
+import { VenuesService } from '../courts/venues.service';
+import { CourtsService } from '../courts/courts.service';
 
 const mockPaymentsRepository = () => ({
   create: jest.fn((data: unknown) => data),
@@ -29,6 +32,24 @@ const mockUsersService = () => ({
 const mockNotificationsService = () => ({
   notifyPaymentConfirmed: jest.fn().mockResolvedValue(undefined),
   notifyPaymentRefunded: jest.fn().mockResolvedValue(undefined),
+  notifyPaymentConfirmedForOwner: jest.fn().mockResolvedValue(undefined),
+});
+
+const mockNotificationSettingsService = () => ({
+  getForOwner: jest.fn().mockResolvedValue({
+    newBooking: true,
+    cancellation: true,
+    payment: true,
+    dailyReport: true,
+  }),
+});
+
+const mockVenuesService = () => ({
+  findByIdOrThrow: jest.fn().mockResolvedValue({ id: 'venue-1', name: 'Venue A', email: null }),
+});
+
+const mockCourtsService = () => ({
+  findByIdOrThrow: jest.fn().mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' }),
 });
 
 async function buildTestingModule() {
@@ -42,6 +63,9 @@ async function buildTestingModule() {
       { provide: BookingsService, useFactory: mockBookingsService },
       { provide: UsersService, useFactory: mockUsersService },
       { provide: NotificationsService, useFactory: mockNotificationsService },
+      { provide: NotificationSettingsService, useFactory: mockNotificationSettingsService },
+      { provide: VenuesService, useFactory: mockVenuesService },
+      { provide: CourtsService, useFactory: mockCourtsService },
     ],
   }).compile();
 
@@ -59,6 +83,11 @@ async function buildTestingModule() {
     notificationsService: module.get(NotificationsService) as ReturnType<
       typeof mockNotificationsService
     >,
+    notificationSettingsService: module.get(NotificationSettingsService) as ReturnType<
+      typeof mockNotificationSettingsService
+    >,
+    venuesService: module.get(VenuesService) as ReturnType<typeof mockVenuesService>,
+    courtsService: module.get(CourtsService) as ReturnType<typeof mockCourtsService>,
   };
 }
 
@@ -207,6 +236,93 @@ describe('PaymentsService.markPaid', () => {
     await expect(
       service.markPaid('owner-1', 'venue-1', 'booking-1'),
     ).rejects.toThrow('Payment cho booking booking-1 không tồn tại');
+  });
+});
+
+describe('PaymentsService.markPaid — owner notification', () => {
+  it('notifies the owner when the setting is on', async () => {
+    const {
+      service,
+      bookingsService,
+      paymentsRepo,
+      usersService,
+      notificationsService,
+      notificationSettingsService,
+      venuesService,
+      courtsService,
+    } = await buildTestingModule();
+    const booking = {
+      id: 'booking-1',
+      customerId: 'customer-1',
+      courtId: 'court-1',
+      date: '2099-01-01',
+      startTime: '08:00',
+      endTime: '09:00',
+      totalPrice: 100000,
+    };
+    bookingsService.findByIdForOwnerOrThrow.mockResolvedValue(booking);
+    paymentsRepo.findOne.mockResolvedValue({ id: 'payment-1', bookingId: 'booking-1', status: 'unpaid' });
+    usersService.findById.mockImplementation((id: string) =>
+      id === 'owner-1'
+        ? Promise.resolve({ id: 'owner-1', email: 'owner@test.com' })
+        : Promise.resolve({ id, email: 'customer@test.com' }),
+    );
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' });
+    venuesService.findByIdOrThrow.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      name: 'Venue A',
+      email: null,
+    });
+
+    await service.markPaid('owner-1', 'venue-1', 'booking-1', 'note');
+
+    expect(notificationSettingsService.getForOwner).toHaveBeenCalledWith('owner-1');
+    expect(notificationsService.notifyPaymentConfirmedForOwner).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'owner@test.com', totalPrice: 100000 }),
+    );
+  });
+
+  it('does not notify the owner when the setting is off', async () => {
+    const {
+      service,
+      bookingsService,
+      paymentsRepo,
+      usersService,
+      notificationsService,
+      notificationSettingsService,
+      venuesService,
+      courtsService,
+    } = await buildTestingModule();
+    notificationSettingsService.getForOwner.mockResolvedValue({
+      newBooking: true,
+      cancellation: true,
+      payment: false,
+      dailyReport: true,
+    });
+    const booking = {
+      id: 'booking-1',
+      customerId: 'customer-1',
+      courtId: 'court-1',
+      date: '2099-01-01',
+      startTime: '08:00',
+      endTime: '09:00',
+      totalPrice: 100000,
+    };
+    bookingsService.findByIdForOwnerOrThrow.mockResolvedValue(booking);
+    paymentsRepo.findOne.mockResolvedValue({ id: 'payment-1', bookingId: 'booking-1', status: 'unpaid' });
+    usersService.findById.mockResolvedValue({ id: 'customer-1', email: 'customer@test.com' });
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' });
+    venuesService.findByIdOrThrow.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      name: 'Venue A',
+      email: null,
+    });
+
+    await service.markPaid('owner-1', 'venue-1', 'booking-1', 'note');
+
+    expect(notificationsService.notifyPaymentConfirmedForOwner).not.toHaveBeenCalled();
   });
 });
 

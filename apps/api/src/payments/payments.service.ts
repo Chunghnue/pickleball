@@ -12,6 +12,9 @@ import { Booking } from '../bookings/entities/booking.entity';
 import { BookingsService } from '../bookings/bookings.service';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationSettingsService } from '../notification-settings/notification-settings.service';
+import { VenuesService } from '../courts/venues.service';
+import { CourtsService } from '../courts/courts.service';
 
 @Injectable()
 export class PaymentsService {
@@ -22,6 +25,9 @@ export class PaymentsService {
     private readonly bookingsService: BookingsService,
     private readonly usersService: UsersService,
     private readonly notificationsService: NotificationsService,
+    private readonly notificationSettingsService: NotificationSettingsService,
+    private readonly venuesService: VenuesService,
+    private readonly courtsService: CourtsService,
   ) {}
 
   async createForBooking(
@@ -69,6 +75,24 @@ export class PaymentsService {
       const customer = await this.usersService.findById(booking.customerId);
       await this.notificationsService.notifyPaymentConfirmed({
         to: customer?.email ?? '',
+        date: booking.date,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        totalPrice: booking.totalPrice,
+      });
+    }
+
+    const notificationSettings = await this.notificationSettingsService.getForOwner(ownerId);
+    if (notificationSettings.payment) {
+      const [court, owner] = await Promise.all([
+        this.courtsService.findByIdOrThrow(booking.courtId),
+        this.usersService.findById(ownerId),
+      ]);
+      const venue = await this.venuesService.findByIdOrThrow(court.venueId);
+      await this.notificationsService.notifyPaymentConfirmedForOwner({
+        to: venue.email ?? owner?.email ?? '',
+        venueName: venue.name,
+        courtName: court.name,
         date: booking.date,
         startTime: booking.startTime,
         endTime: booking.endTime,

@@ -6,6 +6,8 @@ import { PaymentsController } from './payments.controller';
 import { BookingsModule } from '../bookings/bookings.module';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { NotificationSettingsModule } from '../notification-settings/notification-settings.module';
+import { CourtsModule } from '../courts/courts.module';
 
 @Module({
   imports: [
@@ -13,6 +15,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     forwardRef(() => BookingsModule),
     UsersModule,
     NotificationsModule,
+    NotificationSettingsModule,
+    CourtsModule,
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],
