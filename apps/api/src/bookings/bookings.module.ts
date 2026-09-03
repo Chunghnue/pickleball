@@ -8,6 +8,7 @@ import { CourtsModule } from '../courts/courts.module';
 import { UsersModule } from '../users/users.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { NotificationSettingsModule } from '../notification-settings/notification-settings.module';
 import { CustomerContactsModule } from '../customer-contacts/customer-contacts.module';
 import { PricingModule } from '../pricing/pricing.module';
 
@@ -19,6 +20,7 @@ import { PricingModule } from '../pricing/pricing.module';
     CustomerContactsModule,
     forwardRef(() => PaymentsModule),
     NotificationsModule,
+    NotificationSettingsModule,
     PricingModule,
   ],
   controllers: [BookingsController],

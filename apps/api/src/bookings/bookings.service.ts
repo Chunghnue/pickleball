@@ -23,6 +23,7 @@ import { UsersService } from '../users/users.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationSettingsService } from '../notification-settings/notification-settings.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
 import { PricingService } from '../pricing/pricing.service';
 import { buildBookingCode } from './booking-code.util';
@@ -56,6 +57,7 @@ export class BookingsService {
     @Inject(forwardRef(() => PaymentsService))
     private readonly paymentsService: PaymentsService,
     private readonly notificationsService: NotificationsService,
+    private readonly notificationSettingsService: NotificationSettingsService,
     private readonly customerContactsService: CustomerContactsService,
     private readonly pricingService: PricingService,
     @InjectDataSource()
@@ -83,17 +85,20 @@ export class BookingsService {
       endTime: dto.endTime,
       totalPrice: booking.totalPrice,
     });
-    await this.notificationsService.notifyNewBookingForOwner({
-      to: owner?.email ?? '',
-      venueName: venue.name,
-      courtName: court.name,
-      date: dto.date,
-      startTime: dto.startTime,
-      endTime: dto.endTime,
-      customerName: customer?.fullName ?? '',
-      customerPhone: customer?.phone ?? null,
-      totalPrice: booking.totalPrice,
-    });
+    const notificationSettings = await this.notificationSettingsService.getForOwner(venue.ownerId);
+    if (notificationSettings.newBooking) {
+      await this.notificationsService.notifyNewBookingForOwner({
+        to: venue.email ?? owner?.email ?? '',
+        venueName: venue.name,
+        courtName: court.name,
+        date: dto.date,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        customerName: customer?.fullName ?? '',
+        customerPhone: customer?.phone ?? null,
+        totalPrice: booking.totalPrice,
+      });
+    }
 
     return booking;
   }
@@ -473,6 +478,22 @@ export class BookingsService {
         endTime: booking.endTime,
         cancelledBy: cancelledBy === booking.customerId ? 'customer' : 'owner',
       });
+    }
+
+    const cancelledByCustomer = cancelledBy === booking.customerId;
+    if (cancelledByCustomer) {
+      const notificationSettings = await this.notificationSettingsService.getForOwner(venue.ownerId);
+      if (notificationSettings.cancellation) {
+        const owner = await this.usersService.findById(venue.ownerId);
+        await this.notificationsService.notifyBookingCancelledForOwner({
+          to: venue.email ?? owner?.email ?? '',
+          venueName: venue.name,
+          courtName: court.name,
+          date: booking.date,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+        });
+      }
     }
 
     return saved;

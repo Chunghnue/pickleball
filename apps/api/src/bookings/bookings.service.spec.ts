@@ -12,6 +12,7 @@ import { UsersService } from '../users/users.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PaymentStatus } from '../payments/entities/payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationSettingsService } from '../notification-settings/notification-settings.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
 import { PricingService } from '../pricing/pricing.service';
 import { buildBookingCode } from './booking-code.util';
@@ -61,6 +62,16 @@ const mockNotificationsService = () => ({
   notifyBookingConfirmed: jest.fn().mockResolvedValue(undefined),
   notifyBookingCancelled: jest.fn().mockResolvedValue(undefined),
   notifyNewBookingForOwner: jest.fn().mockResolvedValue(undefined),
+  notifyBookingCancelledForOwner: jest.fn().mockResolvedValue(undefined),
+});
+
+const mockNotificationSettingsService = () => ({
+  getForOwner: jest.fn().mockResolvedValue({
+    newBooking: true,
+    cancellation: true,
+    payment: true,
+    dailyReport: true,
+  }),
 });
 
 const mockCustomerContactsService = () => ({
@@ -105,6 +116,7 @@ async function buildTestingModule() {
       { provide: UsersService, useFactory: mockUsersService },
       { provide: PaymentsService, useFactory: mockPaymentsService },
       { provide: NotificationsService, useFactory: mockNotificationsService },
+      { provide: NotificationSettingsService, useFactory: mockNotificationSettingsService },
       { provide: CustomerContactsService, useFactory: mockCustomerContactsService },
       { provide: PricingService, useFactory: mockPricingService },
       { provide: DataSource, useFactory: mockDataSource },
@@ -133,6 +145,9 @@ async function buildTestingModule() {
     >,
     notificationsService: module.get(NotificationsService) as ReturnType<
       typeof mockNotificationsService
+    >,
+    notificationSettingsService: module.get(NotificationSettingsService) as ReturnType<
+      typeof mockNotificationSettingsService
     >,
     customerContactsService: module.get(CustomerContactsService) as ReturnType<
       typeof mockCustomerContactsService
@@ -347,6 +362,101 @@ describe('BookingsService.create', () => {
         endTime: '09:00',
       }),
     ).rejects.toThrow('Court court-1 không tồn tại');
+  });
+});
+
+describe('BookingsService.create — owner notification gating', () => {
+  const FIXED_TODAY = new Date('2026-08-24T12:00:00Z');
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(FIXED_TODAY);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const ACTIVE_COURT = {
+    id: 'court-1',
+    venueId: 'venue-1',
+    name: 'Sân 1',
+    status: CourtStatus.ACTIVE,
+    openTime: '08:00',
+    closeTime: '20:00',
+    slotDurationMinutes: 60,
+    pricePerHour: 100000,
+  };
+
+  it('does not call notifyNewBookingForOwner when the setting is off', async () => {
+    const {
+      service,
+      courtsService,
+      venuesService,
+      usersService,
+      dataSource,
+      notificationsService,
+      notificationSettingsService,
+    } = await buildTestingModule();
+    notificationSettingsService.getForOwner.mockResolvedValue({
+      newBooking: false,
+      cancellation: true,
+      payment: true,
+      dailyReport: true,
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
+    venuesService.findByIdOrThrow.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      status: VenueStatus.ACTIVE,
+      name: 'Venue A',
+      email: null,
+    });
+    usersService.findById.mockImplementation((id: string) =>
+      id === 'owner-1'
+        ? Promise.resolve({ id: 'owner-1', email: 'owner@test.com', fullName: 'Owner' })
+        : Promise.resolve({ id, email: 'customer@test.com', fullName: 'Customer', phone: null }),
+    );
+    dataSource.transaction.mockImplementation((cb) => cb(buildMockManager()));
+
+    await service.create('customer-1', {
+      courtId: 'court-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+    });
+
+    expect(notificationsService.notifyNewBookingForOwner).not.toHaveBeenCalled();
+    expect(notificationsService.notifyBookingConfirmed).toHaveBeenCalled();
+  });
+
+  it('sends to venue.email when set, falling back to owner.email otherwise', async () => {
+    const { service, courtsService, venuesService, usersService, dataSource, notificationsService } =
+      await buildTestingModule();
+    courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
+    venuesService.findByIdOrThrow.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      status: VenueStatus.ACTIVE,
+      name: 'Venue A',
+      email: 'venue@test.com',
+    });
+    usersService.findById.mockImplementation((id: string) =>
+      id === 'owner-1'
+        ? Promise.resolve({ id: 'owner-1', email: 'owner@test.com', fullName: 'Owner' })
+        : Promise.resolve({ id, email: 'customer@test.com', fullName: 'Customer', phone: null }),
+    );
+    dataSource.transaction.mockImplementation((cb) => cb(buildMockManager()));
+
+    await service.create('customer-1', {
+      courtId: 'court-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+    });
+
+    expect(notificationsService.notifyNewBookingForOwner).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'venue@test.com' }),
+    );
   });
 });
 
@@ -574,6 +684,89 @@ describe('BookingsService.cancelByCustomer', () => {
     await expect(
       service.cancelByCustomer('customer-1', 'booking-1'),
     ).rejects.toThrow('Chỉ có thể huỷ booking đang confirmed');
+  });
+});
+
+describe('BookingsService cancel — owner notification', () => {
+  it('notifies the owner when a customer cancels and the setting is on', async () => {
+    const {
+      service,
+      bookingsRepo,
+      courtsService,
+      venuesService,
+      usersService,
+      dataSource,
+      notificationsService,
+      notificationSettingsService,
+    } = await buildTestingModule();
+    const booking = {
+      id: 'booking-1',
+      customerId: 'customer-1',
+      courtId: 'court-1',
+      date: '2099-01-01',
+      startTime: '08:00',
+      endTime: '09:00',
+      status: BookingStatus.CONFIRMED,
+    };
+    bookingsRepo.findOne.mockResolvedValue(booking);
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' });
+    venuesService.findByIdOrThrow.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      name: 'Venue A',
+      email: null,
+      cancellationCutoffHours: 0,
+    });
+    usersService.findById.mockImplementation((id: string) =>
+      id === 'owner-1'
+        ? Promise.resolve({ id: 'owner-1', email: 'owner@test.com', fullName: 'Owner' })
+        : Promise.resolve({ id, email: 'customer@test.com', fullName: 'Customer' }),
+    );
+    dataSource.transaction.mockImplementation((cb) => cb(buildMockManager()));
+
+    await service.cancelByCustomer('customer-1', 'booking-1');
+
+    expect(notificationSettingsService.getForOwner).toHaveBeenCalledWith('owner-1');
+    expect(notificationsService.notifyBookingCancelledForOwner).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'owner@test.com' }),
+    );
+  });
+
+  it('does not notify the owner when the owner cancels their own booking', async () => {
+    const {
+      service,
+      bookingsRepo,
+      courtsService,
+      venuesService,
+      usersService,
+      dataSource,
+      notificationsService,
+    } = await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
+    const booking = {
+      id: 'booking-1',
+      customerId: 'customer-1',
+      courtId: 'court-1',
+      date: '2099-01-01',
+      startTime: '08:00',
+      endTime: '09:00',
+      status: BookingStatus.CONFIRMED,
+    };
+    bookingsRepo.findOne.mockResolvedValue(booking);
+    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' });
+    venuesService.findByIdOrThrow.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      name: 'Venue A',
+      email: null,
+      cancellationCutoffHours: 0,
+    });
+    usersService.findById.mockResolvedValue({ id: 'customer-1', email: 'customer@test.com', fullName: 'Customer' });
+    dataSource.transaction.mockImplementation((cb) => cb(buildMockManager()));
+
+    await service.cancelByOwner('owner-1', 'venue-1', 'booking-1');
+
+    expect(notificationsService.notifyBookingCancelledForOwner).not.toHaveBeenCalled();
   });
 });
 
