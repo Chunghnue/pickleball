@@ -25,29 +25,27 @@ function MetricCard({
 }) {
   return (
     <Card>
-      <CardContent className="flex items-center gap-3">
-        <div
-          className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${CARD_STYLES[color]}`}
-        >
-          <Icon className="size-5" />
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <div className="flex items-center gap-2">
-            <p className="text-xl font-bold">{value}</p>
-            {badge && (
-              <span
-                className={
-                  badge.positive
-                    ? "text-xs font-semibold text-green-600 dark:text-green-400"
-                    : "text-xs font-semibold text-red-600 dark:text-red-400"
-                }
-              >
-                {badge.text}
-              </span>
-            )}
+      <CardContent>
+        <div className="flex items-start justify-between">
+          <div
+            className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${CARD_STYLES[color]}`}
+          >
+            <Icon className="size-5" />
           </div>
+          {badge && (
+            <span
+              className={
+                badge.positive
+                  ? "text-xs font-semibold text-green-600 dark:text-green-400"
+                  : "text-xs font-semibold text-red-600 dark:text-red-400"
+              }
+            >
+              {badge.text}
+            </span>
+          )}
         </div>
+        <p className="mt-3 text-sm text-muted-foreground">{label}</p>
+        <p className="text-xl font-bold">{value}</p>
       </CardContent>
     </Card>
   );

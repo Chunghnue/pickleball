@@ -10,6 +10,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatDateTime, formatMoney } from "./revenue-format";
 import type { RevenueTransaction } from "./types";
 
+function PaidBadge() {
+  return (
+    <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-600 dark:bg-green-950/40 dark:text-green-400">
+      Đã thanh toán
+    </span>
+  );
+}
+
 export function RevenueTransactionsTable({
   transactions,
 }: {
@@ -19,7 +27,10 @@ export function RevenueTransactionsTable({
     <Card>
       <CardContent className="p-0">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="font-semibold">Danh sách giao dịch ({transactions.length})</h2>
+          <h2 className="font-semibold">Danh sách giao dịch</h2>
+          <span className="text-sm text-muted-foreground">
+            Tổng: {transactions.length} giao dịch
+          </span>
         </div>
         <Table>
           <TableHeader>
@@ -28,13 +39,14 @@ export function RevenueTransactionsTable({
               <TableHead>KHÁCH HÀNG</TableHead>
               <TableHead>THỜI GIAN</TableHead>
               <TableHead>SỐ TIỀN</TableHead>
+              <TableHead>THANH TOÁN</TableHead>
               <TableHead>TRẠNG THÁI</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {transactions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   Chưa có giao dịch nào.
                 </TableCell>
               </TableRow>
@@ -55,9 +67,10 @@ export function RevenueTransactionsTable({
                   {formatMoney(t.amount)}
                 </TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-600 dark:bg-green-950/40 dark:text-green-400">
-                    Đã thanh toán
-                  </span>
+                  <PaidBadge />
+                </TableCell>
+                <TableCell>
+                  <PaidBadge />
                 </TableCell>
               </TableRow>
             ))}

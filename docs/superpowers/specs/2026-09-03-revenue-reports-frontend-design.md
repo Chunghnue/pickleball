@@ -14,9 +14,20 @@ Module này **chỉ đọc** — không có form tạo/sửa/xoá nào ở front
 
 ## 2. Khác biệt so với tài liệu khảo sát gốc
 
-- **Cột "Thanh toán" và "Trạng thái" gộp thành một cột "Trạng thái"** — tài liệu gốc liệt kê 2 cột riêng cho bảng giao dịch, nhưng theo định nghĩa nhất quán với Dashboard (backend spec §2), một "giao dịch" luôn là payment có `status='paid'` — API không bao giờ trả về giao dịch với trạng thái khác. Một cột "Trạng thái" duy nhất, badge xanh lá "Đã thanh toán", là đủ và tránh 2 cột trùng lặp thông tin.
+- ~~Cột "Thanh toán" và "Trạng thái" gộp thành một cột "Trạng thái"~~ — **đảo lại ở bản cập nhật cùng ngày (xem §2.1)**: đối chiếu trực tiếp với ảnh chụp giao diện sanbong.vn cho thấy 2 cột này tách riêng thật, dù cả hai cùng hiển thị "Đã thanh toán" (hệ thống không có khái niệm "phương thức thanh toán" — backend spec §6).
 - **Biểu đồ dùng loại đường (`LineChart`)**, khác với biểu đồ cột (`BarChart`) hiện có ở Dashboard (`revenue-chart.tsx`) — đúng chữ "biểu đồ đường" trong tài liệu gốc §3, đồng thời tách biệt trực quan giữa 2 trang.
 - **Không có ô chọn chi nhánh riêng trong bộ lọc** (tài liệu gốc chỉ khảo sát 1 sân) — dùng chung bộ chuyển đổi chi nhánh toàn cục (`useBranch()`) ở sidebar, giống Dashboard/Bookings/Customers/Pricing.
+
+### 2.1. Cập nhật 2026-09-03 (chiều) — đối chiếu style với ảnh chụp sanbong.vn thực tế
+
+Sau khi trang đã build xong theo spec gốc ở trên, đối chiếu lại với ảnh chụp giao diện thật của sanbong.vn phát hiện vài khác biệt về layout — đã chỉnh trực tiếp trong code, cập nhật lại đây để spec khớp với trạng thái hiện tại:
+
+- **Tiêu đề** đổi thành "Báo cáo doanh thu" (thay "Doanh thu") kèm dòng phụ đề "Thống kê tài chính chi tiết" ngay dưới.
+- **Nút "Xuất báo cáo" chuyển lên góc phải cùng hàng với tiêu đề trang**, không còn nằm trong `revenue-filter-bar.tsx` nữa — `RevenueFilterBar` giờ chỉ còn 2 ô ngày + nút "Lọc", tự bọc trong `<Card>` riêng.
+- **4 thẻ số liệu đổi bố cục từ ngang sang dọc**: hàng trên cùng là icon (trái) + badge % (phải, chỉ thẻ "Doanh thu kỳ này" có), hàng dưới là nhãn rồi đến giá trị (thay vì icon-trái/nhãn-giá trị-phải theo hàng ngang kiểu `dashboard/stat-cards.tsx`).
+- **Tiêu đề biểu đồ bỏ icon `TrendingUp`**, chỉ còn chữ "Doanh thu theo ngày" thuần. Trục Y đổi từ format tiền đầy đủ (`vi-VN`, ví dụ "15.000.000") sang rút gọn dạng "15M"/"500K" (`formatCompact`) — tooltip khi hover vẫn giữ format tiền đầy đủ để chính xác.
+- **Header bảng giao dịch đổi cách đếm**: "Danh sách giao dịch" (bỏ số trong ngoặc) + "Tổng: N giao dịch" ở góc phải cùng hàng, thay vì "Danh sách giao dịch (N)" gộp một chỗ.
+- **Cột "Thanh toán"/"Trạng thái" tách lại làm 2** (đảo quyết định ở §2) — cả hai cùng hiển thị badge xanh lá "Đã thanh toán" vì không có dữ liệu phương thức riêng biệt.
 
 ## 3. Kiến trúc trang (`apps/web/src/app/owner/revenue/`)
 

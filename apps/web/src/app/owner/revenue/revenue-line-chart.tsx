@@ -9,7 +9,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface RevenueLineChartProps {
@@ -22,16 +21,19 @@ function shortDate(date: string): string {
   return `${date.slice(8, 10)}/${date.slice(5, 7)}`;
 }
 
+function formatCompact(value: number): string {
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
+  return String(value);
+}
+
 export function RevenueLineChart({ revenueByDay }: RevenueLineChartProps) {
   const hasRevenue = revenueByDay.some((day) => day.revenue > 0);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <TrendingUp className="size-4" />
-          Doanh thu theo ngày
-        </CardTitle>
+        <CardTitle>Doanh thu theo ngày</CardTitle>
       </CardHeader>
       <CardContent>
         {!hasRevenue && (
@@ -45,10 +47,7 @@ export function RevenueLineChart({ revenueByDay }: RevenueLineChartProps) {
               <LineChart data={revenueByDay}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tickFormatter={shortDate} />
-                <YAxis
-                  tickFormatter={(value: number) => currencyFormatter.format(value)}
-                  width={80}
-                />
+                <YAxis tickFormatter={formatCompact} width={50} />
                 <Tooltip
                   labelFormatter={(label) => shortDate(String(label))}
                   formatter={(value) => [
@@ -56,7 +55,7 @@ export function RevenueLineChart({ revenueByDay }: RevenueLineChartProps) {
                     "Doanh thu",
                   ]}
                 />
-                <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

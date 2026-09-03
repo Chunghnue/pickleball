@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Download } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { ALL_BRANCHES_ID, useBranch } from "@/lib/branch-context";
 import { RevenueFilterBar } from "./revenue-filter-bar";
 import { RevenueMetrics } from "./revenue-metrics";
@@ -55,15 +57,21 @@ export default function OwnerRevenuePage() {
 
   return (
     <main className="flex w-full flex-1 flex-col gap-6 bg-muted/30 p-8">
-      <div>
-        <h1 className="text-2xl font-bold">Doanh thu</h1>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Báo cáo doanh thu</h1>
+          <p className="text-sm text-muted-foreground">Thống kê tài chính chi tiết</p>
+        </div>
+        <a
+          href={`/api/reports/revenue/export?${exportQs}`}
+          className={buttonVariants({ variant: "outline", className: "gap-2" })}
+        >
+          <Download className="size-4" />
+          Xuất báo cáo
+        </a>
       </div>
 
-      <RevenueFilterBar
-        appliedRange={appliedRange}
-        onApply={setAppliedRange}
-        exportHref={`/api/reports/revenue/export?${exportQs}`}
-      />
+      <RevenueFilterBar appliedRange={appliedRange} onApply={setAppliedRange} />
 
       {error && (
         <p className="text-sm text-destructive">Không tải được dữ liệu. Vui lòng thử lại.</p>
