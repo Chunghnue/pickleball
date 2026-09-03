@@ -8,6 +8,7 @@ import {
   addVenueImageSchema,
   createCourtSchema,
   updateCourtSchema,
+  changePasswordSchema,
 } from './schemas';
 
 describe('registerSchema', () => {
@@ -237,6 +238,50 @@ describe('updateCourtSchema', () => {
   it('rejects an out-of-range slotDurationMinutes when provided', () => {
     expect(
       updateCourtSchema.safeParse({ slotDurationMinutes: 500 }).success,
+    ).toBe(false);
+  });
+});
+
+describe('changePasswordSchema', () => {
+  it('accepts a valid payload', () => {
+    expect(
+      changePasswordSchema.safeParse({
+        currentPassword: 'oldpassword1',
+        newPassword: 'newpassword1',
+        confirmPassword: 'newpassword1',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects a newPassword shorter than 8 characters', () => {
+    expect(
+      changePasswordSchema.safeParse({
+        currentPassword: 'oldpassword1',
+        newPassword: '123',
+        confirmPassword: '123',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects when confirmPassword does not match newPassword', () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: 'oldpassword1',
+      newPassword: 'newpassword1',
+      confirmPassword: 'different1',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].path).toEqual(['confirmPassword']);
+    }
+  });
+
+  it('rejects an empty currentPassword', () => {
+    expect(
+      changePasswordSchema.safeParse({
+        currentPassword: '',
+        newPassword: 'newpassword1',
+        confirmPassword: 'newpassword1',
+      }).success,
     ).toBe(false);
   });
 });

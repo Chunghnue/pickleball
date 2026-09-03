@@ -168,3 +168,15 @@ export const updateRecurringScheduleSchema = z.object({
   autoRenew: z.boolean().optional(),
 });
 export type UpdateRecurringScheduleInput = z.infer<typeof updateRecurringScheduleSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Vui lòng nhập mật khẩu hiện tại'),
+    newPassword: z.string().min(8, 'Mật khẩu tối thiểu 8 ký tự'),
+    confirmPassword: z.string().min(1, 'Vui lòng xác nhận mật khẩu mới'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Xác nhận mật khẩu không khớp',
+    path: ['confirmPassword'],
+  });
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
