@@ -20,6 +20,7 @@ import { CustomerContactsModule } from './customer-contacts/customer-contacts.mo
 import { CustomersModule } from './customers/customers.module';
 import { RecurringSchedulesModule } from './recurring-schedules/recurring-schedules.module';
 import { StaffModule } from './staff/staff.module';
+import { NotificationSettingsModule } from './notification-settings/notification-settings.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { StaffModule } from './staff/staff.module';
     CustomersModule,
     RecurringSchedulesModule,
     StaffModule,
+    NotificationSettingsModule,
   ],
   controllers: [AppController],
   providers: [
