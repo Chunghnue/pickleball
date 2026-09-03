@@ -12,6 +12,7 @@ import { join } from 'path';
 import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
 import { VenueSlugHistory } from './entities/venue-slug-history.entity';
+import { VenueOperatingHours } from './entities/venue-operating-hours.entity';
 import { Court } from './entities/court.entity';
 import { CourtImage } from './entities/court-image.entity';
 import { Booking } from '../bookings/entities/booking.entity';
@@ -20,6 +21,7 @@ import { PricingRule } from '../pricing/entities/pricing-rule.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { AddVenueImageDto } from './dto/add-venue-image.dto';
+import { OperatingHourItemDto } from './dto/operating-hour-item.dto';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { slugify } from './slug.util';
@@ -32,6 +34,20 @@ export interface VenueWithMetrics extends Venue {
   revenueThisMonth: number;
 }
 
+export interface OperatingHourView {
+  dayOfWeek: number;
+  isOpen: boolean;
+  openTime: string | null;
+  closeTime: string | null;
+}
+
+const DEFAULT_OPERATING_HOURS: OperatingHourView[] = [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
+  dayOfWeek,
+  isOpen: true,
+  openTime: '06:00',
+  closeTime: '22:00',
+}));
+
 @Injectable()
 export class VenuesService {
   constructor(
@@ -41,6 +57,8 @@ export class VenuesService {
     private readonly venueImagesRepository: Repository<VenueImage>,
     @InjectRepository(VenueSlugHistory)
     private readonly slugHistoryRepository: Repository<VenueSlugHistory>,
+    @InjectRepository(VenueOperatingHours)
+    private readonly operatingHoursRepository: Repository<VenueOperatingHours>,
     @InjectRepository(Court)
     private readonly courtsRepository: Repository<Court>,
     @InjectRepository(Booking)
@@ -480,5 +498,69 @@ export class VenuesService {
       return copy.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }
     return copy.sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
+  }
+
+  async getOperatingHours(ownerId: string, venueId: string): Promise<OperatingHourView[]> {
+    await this.getOwnedVenueOrThrow(ownerId, venueId);
+    const rows = await this.operatingHoursRepository.find({
+      where: { venueId },
+      order: { dayOfWeek: 'ASC' },
+    });
+    if (rows.length === 0) {
+      return DEFAULT_OPERATING_HOURS;
+    }
+    return rows.map((row) => ({
+      dayOfWeek: row.dayOfWeek,
+      isOpen: row.isOpen,
+      openTime: row.openTime,
+      closeTime: row.closeTime,
+    }));
+  }
+
+  async setOperatingHours(
+    ownerId: string,
+    venueId: string,
+    items: OperatingHourItemDto[],
+  ): Promise<OperatingHourView[]> {
+    await this.getOwnedVenueOrThrow(ownerId, venueId);
+    if (items.length !== 7) {
+      throw new BadRequestException('Phải gửi đúng 7 ngày trong tuần');
+    }
+    const seenDays = new Set(items.map((item) => item.dayOfWeek));
+    if (seenDays.size !== 7) {
+      throw new BadRequestException('dayOfWeek phải phủ đủ 0-6, không trùng');
+    }
+    for (const item of items) {
+      if (item.isOpen) {
+        if (!item.openTime || !item.closeTime) {
+          throw new BadRequestException(
+            `Ngày ${item.dayOfWeek} đang mở cửa phải có giờ mở và giờ đóng`,
+          );
+        }
+        if (item.openTime >= item.closeTime) {
+          throw new BadRequestException(`Ngày ${item.dayOfWeek} giờ mở phải trước giờ đóng`);
+        }
+      } else if (item.openTime || item.closeTime) {
+        throw new BadRequestException(
+          `Ngày ${item.dayOfWeek} đang đóng cửa không được có giờ mở/đóng`,
+        );
+      }
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(VenueOperatingHours, { venueId });
+      const rows = items.map((item) =>
+        manager.create(VenueOperatingHours, {
+          venueId,
+          dayOfWeek: item.dayOfWeek,
+          isOpen: item.isOpen,
+          openTime: item.isOpen ? item.openTime! : null,
+          closeTime: item.isOpen ? item.closeTime! : null,
+        }),
+      );
+      await manager.save(rows);
+    });
+
+    return this.getOperatingHours(ownerId, venueId);
   }
 }

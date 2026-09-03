@@ -5,6 +5,7 @@ import { VenuesService } from './venues.service';
 import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
 import { VenueSlugHistory } from './entities/venue-slug-history.entity';
+import { VenueOperatingHours } from './entities/venue-operating-hours.entity';
 import { Court } from './entities/court.entity';
 import { Booking } from '../bookings/entities/booking.entity';
 import { Payment } from '../payments/entities/payment.entity';
@@ -31,6 +32,10 @@ const mockVenueImagesRepository = () => ({
 const mockSlugHistoryRepository = () => ({
   count: jest.fn(),
   findOne: jest.fn(),
+});
+
+const mockOperatingHoursRepository = () => ({
+  find: jest.fn(),
 });
 
 const mockCourtsRepository = () => ({
@@ -73,6 +78,10 @@ async function buildTestingModule() {
         provide: getRepositoryToken(VenueSlugHistory),
         useFactory: mockSlugHistoryRepository,
       },
+      {
+        provide: getRepositoryToken(VenueOperatingHours),
+        useFactory: mockOperatingHoursRepository,
+      },
       { provide: getRepositoryToken(Court), useFactory: mockCourtsRepository },
       { provide: getRepositoryToken(Booking), useFactory: mockBookingsRepository },
       { provide: getRepositoryToken(Payment), useFactory: mockPaymentsRepository },
@@ -92,6 +101,9 @@ async function buildTestingModule() {
     >,
     slugHistoryRepo: module.get(getRepositoryToken(VenueSlugHistory)) as ReturnType<
       typeof mockSlugHistoryRepository
+    >,
+    operatingHoursRepo: module.get(getRepositoryToken(VenueOperatingHours)) as ReturnType<
+      typeof mockOperatingHoursRepository
     >,
     courtsRepo: module.get(getRepositoryToken(Court)) as ReturnType<
       typeof mockCourtsRepository
@@ -923,5 +935,114 @@ describe('VenuesService.findImagesByVenue', () => {
     expect(result).toEqual([
       { id: 'image-1', venueId: 'venue-1', url: 'https://example.com/a.jpg' },
     ]);
+  });
+});
+
+describe('VenuesService.getOperatingHours', () => {
+  it('returns the default 7-day schedule when no rows exist yet', async () => {
+    const { service, venuesRepo, operatingHoursRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    operatingHoursRepo.find.mockResolvedValue([]);
+
+    const result = await service.getOperatingHours('owner-1', 'venue-1');
+
+    expect(result).toHaveLength(7);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { dayOfWeek: 0, isOpen: true, openTime: '06:00', closeTime: '22:00' },
+        { dayOfWeek: 6, isOpen: true, openTime: '06:00', closeTime: '22:00' },
+      ]),
+    );
+  });
+
+  it('returns saved rows mapped to the view shape', async () => {
+    const { service, venuesRepo, operatingHoursRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    operatingHoursRepo.find.mockResolvedValue([
+      { id: 'row-1', venueId: 'venue-1', dayOfWeek: 1, isOpen: false, openTime: null, closeTime: null },
+    ]);
+
+    const result = await service.getOperatingHours('owner-1', 'venue-1');
+
+    expect(result).toEqual([
+      { dayOfWeek: 1, isOpen: false, openTime: null, closeTime: null },
+    ]);
+  });
+});
+
+describe('VenuesService.setOperatingHours', () => {
+  function sevenDays(overrides: Partial<{ dayOfWeek: number; isOpen: boolean; openTime?: string; closeTime?: string }>[] = []) {
+    const base = [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
+      dayOfWeek,
+      isOpen: true,
+      openTime: '08:00',
+      closeTime: '20:00',
+    }));
+    for (const override of overrides) {
+      const idx = base.findIndex((d) => d.dayOfWeek === override.dayOfWeek);
+      base[idx] = { ...base[idx], ...override } as (typeof base)[number];
+    }
+    return base;
+  }
+
+  it('rejects a payload that is not exactly 7 items', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+
+    await expect(
+      service.setOperatingHours('owner-1', 'venue-1', sevenDays().slice(0, 6) as never),
+    ).rejects.toThrow('Phải gửi đúng 7 ngày trong tuần');
+  });
+
+  it('rejects duplicate dayOfWeek values', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    const items = sevenDays();
+    items[1] = { ...items[1], dayOfWeek: 0 };
+
+    await expect(
+      service.setOperatingHours('owner-1', 'venue-1', items as never),
+    ).rejects.toThrow('dayOfWeek phải phủ đủ 0-6, không trùng');
+  });
+
+  it('rejects openTime >= closeTime when isOpen is true', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    const items = sevenDays([{ dayOfWeek: 2, isOpen: true, openTime: '20:00', closeTime: '08:00' }]);
+
+    await expect(
+      service.setOperatingHours('owner-1', 'venue-1', items as never),
+    ).rejects.toThrow('giờ mở phải trước giờ đóng');
+  });
+
+  it('rejects openTime/closeTime present while isOpen is false', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    const items = sevenDays([{ dayOfWeek: 3, isOpen: false, openTime: '08:00', closeTime: '20:00' }]);
+
+    await expect(
+      service.setOperatingHours('owner-1', 'venue-1', items as never),
+    ).rejects.toThrow('không được có giờ mở/đóng');
+  });
+
+  it('deletes existing rows and inserts the new 7 inside a transaction', async () => {
+    const { service, venuesRepo, dataSource, operatingHoursRepo } = await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
+    const manager = {
+      delete: jest.fn().mockResolvedValue(undefined),
+      create: jest.fn((_entity: unknown, data: unknown) => data),
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    dataSource.transaction.mockImplementation((cb: (m: unknown) => unknown) => cb(manager));
+    operatingHoursRepo.find.mockResolvedValue(
+      sevenDays().map((d) => ({ ...d, id: 'x', venueId: 'venue-1' })),
+    );
+
+    await service.setOperatingHours('owner-1', 'venue-1', sevenDays() as never);
+
+    expect(manager.delete).toHaveBeenCalledWith(VenueOperatingHours, { venueId: 'venue-1' });
+    expect(manager.save).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ dayOfWeek: 0, venueId: 'venue-1' })]),
+    );
   });
 });
