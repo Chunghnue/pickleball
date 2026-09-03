@@ -87,7 +87,7 @@ Trả về file CSV (`Content-Type: text/csv`, header `Content-Disposition: atta
 
 - Chưa đăng nhập → 401; role/tier dưới `operational` (không phải owner/staff của venue) → 403 (xem §0).
 - `from`/`to` bắt buộc, đúng định dạng `YYYY-MM-DD`, và `from <= to` → 400 nếu vi phạm.
-- `venueId` (nếu có) không thuộc owner đang đăng nhập → 404.
+- `venueId` (nếu có) không tồn tại → 404; tồn tại nhưng thuộc owner khác → 403 (đúng hành vi `VenuesService.getOwnedVenueOrThrow`, xem test Dashboard `dashboard.e2e-spec.ts`) — không phải 404 cho cả hai trường hợp như bản gốc ghi.
 - Owner chưa có venue nào hoặc không có giao dịch nào trong kỳ → trả về số liệu = 0 / mảng rỗng, không lỗi.
 
 ## 6. Ngoài phạm vi
