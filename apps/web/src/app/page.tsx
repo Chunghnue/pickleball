@@ -53,7 +53,7 @@ export default function HomePage() {
             <p className="text-muted-foreground">
               Tìm và đặt sân trống gần bạn chỉ trong vài giây.
             </p>
-            <div className="w-full max-w-3xl rounded-2xl bg-card p-5 text-left shadow-md ring-1 ring-foreground/10">
+            <div className="w-full rounded-2xl bg-card p-5 text-left shadow-md ring-1 ring-foreground/10">
               <p className="mb-4 flex items-center gap-2 font-bold">
                 <Search className="size-4 text-green-600 dark:text-green-400" />
                 Tìm sân pickleball ngay
