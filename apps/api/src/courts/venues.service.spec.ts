@@ -989,6 +989,95 @@ describe('VenuesService.listActiveCities', () => {
   });
 });
 
+describe('VenuesService.listForMap', () => {
+  it('returns active, non-hidden venues with courtsCount and coordinates, unpaginated', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.find.mockResolvedValue([
+      {
+        id: 'venue-1',
+        name: 'A',
+        address: '1 Đường A',
+        city: 'Hà Nội',
+        district: 'Cầu Giấy',
+        latitude: 21.03,
+        longitude: 105.8,
+      },
+      {
+        id: 'venue-2',
+        name: 'B',
+        address: '2 Đường B',
+        city: 'Hà Nội',
+        district: null,
+        latitude: null,
+        longitude: null,
+      },
+    ]);
+    courtsRepo.find.mockResolvedValue([{ id: 'court-1', venueId: 'venue-1' }]);
+
+    const result = await service.listForMap();
+
+    expect(venuesRepo.find).toHaveBeenCalledWith({
+      where: { status: VenueStatus.ACTIVE, isHidden: false },
+    });
+    expect(result).toEqual([
+      {
+        id: 'venue-1',
+        name: 'A',
+        address: '1 Đường A',
+        city: 'Hà Nội',
+        district: 'Cầu Giấy',
+        courtsCount: 1,
+        latitude: 21.03,
+        longitude: 105.8,
+      },
+      {
+        id: 'venue-2',
+        name: 'B',
+        address: '2 Đường B',
+        city: 'Hà Nội',
+        district: null,
+        courtsCount: 0,
+        latitude: null,
+        longitude: null,
+      },
+    ]);
+  });
+
+  it('returns an empty array without querying courts when no venue matches', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.find.mockResolvedValue([]);
+
+    const result = await service.listForMap();
+
+    expect(result).toEqual([]);
+    expect(courtsRepo.find).not.toHaveBeenCalled();
+  });
+
+  it('filters by query and exact city, reusing the same where-clause shape as searchPublic', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.find.mockResolvedValue([]);
+
+    await service.listForMap('Sport', 'Hà Nội');
+
+    expect(venuesRepo.find).toHaveBeenCalledWith({
+      where: [
+        {
+          status: VenueStatus.ACTIVE,
+          isHidden: false,
+          city: 'Hà Nội',
+          name: ILike('%Sport%'),
+        },
+        {
+          status: VenueStatus.ACTIVE,
+          isHidden: false,
+          city: 'Hà Nội',
+          address: ILike('%Sport%'),
+        },
+      ],
+    });
+  });
+});
+
 describe('VenuesService public reads', () => {
   it('searchPublic without a query returns only active, non-hidden venues, newest first, wrapped in a page envelope', async () => {
     const { service, venuesRepo, courtsRepo } = await buildTestingModule();

@@ -50,6 +50,17 @@ export interface SearchVenuesResult {
   pageSize: number;
 }
 
+export interface VenueMapItem {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  district: string | null;
+  courtsCount: number;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export interface VenueWithMetrics extends Venue {
   courtsCount: number;
   bookingsThisMonth: number;
@@ -555,6 +566,24 @@ export class VenuesService {
     return venues.map((venue) => ({
       ...venue,
       courtsCount: courtsCountByVenue.get(venue.id) ?? 0,
+    }));
+  }
+
+  async listForMap(query?: string, city?: string): Promise<VenueMapItem[]> {
+    const venues = await this.venuesRepository.find({
+      where: this.buildSearchWhere(query, city),
+    });
+    if (venues.length === 0) return [];
+    const withCourtsCount = await this.attachCourtsCount(venues);
+    return withCourtsCount.map((venue) => ({
+      id: venue.id,
+      name: venue.name,
+      address: venue.address,
+      city: venue.city,
+      district: venue.district,
+      courtsCount: venue.courtsCount,
+      latitude: venue.latitude,
+      longitude: venue.longitude,
     }));
   }
 
