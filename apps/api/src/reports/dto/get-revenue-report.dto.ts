@@ -12,4 +12,12 @@ export class GetRevenueReportDto {
 
   @Matches(DATE_PATTERN, { message: 'to phải có định dạng YYYY-MM-DD' })
   to: string;
+
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  pageSize?: string;
 }

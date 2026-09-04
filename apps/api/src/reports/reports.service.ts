@@ -18,6 +18,21 @@ import {
 } from './revenue-report.utils';
 import { GetRevenueReportDto } from './dto/get-revenue-report.dto';
 
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+function clampPage(raw?: string): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.floor(n);
+}
+
+function clampPageSize(raw?: string): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return DEFAULT_PAGE_SIZE;
+  return Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(n)));
+}
+
 export interface RevenueReportTransaction {
   id: string;
   transactionCode: string;
@@ -35,6 +50,9 @@ export interface RevenueReport {
   changePercent: number | null;
   revenueByDay: { date: string; revenue: number }[];
   transactions: RevenueReportTransaction[];
+  transactionsPage: number;
+  transactionsPageSize: number;
+  transactionsTotal: number;
 }
 
 interface PeriodAggregateRow {
@@ -62,11 +80,13 @@ export class ReportsService {
 
   async getRevenueReport(ownerId: string, dto: GetRevenueReportDto): Promise<RevenueReport> {
     this.assertValidRange(dto);
+    const page = clampPage(dto.page);
+    const pageSize = clampPageSize(dto.pageSize);
     const courtIds = await this.resolveCourtIds(ownerId, dto.venueId);
     const days = getDaysBetween(dto.from, dto.to);
 
     if (courtIds.length === 0) {
-      return this.emptyReport(days);
+      return this.emptyReport(days, page, pageSize);
     }
 
     const { start, end } = parseDateRangeBoundaries(dto.from, dto.to);
@@ -91,7 +111,7 @@ export class ReportsService {
           .andWhere('payment.paid_at < :end', { end })
           .groupBy("TO_CHAR(payment.paid_at, 'YYYY-MM-DD')")
           .getRawMany<{ date: string; revenue: string }>(),
-        this.fetchTransactions(courtIds, start, end),
+        this.fetchTransactions(courtIds, start, end, { skip: (page - 1) * pageSize, take: pageSize }),
       ]);
 
     const currentRevenue = Number(currentAggregate.revenue ?? 0);
@@ -119,6 +139,9 @@ export class ReportsService {
       changePercent: computeChangePercent(currentRevenue, previousRevenue),
       revenueByDay: fillRevenueByDay(revenueByDayRows, days),
       transactions,
+      transactionsPage: page,
+      transactionsPageSize: pageSize,
+      transactionsTotal: currentCount,
     };
   }
 
@@ -178,8 +201,9 @@ export class ReportsService {
     courtIds: string[],
     start: Date,
     end: Date,
+    pagination?: { skip: number; take: number },
   ): Promise<TransactionRow[]> {
-    return this.paymentsRepository
+    const qb = this.paymentsRepository
       .createQueryBuilder('payment')
       .innerJoin('bookings', 'booking', 'booking.id::text = payment.booking_id')
       .leftJoin('users', 'customer', 'customer.id::text = booking.customer_id')
@@ -193,11 +217,17 @@ export class ReportsService {
       .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
       .andWhere('payment.paid_at >= :start', { start })
       .andWhere('payment.paid_at < :end', { end })
-      .orderBy('payment.paid_at', 'DESC')
-      .getRawMany<TransactionRow>();
+      .orderBy('payment.paid_at', 'DESC');
+    if (pagination) {
+      // .skip()/.take() are silently dropped by this TypeORM version whenever
+      // the query has joins (it expects a two-step getMany() pagination flow) —
+      // .offset()/.limit() apply LIMIT/OFFSET directly regardless of joins.
+      qb.offset(pagination.skip).limit(pagination.take);
+    }
+    return qb.getRawMany<TransactionRow>();
   }
 
-  private emptyReport(days: string[]): RevenueReport {
+  private emptyReport(days: string[], page: number, pageSize: number): RevenueReport {
     return {
       currentPeriod: { revenue: 0, transactionCount: 0, avgPerTransaction: 0 },
       previousPeriod: { revenue: 0 },
@@ -205,6 +235,9 @@ export class ReportsService {
       changePercent: null,
       revenueByDay: days.map((date) => ({ date, revenue: 0 })),
       transactions: [],
+      transactionsPage: page,
+      transactionsPageSize: pageSize,
+      transactionsTotal: 0,
     };
   }
 }

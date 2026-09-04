@@ -286,6 +286,9 @@ describe('Owner revenue report (e2e)', () => {
     expect(byDate['2026-08-06']).toBe(0);
 
     expect(response.body.transactions).toHaveLength(3);
+    expect(response.body.transactionsPage).toBe(1);
+    expect(response.body.transactionsPageSize).toBe(20);
+    expect(response.body.transactionsTotal).toBe(3);
     expect(response.body.transactions.map((t: { id: string }) => t.id)).toEqual([
       paymentI.id,
       paymentA.id,
@@ -375,6 +378,90 @@ describe('Owner revenue report (e2e)', () => {
       await request(app.getHttpServer())
         .get('/reports/revenue/export?from=2026-08-01&to=2026-08-10')
         .expect(401);
+    });
+  });
+
+  describe('pagination', () => {
+    async function seedManyTransactions(
+      ownerId: string,
+      courtId: string,
+      contactId: string,
+      count: number,
+    ): Promise<void> {
+      for (let i = 0; i < count; i++) {
+        const booking = await createBooking(courtId, 100000 + i * 1000, '2026-08-05', {
+          customerContactId: contactId,
+        });
+        await payBooking(booking.id, new Date(2026, 7, 5, 8, i, 0));
+      }
+    }
+
+    it('defaults to page 1 / pageSize 20 and reuses transactionCount as the total', async () => {
+      const owner = await createUser('owner1@test.com', UserRole.OWNER);
+      const venue = await createVenue(owner.id, 'My Venue');
+      const court = await createCourt(venue.id, 'Court 1');
+      const contact = await createContact(owner.id, 'Khách Page', '0933000000');
+      await seedManyTransactions(owner.id, court.id, contact.id, 25);
+
+      const token = await loginAs('owner1@test.com');
+      const response = await request(app.getHttpServer())
+        .get('/reports/revenue?from=2026-08-01&to=2026-08-10')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body.transactionsPage).toBe(1);
+      expect(response.body.transactionsPageSize).toBe(20);
+      expect(response.body.transactionsTotal).toBe(25);
+      expect(response.body.transactionsTotal).toBe(response.body.currentPeriod.transactionCount);
+      expect(response.body.transactions).toHaveLength(20);
+    });
+
+    it('returns the second page, still ordered by paidAt descending across pages', async () => {
+      const owner = await createUser('owner1@test.com', UserRole.OWNER);
+      const venue = await createVenue(owner.id, 'My Venue');
+      const court = await createCourt(venue.id, 'Court 1');
+      const contact = await createContact(owner.id, 'Khách Page', '0933000000');
+      await seedManyTransactions(owner.id, court.id, contact.id, 25);
+
+      const token = await loginAs('owner1@test.com');
+      const page1 = await request(app.getHttpServer())
+        .get('/reports/revenue?from=2026-08-01&to=2026-08-10&page=1&pageSize=20')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      const page2 = await request(app.getHttpServer())
+        .get('/reports/revenue?from=2026-08-01&to=2026-08-10&page=2&pageSize=20')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(page2.body.transactionsPage).toBe(2);
+      expect(page2.body.transactions).toHaveLength(5);
+      expect(page2.body.transactionsTotal).toBe(25);
+
+      const page1Ids = new Set(page1.body.transactions.map((t: { id: string }) => t.id));
+      const page2Ids = new Set(page2.body.transactions.map((t: { id: string }) => t.id));
+      expect([...page1Ids].some((id) => page2Ids.has(id))).toBe(false);
+
+      const lastOfPage1 = page1.body.transactions[19].paidAt;
+      const firstOfPage2 = page2.body.transactions[0].paidAt;
+      expect(new Date(firstOfPage2).getTime()).toBeLessThanOrEqual(new Date(lastOfPage1).getTime());
+    });
+
+    it('clamps an out-of-range pageSize to 100 and an invalid page to 1', async () => {
+      const owner = await createUser('owner1@test.com', UserRole.OWNER);
+      const venue = await createVenue(owner.id, 'My Venue');
+      const court = await createCourt(venue.id, 'Court 1');
+      const contact = await createContact(owner.id, 'Khách Page', '0933000000');
+      await seedManyTransactions(owner.id, court.id, contact.id, 3);
+
+      const token = await loginAs('owner1@test.com');
+      const response = await request(app.getHttpServer())
+        .get('/reports/revenue?from=2026-08-01&to=2026-08-10&page=0&pageSize=99999')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body.transactionsPage).toBe(1);
+      expect(response.body.transactionsPageSize).toBe(100);
+      expect(response.body.transactions).toHaveLength(3);
     });
   });
 });
