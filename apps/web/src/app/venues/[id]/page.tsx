@@ -562,17 +562,19 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
       )}
 
       {selectedSlots && selected && maxDuration > 0 && (
-        <div className="mt-4 rounded-lg border border-gray-200 p-3 text-sm dark:border-neutral-800">
-          <p className="font-medium">
+        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-neutral-800 dark:bg-neutral-800/50">
+          <p className="text-base font-semibold">
             {venue.courts.find((c) => c.id === selected.courtId)?.name} ·{" "}
             {selectedSlots[selected.index].start}–
             {selectedSlots[selected.index + durationSlots - 1].end}
           </p>
-          <div className="mt-2 flex items-center gap-2">
-            <Label htmlFor="duration">Số giờ chơi</Label>
+          <div className="mt-3 flex items-center gap-3">
+            <Label htmlFor="duration" className="text-sm text-muted-foreground">
+              Số giờ chơi
+            </Label>
             <select
               id="duration"
-              className="rounded-md border border-gray-200 px-2 py-1 text-sm dark:border-neutral-800"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
               value={durationSlots}
               onChange={(event) => setDurationSlots(Number(event.target.value))}
             >
@@ -583,7 +585,7 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
               ))}
             </select>
           </div>
-          <p className="mt-2">
+          <p className="mt-3 text-lg font-bold">
             Tổng:{" "}
             {selectedSlots
               .slice(selected.index, selected.index + durationSlots)
