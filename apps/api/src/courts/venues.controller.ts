@@ -209,7 +209,10 @@ export class VenuesController {
     const venue = await this.venuesService.findPublicBySlug(slug);
     const courts = await this.courtsService.findActiveByVenue(venue.id);
     const images = await this.venuesService.findImagesByVenue(venue.id);
-    return { ...venue, courts, images };
+    const operatingHours = await this.venuesService.getOperatingHoursPublic(
+      venue.id,
+    );
+    return { ...venue, courts, images, operatingHours };
   }
 
   @Get(':id')
@@ -217,6 +220,7 @@ export class VenuesController {
     const venue = await this.venuesService.findPublicById(id);
     const courts = await this.courtsService.findActiveByVenue(id);
     const images = await this.venuesService.findImagesByVenue(id);
-    return { ...venue, courts, images };
+    const operatingHours = await this.venuesService.getOperatingHoursPublic(id);
+    return { ...venue, courts, images, operatingHours };
   }
 }

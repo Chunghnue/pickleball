@@ -1559,6 +1559,49 @@ describe('VenuesService.getOperatingHours', () => {
   });
 });
 
+describe('VenuesService.getOperatingHoursPublic', () => {
+  it('returns the default 7-day schedule when no rows exist yet', async () => {
+    const { service, operatingHoursRepo } = await buildTestingModule();
+    operatingHoursRepo.find.mockResolvedValue([]);
+
+    const result = await service.getOperatingHoursPublic('venue-1');
+
+    expect(operatingHoursRepo.find).toHaveBeenCalledWith({
+      where: { venueId: 'venue-1' },
+      order: { dayOfWeek: 'ASC' },
+    });
+    expect(result).toHaveLength(7);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { dayOfWeek: 0, isOpen: true, openTime: '06:00', closeTime: '22:00' },
+        { dayOfWeek: 6, isOpen: true, openTime: '06:00', closeTime: '22:00' },
+      ]),
+    );
+  });
+
+  it('returns saved rows mapped to the view shape, without checking ownership', async () => {
+    const { service, operatingHoursRepo, venuesRepo } =
+      await buildTestingModule();
+    operatingHoursRepo.find.mockResolvedValue([
+      {
+        id: 'row-1',
+        venueId: 'venue-1',
+        dayOfWeek: 1,
+        isOpen: true,
+        openTime: '07:00:00',
+        closeTime: '21:00:00',
+      },
+    ]);
+
+    const result = await service.getOperatingHoursPublic('venue-1');
+
+    expect(result).toEqual([
+      { dayOfWeek: 1, isOpen: true, openTime: '07:00', closeTime: '21:00' },
+    ]);
+    expect(venuesRepo.findOne).not.toHaveBeenCalled();
+  });
+});
+
 describe('VenuesService.setOperatingHours', () => {
   function sevenDays(
     overrides: Partial<{

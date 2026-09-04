@@ -842,6 +842,22 @@ export class VenuesService {
     }));
   }
 
+  async getOperatingHoursPublic(venueId: string): Promise<OperatingHourView[]> {
+    const rows = await this.operatingHoursRepository.find({
+      where: { venueId },
+      order: { dayOfWeek: 'ASC' },
+    });
+    if (rows.length === 0) {
+      return DEFAULT_OPERATING_HOURS;
+    }
+    return rows.map((row) => ({
+      dayOfWeek: row.dayOfWeek,
+      isOpen: row.isOpen,
+      openTime: toHhMm(row.openTime),
+      closeTime: toHhMm(row.closeTime),
+    }));
+  }
+
   async setOperatingHours(
     ownerId: string,
     venueId: string,
