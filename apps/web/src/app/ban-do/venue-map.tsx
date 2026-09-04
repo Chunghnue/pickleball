@@ -21,6 +21,7 @@ export interface VenueMapItem {
   courtsCount: number;
   latitude: number | null;
   longitude: number | null;
+  logoUrl: string | null;
 }
 
 type VenueWithCoords = VenueMapItem & { latitude: number; longitude: number };
@@ -51,6 +52,19 @@ const userLocationIcon = L.divIcon({
 
 function boundsOf(venues: VenueWithCoords[]): [number, number][] {
   return venues.map((v): [number, number] => [v.latitude, v.longitude]);
+}
+
+interface ClusterLike {
+  getChildCount: () => number;
+}
+
+function createClusterIcon(cluster: ClusterLike): L.DivIcon {
+  const count = cluster.getChildCount();
+  return L.divIcon({
+    html: `<div style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:#16a34a;color:white;font-weight:700;font-size:14px;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)">${count}</div>`,
+    className: "",
+    iconSize: L.point(40, 40, true),
+  });
 }
 
 // Tự fit khung nhìn theo kết quả CHỈ 1 lần khi venues load xong lần đầu —
@@ -103,12 +117,12 @@ function MapControls({ venues }: { venues: VenueMapItem[] }) {
   }
 
   return (
-    <div className="absolute right-3 bottom-6 z-[1000] flex flex-col gap-2">
+    <div className="absolute right-3 bottom-24 z-[1000] flex flex-col gap-1.5">
       <button
         type="button"
         onClick={handleLocateMe}
         title="Vị trí của tôi"
-        className="flex size-9 items-center justify-center rounded-full bg-card shadow-md ring-1 ring-foreground/10 hover:bg-accent"
+        className="flex size-9 items-center justify-center rounded-md bg-card shadow-md ring-1 ring-foreground/10 hover:bg-accent"
       >
         <LocateFixed className="size-4" />
       </button>
@@ -116,7 +130,7 @@ function MapControls({ venues }: { venues: VenueMapItem[] }) {
         type="button"
         onClick={handleReset}
         title="Về tổng quan"
-        className="flex size-9 items-center justify-center rounded-full bg-card shadow-md ring-1 ring-foreground/10 hover:bg-accent"
+        className="flex size-9 items-center justify-center rounded-md bg-card shadow-md ring-1 ring-foreground/10 hover:bg-accent"
       >
         <Maximize className="size-4" />
       </button>
@@ -130,9 +144,9 @@ function LayerSwitcher({ layer, onChange }: { layer: LayerOption; onChange: (lay
   if (!HAS_GOOGLE_MAPS_KEY) return null;
 
   const options: { value: LayerOption; label: string }[] = [
-    { value: "roadmap", label: "Google Maps" },
+    { value: "roadmap", label: "Google" },
     { value: "satellite", label: "Vệ tinh" },
-    { value: "osm", label: "OpenStreetMap" },
+    { value: "osm", label: "OSM" },
   ];
 
   return (
@@ -168,7 +182,7 @@ export default function VenueMap({ venues }: VenueMapProps) {
       zoomControl={false}
       style={{ height: "100%", width: "100%" }}
     >
-      <ZoomControl position="topright" />
+      <ZoomControl position="bottomright" />
       {layer === "osm" && (
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -178,7 +192,7 @@ export default function VenueMap({ venues }: VenueMapProps) {
       {HAS_GOOGLE_MAPS_KEY && (
         <GoogleMutantLayer type={layer === "satellite" ? "satellite" : "roadmap"} active={layer !== "osm"} />
       )}
-      <MarkerClusterGroup chunkedLoading>
+      <MarkerClusterGroup chunkedLoading iconCreateFunction={createClusterIcon}>
         {venuesWithCoords.map((venue) => (
           <Marker key={venue.id} position={[venue.latitude, venue.longitude]} icon={venueMarkerIcon}>
             <Popup>
