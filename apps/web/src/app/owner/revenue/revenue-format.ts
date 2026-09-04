@@ -38,10 +38,14 @@ export function buildRevenueQuery(params: {
   venueId?: string;
   from: string;
   to: string;
+  page?: number;
+  pageSize?: number;
 }): string {
   const sp = new URLSearchParams();
   if (params.venueId) sp.set("venueId", params.venueId);
   sp.set("from", params.from);
   sp.set("to", params.to);
+  if (params.page !== undefined) sp.set("page", String(params.page));
+  if (params.pageSize !== undefined) sp.set("pageSize", String(params.pageSize));
   return sp.toString();
 }

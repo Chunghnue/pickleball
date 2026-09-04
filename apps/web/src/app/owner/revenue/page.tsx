@@ -19,14 +19,20 @@ export default function OwnerRevenuePage() {
   const [appliedRange, setAppliedRange] = useState<DateRange>(() => defaultDateRange());
   const [data, setData] = useState<RevenueSummary | null>(null);
   const [error, setError] = useState(false);
+  const [page, setPage] = useState(1);
 
   const venueParam = selectedVenueId === ALL_BRANCHES_ID ? undefined : selectedVenueId;
+
+  useEffect(() => {
+    setPage(1);
+  }, [venueParam, appliedRange]);
 
   const loadReport = useCallback(() => {
     const qs = buildRevenueQuery({
       venueId: venueParam,
       from: appliedRange.from,
       to: appliedRange.to,
+      page,
     });
     fetch(`/api/reports/revenue?${qs}`)
       .then((res) => {
@@ -43,7 +49,7 @@ export default function OwnerRevenuePage() {
       })
       .then((json) => json && setData(json))
       .catch(() => setError(true));
-  }, [venueParam, appliedRange, router]);
+  }, [venueParam, appliedRange, page, router]);
 
   useEffect(() => {
     loadReport();
@@ -81,7 +87,14 @@ export default function OwnerRevenuePage() {
         <>
           <RevenueMetrics summary={data} />
           <RevenueLineChart revenueByDay={data.revenueByDay} />
-          <RevenueTransactionsTable transactions={data.transactions} />
+          <RevenueTransactionsTable
+            transactions={data.transactions}
+            page={data.transactionsPage}
+            pageSize={data.transactionsPageSize}
+            total={data.transactionsTotal}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => p + 1)}
+          />
         </>
       )}
     </main>

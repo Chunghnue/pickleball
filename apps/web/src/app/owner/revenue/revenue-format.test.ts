@@ -73,4 +73,16 @@ describe("buildRevenueQuery", () => {
       buildRevenueQuery({ venueId: "v1", from: "2026-08-01", to: "2026-08-30" }),
     ).toBe("venueId=v1&from=2026-08-01&to=2026-08-30");
   });
+
+  it("includes page and pageSize when provided", () => {
+    expect(
+      buildRevenueQuery({ from: "2026-08-01", to: "2026-08-30", page: 2, pageSize: 20 }),
+    ).toBe("from=2026-08-01&to=2026-08-30&page=2&pageSize=20");
+  });
+
+  it("omits page and pageSize when not provided", () => {
+    expect(buildRevenueQuery({ from: "2026-08-01", to: "2026-08-30" })).toBe(
+      "from=2026-08-01&to=2026-08-30",
+    );
+  });
 });

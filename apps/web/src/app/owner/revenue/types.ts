@@ -19,6 +19,9 @@ export interface RevenueSummary {
   changePercent: number | null;
   revenueByDay: { date: string; revenue: number }[];
   transactions: RevenueTransaction[];
+  transactionsPage: number;
+  transactionsPageSize: number;
+  transactionsTotal: number;
 }
 
 export interface DateRange {

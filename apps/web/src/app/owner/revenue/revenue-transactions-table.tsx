@@ -6,6 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDateTime, formatMoney } from "./revenue-format";
 import type { RevenueTransaction } from "./types";
@@ -20,17 +21,27 @@ function PaidBadge() {
 
 export function RevenueTransactionsTable({
   transactions,
+  page,
+  pageSize,
+  total,
+  onPrev,
+  onNext,
 }: {
   transactions: RevenueTransaction[];
+  page: number;
+  pageSize: number;
+  total: number;
+  onPrev: () => void;
+  onNext: () => void;
 }) {
+  const hasPager = total > pageSize;
+
   return (
     <Card>
       <CardContent className="p-0">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h2 className="font-semibold">Danh sách giao dịch</h2>
-          <span className="text-sm text-muted-foreground">
-            Tổng: {transactions.length} giao dịch
-          </span>
+          <span className="text-sm text-muted-foreground">Tổng: {total} giao dịch</span>
         </div>
         <Table>
           <TableHeader>
@@ -76,6 +87,28 @@ export function RevenueTransactionsTable({
             ))}
           </TableBody>
         </Table>
+        <div className="flex items-center justify-between border-t px-4 py-3 text-sm text-muted-foreground">
+          <span>
+            Hiển thị {total === 0 ? 0 : (page - 1) * pageSize + 1}–
+            {Math.min(page * pageSize, total)} / {total}
+          </span>
+          {hasPager && (
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={onPrev} disabled={page <= 1}>
+                Trước
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onNext}
+                disabled={page * pageSize >= total}
+              >
+                Sau
+              </Button>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
