@@ -74,7 +74,7 @@ Lưới thống nhất (hàng = sân, cột = khung giờ) vẫn dùng nguyên `
 
 ```ts
 interface OperatingHourItem {
-  dayOfWeek: number; // 0 = Thứ 2 ... 6 = Chủ nhật (quy ước backend)
+  dayOfWeek: number; // 0 = Chủ nhật ... 6 = Thứ 7, đúng Date.getDay() của JS
   isOpen: boolean;
   openTime: string | null;
   closeTime: string | null;
@@ -111,7 +111,7 @@ interface PublicVenueDetail {
 
 ### 4.3 Khối thông tin cơ sở (đầu trang)
 
-Tên, badge "Đang mở cửa" / "Đã đóng cửa" — tính từ `operatingHours` của hôm nay so với giờ hiện tại (lưu ý `Date.getDay()` của JS trả Chủ nhật=0, cần map sang quy ước backend `dayOfWeek` 0=Thứ 2..6=Chủ nhật: `jsDay === 0 ? 6 : jsDay - 1`), địa chỉ đầy đủ (`address`, `district`, `city`), giờ mở cửa hôm nay dạng rút gọn (`{openTime}–{closeTime}` hoặc "Đóng cửa hôm nay"), số sân (`courts.length`), mô tả (`description`, ẩn cả block nếu `null`). Không có nút Lưu/Chia sẻ (mục 2, ngoài phạm vi).
+Tên, badge "Đang mở cửa" / "Đã đóng cửa" — tính từ `operatingHours` của hôm nay so với giờ hiện tại. `dayOfWeek` dùng đúng quy ước `Date.getDay()` của JS (0=Chủ nhật...6=Thứ 7 — xác nhận qua `DAY_LABELS`/`DISPLAY_ORDER` đang dùng ở `apps/web/src/app/owner/settings/operating-hours-format.ts:3-12`, cùng shape `OperatingHourView` với endpoint public mới), nên tra cứu hôm nay chỉ cần `operatingHours.find(h => h.dayOfWeek === new Date().getDay())`, không cần map lại. Địa chỉ đầy đủ (`address`, `district`, `city`), giờ mở cửa hôm nay dạng rút gọn (`{openTime}–{closeTime}` hoặc "Đóng cửa hôm nay"), số sân (`courts.length`), mô tả (`description`, ẩn cả block nếu `null`). Không có nút Lưu/Chia sẻ (mục 2, ngoài phạm vi).
 
 ### 4.4 Gallery ảnh
 
@@ -138,7 +138,7 @@ Lưới thumbnail (`grid grid-cols-3 sm:grid-cols-4 gap-2`, mỗi ảnh `aspect-
 
 ### 4.7 Thông tin liên hệ (cuối trang, trước `PublicFooter`)
 
-Số điện thoại (`<a href="tel:{phone}">{phone}</a>`), địa chỉ đầy đủ (nhắc lại ngắn gọn), **bảng giờ hoạt động 7 ngày** (Thứ 2 → Chủ nhật theo thứ tự `dayOfWeek` 0-6, dòng nào `isOpen === false` hiện "Đóng cửa" thay vì giờ). Đây là nơi duy nhất hiện bảng giờ đầy đủ — khối đầu trang (4.3) chỉ hiện hôm nay, tránh lặp thông tin.
+Số điện thoại (`<a href="tel:{phone}">{phone}</a>`), địa chỉ đầy đủ (nhắc lại ngắn gọn), **bảng giờ hoạt động 7 ngày** — sắp xếp Thứ 2 → Chủ nhật bằng cách tái dùng nguyên `DISPLAY_ORDER = [1,2,3,4,5,6,0]` từ `apps/web/src/app/owner/settings/operating-hours-format.ts` (áp `DISPLAY_ORDER.map(d => operatingHours.find(h => h.dayOfWeek === d))`, cùng nhãn `DAY_LABELS`), dòng nào `isOpen === false` hiện "Đóng cửa" thay vì giờ. Đây là nơi duy nhất hiện bảng giờ đầy đủ — khối đầu trang (4.3) chỉ hiện hôm nay, tránh lặp thông tin.
 
 ## 5. Testing
 
