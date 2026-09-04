@@ -1001,6 +1001,7 @@ describe('VenuesService.listForMap', () => {
         district: 'Cầu Giấy',
         latitude: 21.03,
         longitude: 105.8,
+        logoUrl: '/uploads/venues/venue-1/logo.webp',
       },
       {
         id: 'venue-2',
@@ -1010,6 +1011,7 @@ describe('VenuesService.listForMap', () => {
         district: null,
         latitude: null,
         longitude: null,
+        logoUrl: null,
       },
     ]);
     courtsRepo.find.mockResolvedValue([{ id: 'court-1', venueId: 'venue-1' }]);
@@ -1029,6 +1031,7 @@ describe('VenuesService.listForMap', () => {
         courtsCount: 1,
         latitude: 21.03,
         longitude: 105.8,
+        logoUrl: '/uploads/venues/venue-1/logo.webp',
       },
       {
         id: 'venue-2',
@@ -1039,6 +1042,7 @@ describe('VenuesService.listForMap', () => {
         courtsCount: 0,
         latitude: null,
         longitude: null,
+        logoUrl: null,
       },
     ]);
   });

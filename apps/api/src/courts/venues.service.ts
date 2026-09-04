@@ -59,6 +59,7 @@ export interface VenueMapItem {
   courtsCount: number;
   latitude: number | null;
   longitude: number | null;
+  logoUrl: string | null;
 }
 
 export interface VenueWithMetrics extends Venue {
@@ -584,6 +585,7 @@ export class VenuesService {
       courtsCount: venue.courtsCount,
       latitude: venue.latitude,
       longitude: venue.longitude,
+      logoUrl: venue.logoUrl,
     }));
   }
 
