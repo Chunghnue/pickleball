@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function PublicHeader() {
   const [fullName, setFullName] = useState<string | null>(null);
@@ -78,9 +79,11 @@ export function PublicHeader() {
           ) : null}
           <Link
             href="/register/owner"
-            className={buttonVariants({
-              className: "gap-1.5 rounded-full bg-green-600 text-white hover:bg-green-700",
-            })}
+            className={cn(
+              buttonVariants({
+                className: "gap-1.5 rounded-full bg-green-600 text-white hover:bg-green-700",
+              }),
+            )}
           >
             <LandPlot className="size-4" />
             Chủ Sân

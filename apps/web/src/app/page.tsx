@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import { computeHomeSummary, type PublicVenueSummary } from "@/lib/home-summary";
@@ -141,12 +142,14 @@ export default function HomePage() {
                   <Link
                     key={city}
                     href={`/venues?query=${encodeURIComponent(city)}`}
-                    className={buttonVariants({
-                      variant: "outline",
-                      size: "sm",
-                      className:
-                        "rounded-full border-green-200 bg-green-50 text-green-600 hover:bg-green-100 dark:border-green-900 dark:bg-green-950/40 dark:text-green-400 dark:hover:bg-green-950/60",
-                    })}
+                    className={cn(
+                      buttonVariants({
+                        variant: "outline",
+                        size: "sm",
+                        className:
+                          "rounded-full border-green-200 bg-green-50 text-green-600 hover:bg-green-100 dark:border-green-900 dark:bg-green-950/40 dark:text-green-400 dark:hover:bg-green-950/60",
+                      }),
+                    )}
                   >
                     {city}
                   </Link>
@@ -168,9 +171,11 @@ export default function HomePage() {
             </ul>
             <Link
               href="/register/owner"
-              className={buttonVariants({
-                className: "bg-white text-green-600 hover:bg-green-50",
-              })}
+              className={cn(
+                buttonVariants({
+                  className: "bg-white text-green-600 hover:bg-green-50",
+                }),
+              )}
             >
               Đăng ký chủ sân
             </Link>
