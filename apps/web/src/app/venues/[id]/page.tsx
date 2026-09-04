@@ -5,12 +5,20 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Clock, MapPin, Navigation, Phone, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  CheckCircle2,
+  Clock,
+  LayoutGrid,
+  MapPin,
+  Navigation,
+  Phone,
+  Users,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
+import { cn } from "@/lib/utils";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 import {
   computeMaxConsecutiveDuration,
@@ -22,6 +30,10 @@ import { DAY_LABELS, orderForDisplay } from "@/app/owner/settings/operating-hour
 const VenueLocationMap = dynamic(() => import("./venue-location-map"), {
   ssr: false,
 });
+
+const CARD_CLASS =
+  "rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6";
+const DIVIDER_CLASS = "my-4 h-px bg-gray-200 dark:bg-neutral-800";
 
 interface OperatingHourItem {
   dayOfWeek: number;
@@ -86,9 +98,9 @@ export default function VenueDetailPage() {
     return (
       <>
         <PublicHeader />
-        <main className="flex flex-1 items-center justify-center p-8">
+        <div className="flex flex-1 items-center justify-center bg-gray-50 p-8 dark:bg-neutral-950">
           <p className="text-destructive">{error}</p>
-        </main>
+        </div>
         <PublicFooter />
       </>
     );
@@ -98,9 +110,9 @@ export default function VenueDetailPage() {
     return (
       <>
         <PublicHeader />
-        <main className="flex flex-1 items-center justify-center p-8">
+        <div className="flex flex-1 items-center justify-center bg-gray-50 p-8 dark:bg-neutral-950">
           <p>Đang tải...</p>
-        </main>
+        </div>
         <PublicFooter />
       </>
     );
@@ -109,13 +121,21 @@ export default function VenueDetailPage() {
   return (
     <>
       <PublicHeader />
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 p-4 sm:p-8">
-        <VenueHeader venue={venue} />
-        <VenueGallery images={venue.images} />
-        <AvailabilityGrid venue={venue} />
-        <VenueMapSection venue={venue} />
-        <ContactSection venue={venue} />
-      </main>
+      <div className="flex-1 bg-gray-50 dark:bg-neutral-950">
+        <main className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 sm:p-6">
+          <VenueBreadcrumb venue={venue} />
+          <VenueHero images={venue.images} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <VenueInfoCard venue={venue} />
+            <SidebarCard venue={venue} />
+          </div>
+          <AvailabilityCard venue={venue} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <VenueMapCard venue={venue} />
+            <ContactCard venue={venue} />
+          </div>
+        </main>
+      </div>
       <PublicFooter />
     </>
   );
@@ -134,14 +154,65 @@ function isOpenNow(today: OperatingHourItem | undefined): boolean {
   return nowMinutes >= openH * 60 + openM && nowMinutes < closeH * 60 + closeM;
 }
 
-function VenueHeader({ venue }: { venue: PublicVenueDetail }) {
+function VenueBreadcrumb({ venue }: { venue: PublicVenueDetail }) {
+  return (
+    <nav className="flex items-center gap-2 text-sm">
+      <Link href="/" className="text-green-600 hover:underline dark:text-green-400">
+        Trang chủ
+      </Link>
+      <span className="text-muted-foreground">/</span>
+      <Link href="/venues" className="text-green-600 hover:underline dark:text-green-400">
+        Tìm sân
+      </Link>
+      <span className="text-muted-foreground">/</span>
+      <span className="text-muted-foreground">{venue.name}</span>
+    </nav>
+  );
+}
+
+function VenueHero({ images }: { images: { id: string; url: string }[] }) {
+  if (images.length === 0) return null;
+  const [hero, ...rest] = images;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <a
+        href={hero.url}
+        target="_blank"
+        rel="noreferrer"
+        className="block h-56 overflow-hidden rounded-2xl bg-muted sm:h-80"
+      >
+        <img src={hero.url} alt="" className="size-full object-cover" />
+      </a>
+      {rest.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto">
+          {rest.map((image) => (
+            <a
+              key={image.id}
+              href={image.url}
+              target="_blank"
+              rel="noreferrer"
+              className="size-20 shrink-0 overflow-hidden rounded-lg bg-muted"
+            >
+              <img src={image.url} alt="" className="size-full object-cover" />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VenueInfoCard({ venue }: { venue: PublicVenueDetail }) {
   const today = todaysHours(venue.operatingHours);
   const openNow = isOpenNow(today);
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-bold">{venue.name}</h1>
+    <div className={cn(CARD_CLASS, "lg:col-span-2")}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700 dark:bg-green-950 dark:text-green-400">
+          Pickleball
+        </span>
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
             openNow
@@ -152,40 +223,86 @@ function VenueHeader({ venue }: { venue: PublicVenueDetail }) {
           {openNow ? "Đang mở cửa" : "Đã đóng cửa"}
         </span>
       </div>
+
+      <h1 className="mt-3 text-2xl font-bold">{venue.name}</h1>
       <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-        <MapPin className="size-4 shrink-0" />
+        <MapPin className="size-4 shrink-0 text-green-600" />
         {venue.address}
         {venue.district ? `, ${venue.district}` : ""}, {venue.city}
       </p>
-      <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-        <Clock className="size-4 shrink-0" />
-        {today?.isOpen && today.openTime && today.closeTime
-          ? `${today.openTime}–${today.closeTime} hôm nay`
-          : "Đóng cửa hôm nay"}
-        {" · "}
-        {venue.courts.length} sân
-      </p>
-      {venue.description && <p className="mt-3">{venue.description}</p>}
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+        <span className="flex items-center gap-1.5">
+          <Clock className="size-4 text-green-600" />
+          {today?.isOpen && today.openTime && today.closeTime
+            ? `Mở cửa: ${today.openTime} – ${today.closeTime}`
+            : "Đóng cửa hôm nay"}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Phone className="size-4 text-green-600" />
+          Hotline:{" "}
+          <a href={`tel:${venue.phone}`} className="font-semibold text-green-700 hover:underline dark:text-green-400">
+            {venue.phone}
+          </a>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <LayoutGrid className="size-4 text-green-600" />
+          Quy mô: {venue.courts.length} sân
+        </span>
+        <span className="flex items-center gap-1.5 font-medium text-green-700 dark:text-green-400">
+          <CheckCircle2 className="size-4" />
+          Đang hoạt động
+        </span>
+      </div>
+
+      {venue.description && (
+        <>
+          <div className={DIVIDER_CLASS} />
+          <h2 className="font-semibold">Giới thiệu</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{venue.description}</p>
+        </>
+      )}
+
+      <div className={DIVIDER_CLASS} />
+      <h2 className="flex items-center gap-1.5 font-semibold">
+        <LayoutGrid className="size-4 text-green-600" />
+        Danh sách sân ({venue.courts.length})
+      </h2>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {venue.courts.map((court) => (
+          <span
+            key={court.id}
+            className="flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-sm dark:border-neutral-800"
+          >
+            <MapPin className="size-3.5 text-green-600" />
+            {court.name}
+            {court.capacity != null && (
+              <span className="text-muted-foreground">({court.capacity} người)</span>
+            )}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
 
-function VenueGallery({ images }: { images: { id: string; url: string }[] }) {
-  if (images.length === 0) return null;
-
+function SidebarCard({ venue }: { venue: PublicVenueDetail }) {
   return (
-    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-      {images.map((image) => (
-        <a
-          key={image.id}
-          href={image.url}
-          target="_blank"
-          rel="noreferrer"
-          className="aspect-square overflow-hidden rounded-lg bg-muted"
-        >
-          <img src={image.url} alt="" className="size-full object-cover" />
-        </a>
-      ))}
+    <div className={CARD_CLASS}>
+      <p className="text-3xl font-bold text-green-700 dark:text-green-400">
+        {venue.courts.length} sân
+      </p>
+      <div className={DIVIDER_CLASS} />
+      <a
+        href={`tel:${venue.phone}`}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-green-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-800"
+      >
+        <Phone className="size-4" />
+        Gọi ngay: {venue.phone}
+      </a>
+      <p className="mt-3 text-center text-xs text-muted-foreground">
+        Đặt cọc an toàn · Hủy trước {venue.cancellationCutoffHours}h miễn phí
+      </p>
     </div>
   );
 }
@@ -195,7 +312,7 @@ interface SelectedCell {
   index: number;
 }
 
-function AvailabilityGrid({ venue }: { venue: PublicVenueDetail }) {
+function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
@@ -303,9 +420,12 @@ function AvailabilityGrid({ venue }: { venue: PublicVenueDetail }) {
       : 0;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <Label htmlFor="venue-date">Chọn ngày</Label>
+    <div className={CARD_CLASS}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-1.5 font-semibold">
+          <Clock className="size-4 text-green-600" />
+          Lịch trống hôm nay
+        </h2>
         <Input
           id="venue-date"
           type="date"
@@ -316,88 +436,105 @@ function AvailabilityGrid({ venue }: { venue: PublicVenueDetail }) {
         />
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
       {!error && slotsByCourtId && columns.length === 0 && (
-        <p className="text-sm text-muted-foreground">Không có khung giờ nào.</p>
+        <p className="mt-3 text-sm text-muted-foreground">Không có khung giờ nào.</p>
       )}
 
       {!error && slotsByCourtId && columns.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="sticky left-0 bg-muted/50 p-2 text-left font-medium">
-                  Sân
-                </th>
-                {columns.map((column) => (
-                  <th
-                    key={`${column.start}-${column.end}`}
-                    className="whitespace-nowrap p-2 text-left font-medium"
-                  >
-                    {column.start}–{column.end}
+        <>
+          <div className="mt-3 overflow-x-auto rounded-lg border border-gray-200 dark:border-neutral-800">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50 dark:border-neutral-800 dark:bg-neutral-900">
+                  <th className="sticky left-0 bg-gray-50 p-2 text-left font-medium dark:bg-neutral-900">
+                    Sân
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {venue.courts.map((court) => {
-                const slots = slotsByCourtId[court.id] ?? [];
-                return (
-                  <tr key={court.id} className="border-b last:border-b-0">
-                    <td className="sticky left-0 whitespace-nowrap bg-background p-2 font-medium">
-                      {court.name}
-                      {court.capacity != null && (
-                        <span className="ml-1 inline-flex items-center gap-1 text-xs font-normal text-muted-foreground">
-                          <Users className="size-3" />
-                          {court.capacity} người
+                  {columns.map((column) => (
+                    <th
+                      key={`${column.start}-${column.end}`}
+                      className="whitespace-nowrap p-2 text-left font-medium"
+                    >
+                      {column.start}–{column.end}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {venue.courts.map((court) => {
+                  const slots = slotsByCourtId[court.id] ?? [];
+                  return (
+                    <tr key={court.id} className="border-b border-gray-100 last:border-b-0 dark:border-neutral-800">
+                      <td className="sticky left-0 whitespace-nowrap bg-white p-2 font-medium dark:bg-neutral-900">
+                        <MapPin className="mr-1 inline size-3.5 text-green-600" />
+                        {court.name}
+                        <span className="ml-1.5 font-semibold text-green-700 dark:text-green-400">
+                          {court.pricePerHour.toLocaleString("vi-VN")}đ/giờ
                         </span>
-                      )}
-                    </td>
-                    {columns.map((column) => {
-                      const index = findSlotIndex(slots, column);
-                      if (index === -1) {
+                        {court.capacity != null && (
+                          <span className="ml-1 inline-flex items-center gap-1 text-xs font-normal text-muted-foreground">
+                            <Users className="size-3" />
+                            {court.capacity} người
+                          </span>
+                        )}
+                      </td>
+                      {columns.map((column) => {
+                        const index = findSlotIndex(slots, column);
+                        if (index === -1) {
+                          return (
+                            <td
+                              key={`${column.start}-${column.end}`}
+                              className="p-1"
+                            />
+                          );
+                        }
+                        const slot = slots[index];
+                        const isSelected =
+                          selected?.courtId === court.id &&
+                          index >= selected.index &&
+                          index < selected.index + durationSlots;
                         return (
-                          <td
-                            key={`${column.start}-${column.end}`}
-                            className="p-1"
-                          />
+                          <td key={`${column.start}-${column.end}`} className="p-1">
+                            <button
+                              type="button"
+                              disabled={slot.isBooked}
+                              onClick={() => handleCellClick(court.id, column)}
+                              className={`w-full rounded-lg border px-2 py-1.5 text-xs whitespace-nowrap transition-colors ${
+                                slot.isBooked
+                                  ? "cursor-not-allowed border-gray-200 bg-gray-100 text-muted-foreground dark:border-neutral-800 dark:bg-neutral-800"
+                                  : isSelected
+                                    ? "border-green-700 bg-green-700 text-white"
+                                    : "border-gray-200 hover:border-green-600 hover:bg-green-50 dark:border-neutral-800 dark:hover:bg-green-950"
+                              }`}
+                            >
+                              {slot.price.toLocaleString("vi-VN")}đ
+                            </button>
+                          </td>
                         );
-                      }
-                      const slot = slots[index];
-                      const isSelected =
-                        selected?.courtId === court.id &&
-                        index >= selected.index &&
-                        index < selected.index + durationSlots;
-                      return (
-                        <td key={`${column.start}-${column.end}`} className="p-1">
-                          <button
-                            type="button"
-                            disabled={slot.isBooked}
-                            onClick={() => handleCellClick(court.id, column)}
-                            className={`w-full rounded-md border px-2 py-1 text-xs whitespace-nowrap ${
-                              slot.isBooked
-                                ? "cursor-not-allowed opacity-50"
-                                : isSelected
-                                  ? "border-primary bg-primary text-primary-foreground"
-                                  : "hover:bg-accent"
-                            }`}
-                          >
-                            {slot.price.toLocaleString("vi-VN")}đ
-                          </button>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="size-3 rounded-sm border border-gray-200 dark:border-neutral-800" />
+              Trống
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-3 rounded-sm bg-gray-200 dark:bg-neutral-800" />
+              Đã đặt
+            </span>
+          </div>
+        </>
       )}
 
       {selectedSlots && selected && maxDuration > 0 && (
-        <div className="rounded-md border p-3 text-sm">
+        <div className="mt-3 rounded-lg border border-gray-200 p-3 text-sm dark:border-neutral-800">
           <p className="font-medium">
             {venue.courts.find((c) => c.id === selected.courtId)?.name} ·{" "}
             {selectedSlots[selected.index].start}–
@@ -407,7 +544,7 @@ function AvailabilityGrid({ venue }: { venue: PublicVenueDetail }) {
             <Label htmlFor="duration">Số giờ chơi</Label>
             <select
               id="duration"
-              className="rounded-md border px-2 py-1 text-sm"
+              className="rounded-md border border-gray-200 px-2 py-1 text-sm dark:border-neutral-800"
               value={durationSlots}
               onChange={(event) => setDurationSlots(Number(event.target.value))}
             >
@@ -429,41 +566,47 @@ function AvailabilityGrid({ venue }: { venue: PublicVenueDetail }) {
           <p className="mt-1 text-xs text-muted-foreground">
             Hủy trước {venue.cancellationCutoffHours}h miễn phí
           </p>
-          <Button
-            size="sm"
-            className="mt-2"
+          <button
+            type="button"
             disabled={submitting}
             onClick={handleConfirmBooking}
+            className="mt-3 w-full rounded-full bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Xác nhận đặt sân
-          </Button>
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-function VenueMapSection({ venue }: { venue: PublicVenueDetail }) {
+function VenueMapCard({ venue }: { venue: PublicVenueDetail }) {
   if (venue.latitude == null || venue.longitude == null) return null;
 
   return (
-    <div className="flex flex-col gap-3">
-      <VenueLocationMap latitude={venue.latitude} longitude={venue.longitude} />
-      <div className="flex gap-2">
+    <div className={cn(CARD_CLASS, "lg:col-span-2")}>
+      <h2 className="flex items-center gap-1.5 font-semibold">
+        <MapPin className="size-4 text-green-600" />
+        Vị trí
+      </h2>
+      <div className="mt-3 overflow-hidden rounded-xl">
+        <VenueLocationMap latitude={venue.latitude} longitude={venue.longitude} />
+      </div>
+      <div className="mt-3 flex gap-2">
         <a
           href={`https://www.google.com/maps/dir/?api=1&destination=${venue.latitude},${venue.longitude}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+          className="inline-flex items-center gap-1.5 rounded-full border border-green-700 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
         >
           <Navigation className="size-4" />
           Chỉ đường
         </a>
         <Link
           href={`/ban-do?venueId=${venue.id}`}
-          className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+          className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-neutral-800 dark:hover:bg-neutral-800"
         >
-          <MapPin className="size-4" />
+          <LayoutGrid className="size-4" />
           Xem bản đồ
         </Link>
       </div>
@@ -471,30 +614,30 @@ function VenueMapSection({ venue }: { venue: PublicVenueDetail }) {
   );
 }
 
-function ContactSection({ venue }: { venue: PublicVenueDetail }) {
+function ContactCard({ venue }: { venue: PublicVenueDetail }) {
   const orderedHours = orderForDisplay(venue.operatingHours);
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4">
-      <h2 className="text-lg font-semibold">Thông tin liên hệ</h2>
+    <div className={CARD_CLASS}>
+      <h2 className="font-semibold">Thông tin liên hệ</h2>
       <a
         href={`tel:${venue.phone}`}
-        className="flex items-center gap-1.5 text-sm hover:underline"
+        className="mt-3 flex items-center gap-1.5 text-sm hover:underline"
       >
-        <Phone className="size-4" />
+        <Phone className="size-4 text-green-600" />
         {venue.phone}
       </a>
-      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <MapPin className="size-4 shrink-0" />
+      <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+        <MapPin className="size-4 shrink-0 text-green-600" />
         {venue.address}
         {venue.district ? `, ${venue.district}` : ""}, {venue.city}
       </p>
-      <table className="mt-2 w-fit text-sm">
+      <table className="mt-3 w-full text-sm">
         <tbody>
           {orderedHours.map((row) => (
             <tr key={row.dayOfWeek}>
-              <td className="pr-4 py-0.5 font-medium">{DAY_LABELS[row.dayOfWeek]}</td>
-              <td className="py-0.5 text-muted-foreground">
+              <td className="py-0.5 pr-4 font-medium">{DAY_LABELS[row.dayOfWeek]}</td>
+              <td className="py-0.5 text-right text-muted-foreground">
                 {row.isOpen && row.openTime && row.closeTime
                   ? `${row.openTime}–${row.closeTime}`
                   : "Đóng cửa"}
