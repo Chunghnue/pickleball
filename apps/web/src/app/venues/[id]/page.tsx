@@ -129,7 +129,7 @@ export default function VenueDetailPage() {
               <AvailabilityCard venue={venue} />
               <VenueMapCard venue={venue} />
             </div>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
               <SidebarCard venue={venue} />
               <ContactCard venue={venue} />
             </div>
