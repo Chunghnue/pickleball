@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, ImageOff, MapPin, Star } from "lucide-react";
+import { ArrowRight, ImageOff, ListChecks, MapPin, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -159,29 +159,48 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="px-4 py-12">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-            <h2 className="text-center text-xl font-bold">
-              Đặt sân chỉ với 3 bước
+        <section className="bg-gradient-to-br from-slate-900 via-green-950 to-black px-4 py-16 text-white">
+          <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-3 text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-900/60 px-2.5 py-1 text-xs font-semibold text-green-400">
+              <ListChecks className="size-3.5" />
+              QUY TRÌNH
+            </span>
+            <h2 className="text-2xl font-bold sm:text-3xl">
+              Đặt sân trong 3 bước đơn giản
             </h2>
-            <div className="grid gap-6 sm:grid-cols-3">
-              <div className="text-center">
-                <p className="mx-auto flex size-12 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white">
+            <p className="text-sm text-white/60">
+              Nhanh chóng, dễ dàng, không cần đăng ký phức tạp
+            </p>
+
+            <div className="mt-8 grid w-full grid-cols-1 items-start gap-8 sm:grid-cols-[1fr_auto_1fr_auto_1fr]">
+              <div className="flex flex-col items-center gap-3">
+                <span className="flex size-12 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white">
                   1
+                </span>
+                <p className="font-semibold">Tìm sân gần bạn</p>
+                <p className="text-sm text-white/60">
+                  Nhập tên hoặc địa điểm để tìm sân phù hợp gần bạn.
                 </p>
-                <p className="mt-3 font-medium">Tìm sân gần bạn</p>
               </div>
-              <div className="text-center">
-                <p className="mx-auto flex size-12 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white">
+              <ArrowRight className="mt-5 hidden size-5 text-white/30 sm:block" />
+              <div className="flex flex-col items-center gap-3">
+                <span className="flex size-12 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white">
                   2
+                </span>
+                <p className="font-semibold">Chọn ngày & giờ</p>
+                <p className="text-sm text-white/60">
+                  Xem khung giờ trống theo thời gian thực và chọn giờ chơi phù hợp.
                 </p>
-                <p className="mt-3 font-medium">Chọn ngày & giờ</p>
               </div>
-              <div className="text-center">
-                <p className="mx-auto flex size-12 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white">
+              <ArrowRight className="mt-5 hidden size-5 text-white/30 sm:block" />
+              <div className="flex flex-col items-center gap-3">
+                <span className="flex size-12 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white">
                   3
+                </span>
+                <p className="font-semibold">Xác nhận & đến sân</p>
+                <p className="text-sm text-white/60">
+                  Xác nhận đặt sân, nhận email xác nhận và sẵn sàng ra sân.
                 </p>
-                <p className="mt-3 font-medium">Xác nhận & đến sân</p>
               </div>
             </div>
           </div>
