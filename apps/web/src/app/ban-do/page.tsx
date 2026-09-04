@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Building2, MapPin, PanelLeft, PanelLeftClose, Search } from "lucide-react";
+import { Building2, MapPin, PanelLeft, PanelLeftClose, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
+import { cn } from "@/lib/utils";
 import type { VenueMapItem } from "./venue-map";
 
 const VenueMap = dynamic(() => import("./venue-map"), { ssr: false });
@@ -44,48 +46,72 @@ export default function BanDoPage() {
   }, [query, city]);
 
   const pinCount = venues?.filter((v) => v.latitude !== null && v.longitude !== null).length ?? 0;
+  const hasFilters = query !== "" || city !== "";
+
+  function clearFilters() {
+    setQuery("");
+    setCity("");
+  }
 
   return (
     <>
       <PublicHeader />
       <main className="flex flex-1 flex-col">
-        <div className="flex flex-wrap items-end gap-3 border-b bg-card px-4 py-3">
-          <div className="min-w-[200px] flex-1 space-y-1.5">
-            <Label
-              htmlFor="query"
-              className="flex items-center gap-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-            >
-              <Search className="size-3.5" />
-              Tìm cơ sở theo tên, quận, thành phố...
-            </Label>
-            <Input id="query" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <div className="border-b bg-gradient-to-br from-green-950 via-green-900 to-emerald-950 px-4 py-4">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-end gap-3">
+            <div className="min-w-[200px] flex-1 space-y-1.5">
+              <Label
+                htmlFor="query"
+                className="flex items-center gap-1 text-xs font-semibold tracking-wide text-green-300 uppercase"
+              >
+                <Search className="size-3.5" />
+                Tìm cơ sở theo tên, quận, thành phố...
+              </Label>
+              <Input
+                id="query"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className="border-white/20 bg-white/95"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="city"
+                className="flex items-center gap-1 text-xs font-semibold tracking-wide text-green-300 uppercase"
+              >
+                <MapPin className="size-3.5" />
+                Thành phố
+              </Label>
+              <select
+                id="city"
+                value={city}
+                onChange={(event) => setCity(event.target.value)}
+                className="h-9 w-full rounded-lg border border-white/20 bg-white/95 px-2.5 text-sm sm:w-48"
+              >
+                <option value="">Tất cả thành phố</option>
+                {cities?.map((option) => (
+                  <option key={option.city} value={option.city}>
+                    {option.city} ({option.count})
+                  </option>
+                ))}
+              </select>
+            </div>
+            {hasFilters && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={clearFilters}
+                className="gap-1.5 text-white/70 hover:bg-white/10 hover:text-white"
+              >
+                <X className="size-4" />
+                Xóa lọc
+              </Button>
+            )}
+            <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-green-800/60 px-3 py-1.5 text-xs font-semibold text-green-300">
+              <Building2 className="size-3.5" />
+              Bản đồ hiển thị {pinCount} cơ sở thể thao
+            </span>
           </div>
-          <div className="space-y-1.5">
-            <Label
-              htmlFor="city"
-              className="flex items-center gap-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-            >
-              <MapPin className="size-3.5" />
-              Thành phố
-            </Label>
-            <select
-              id="city"
-              value={city}
-              onChange={(event) => setCity(event.target.value)}
-              className="h-9 w-full rounded-lg border px-2.5 text-sm sm:w-48"
-            >
-              <option value="">Tất cả thành phố</option>
-              {cities?.map((option) => (
-                <option key={option.city} value={option.city}>
-                  {option.city} ({option.count})
-                </option>
-              ))}
-            </select>
-          </div>
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Building2 className="size-4" />
-            Bản đồ hiển thị {pinCount} cơ sở thể thao
-          </p>
         </div>
 
         <div className="relative flex min-h-[600px] flex-1">
@@ -106,7 +132,10 @@ export default function BanDoPage() {
           {listOpen && (
             <aside className="flex w-80 shrink-0 flex-col border-l bg-card">
               <div className="flex items-center justify-between border-b p-3">
-                <span className="text-sm font-semibold">{venues?.length ?? 0} cơ sở</span>
+                <span className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Building2 className="size-4 text-green-600 dark:text-green-400" />
+                  {venues?.length ?? 0} cơ sở
+                </span>
                 <button
                   type="button"
                   onClick={() => setListOpen(false)}
@@ -123,17 +152,22 @@ export default function BanDoPage() {
                 )}
                 <ul className="divide-y">
                   {venues?.map((venue) => (
-                    <li key={venue.id} className="flex flex-col gap-1 p-4">
-                      <span className="font-semibold">{venue.name}</span>
-                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="size-3.5 shrink-0" />
-                        {venue.district ? `${venue.district}, ` : ""}
-                        {venue.city}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{venue.courtsCount} sân</span>
+                    <li key={venue.id} className="flex flex-col gap-2 p-4 transition-colors hover:bg-accent/50">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-semibold">{venue.name}</span>
+                        <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <MapPin className="size-3.5 shrink-0" />
+                          {venue.district ? `${venue.district}, ` : ""}
+                          {venue.city}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{venue.courtsCount} sân</span>
+                      </div>
                       <Link
                         href={`/venues/${venue.id}`}
-                        className="mt-1 text-sm font-medium text-green-600 hover:underline"
+                        className={cn(
+                          buttonVariants({ variant: "outline", size: "sm" }),
+                          "w-fit rounded-full",
+                        )}
                       >
                         Chi tiết
                       </Link>
