@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -10,6 +10,7 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import Link from "next/link";
 import { toast } from "sonner";
 import { LocateFixed, Maximize } from "lucide-react";
+import { GoogleMutantLayer, type GoogleLayerType } from "./google-mutant-layer";
 
 export interface VenueMapItem {
   id: string;
@@ -31,6 +32,8 @@ function hasCoords(venue: VenueMapItem): venue is VenueWithCoords {
 // Hà Nội — chỉ là điểm neo mặc định khi chưa có kết quả nào có toạ độ,
 // không có ý nghĩa nghiệp vụ. Cùng giá trị với branch-location-map.tsx.
 const DEFAULT_CENTER: [number, number] = [21.0278, 105.8342];
+
+const HAS_GOOGLE_MAPS_KEY = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
 
 const venueMarkerIcon = L.divIcon({
   className: "",
@@ -121,11 +124,41 @@ function MapControls({ venues }: { venues: VenueMapItem[] }) {
   );
 }
 
+type LayerOption = "osm" | GoogleLayerType;
+
+function LayerSwitcher({ layer, onChange }: { layer: LayerOption; onChange: (layer: LayerOption) => void }) {
+  if (!HAS_GOOGLE_MAPS_KEY) return null;
+
+  const options: { value: LayerOption; label: string }[] = [
+    { value: "roadmap", label: "Google Maps" },
+    { value: "satellite", label: "Vệ tinh" },
+    { value: "osm", label: "OpenStreetMap" },
+  ];
+
+  return (
+    <div className="absolute top-3 right-3 z-[1000] flex overflow-hidden rounded-lg bg-card shadow-md ring-1 ring-foreground/10">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={`px-2.5 py-1.5 text-xs font-medium ${
+            layer === option.value ? "bg-green-600 text-white" : "text-muted-foreground hover:bg-accent"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export interface VenueMapProps {
   venues: VenueMapItem[];
 }
 
 export default function VenueMap({ venues }: VenueMapProps) {
+  const [layer, setLayer] = useState<LayerOption>("osm");
   const venuesWithCoords = useMemo(() => venues.filter(hasCoords), [venues]);
 
   return (
@@ -136,10 +169,15 @@ export default function VenueMap({ venues }: VenueMapProps) {
       style={{ height: "100%", width: "100%" }}
     >
       <ZoomControl position="topright" />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      {layer === "osm" && (
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+      )}
+      {HAS_GOOGLE_MAPS_KEY && (
+        <GoogleMutantLayer type={layer === "satellite" ? "satellite" : "roadmap"} active={layer !== "osm"} />
+      )}
       <MarkerClusterGroup chunkedLoading>
         {venuesWithCoords.map((venue) => (
           <Marker key={venue.id} position={[venue.latitude, venue.longitude]} icon={venueMarkerIcon}>
@@ -161,6 +199,7 @@ export default function VenueMap({ venues }: VenueMapProps) {
       </MarkerClusterGroup>
       <FitToVenuesOnce venues={venues} />
       <MapControls venues={venues} />
+      <LayerSwitcher layer={layer} onChange={setLayer} />
     </MapContainer>
   );
 }
