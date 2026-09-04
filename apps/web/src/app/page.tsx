@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Calendar, ImageOff, ListChecks, MapPin, Search, Star } from "lucide-react";
+import { ArrowRight, Calendar, ImageOff, ListChecks, Map, MapPin, Search, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,75 +43,127 @@ export default function HomePage() {
     <>
       <PublicHeader />
       <main className="flex flex-1 flex-col">
-        <section className="bg-gradient-to-b from-green-50 to-white px-4 py-16 dark:from-green-950/20 dark:to-background">
-          <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-6 text-center">
-            <h1 className="text-3xl font-bold">
-              Đặt sân{" "}
-              <span className="text-green-600 dark:text-green-400">pickleball</span>{" "}
-              nhanh chóng
+        <section className="relative overflow-hidden bg-gradient-to-br from-green-950 via-green-900 to-emerald-950 pt-16 pb-28 text-white">
+          <svg
+            viewBox="0 0 200 300"
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-10 -right-10 size-72 text-white/10 sm:size-[420px]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="5"
+          >
+            <rect x="30" y="10" width="140" height="180" rx="70" />
+            <rect x="85" y="185" width="30" height="95" rx="10" />
+            <circle cx="175" cy="235" r="20" />
+            <circle cx="145" cy="280" r="14" />
+          </svg>
+          <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 text-center sm:text-left">
+            <span className="inline-flex w-fit items-center gap-1.5 self-center rounded-full bg-green-800/60 px-3 py-1 text-xs font-semibold text-green-300 sm:self-start">
+              <MapPin className="size-3.5" />
+              {venues !== null
+                ? `HƠN ${summary.venueCount} CƠ SỞ TRÊN TOÀN QUỐC`
+                : "CƠ SỞ TRÊN TOÀN QUỐC"}
+            </span>
+            <h1 className="text-4xl font-extrabold sm:text-5xl">
+              Đặt sân pickleball
+              <br />
+              <span className="text-green-400">nhanh - dễ - tiện</span>
             </h1>
-            <p className="text-muted-foreground">
-              Tìm và đặt sân trống gần bạn chỉ trong vài giây.
+            <p className="max-w-xl self-center text-white/70 sm:self-start sm:text-lg">
+              Tìm và đặt sân pickleball ngay trong vài giây. Xem giá thực, lịch
+              trống theo thời gian thực.
             </p>
-            <div className="w-full rounded-2xl bg-card p-5 text-left shadow-md ring-1 ring-foreground/10">
-              <p className="mb-4 flex items-center gap-2 font-bold">
-                <Search className="size-4 text-green-600 dark:text-green-400" />
-                Tìm sân pickleball ngay
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                <div className="flex-1 space-y-1.5">
-                  <Label className="flex items-center gap-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    <MapPin className="size-3.5" />
-                    Địa điểm
-                  </Label>
-                  <Input
-                    placeholder="Quận, phường, khu vực, tên sân..."
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") handleSearch();
-                    }}
-                  />
-                </div>
-                <div className="flex-1 space-y-1.5">
-                  <Label className="flex items-center gap-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    <Calendar className="size-3.5" />
-                    Ngày & giờ
-                  </Label>
-                  <Input
-                    type="datetime-local"
-                    value={dateTime}
-                    onChange={(event) => setDateTime(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") handleSearch();
-                    }}
-                  />
-                </div>
-                <Button
-                  onClick={handleSearch}
-                  className="gap-1.5 bg-green-600 text-white hover:bg-green-700"
-                >
-                  <Search className="size-4" />
-                  Tìm ngay
-                </Button>
-              </div>
+            <div className="flex flex-wrap justify-center gap-3 sm:justify-start">
+              <a
+                href="#tim-san"
+                className={cn(
+                  buttonVariants({
+                    className: "gap-1.5 rounded-full bg-white text-green-700 hover:bg-green-50",
+                  }),
+                )}
+              >
+                <Search className="size-4" />
+                Tìm sân ngay
+              </a>
+              <Link
+                href="/ban-do"
+                className={cn(
+                  buttonVariants({
+                    variant: "outline",
+                    className:
+                      "gap-1.5 rounded-full border-white/40 bg-transparent text-white hover:bg-white/10",
+                  }),
+                )}
+              >
+                <Map className="size-4" />
+                Xem bản đồ
+              </Link>
             </div>
             {venues !== null && (
-              <p className="text-sm text-muted-foreground">
-                <span className="font-bold text-green-600 dark:text-green-400">
-                  {summary.venueCount}
-                </span>{" "}
-                cơ sở ·{" "}
-                <span className="font-bold text-green-600 dark:text-green-400">
-                  {summary.courtCount}
-                </span>{" "}
-                sân
-              </p>
+              <div className="flex justify-center gap-8 sm:justify-start">
+                <div>
+                  <p className="text-2xl font-bold">{summary.venueCount}</p>
+                  <p className="text-sm text-white/60">Cơ sở</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{summary.courtCount}</p>
+                  <p className="text-sm text-white/60">Sân pickleball</p>
+                </div>
+              </div>
             )}
           </div>
         </section>
 
-        <section className="bg-muted/40 px-4 py-12">
+        <div
+          id="tim-san"
+          className="relative z-10 mx-auto -mt-16 w-full max-w-7xl scroll-mt-20 px-4"
+        >
+          <div className="rounded-2xl bg-card p-5 text-left shadow-md ring-1 ring-foreground/10">
+            <p className="mb-4 flex items-center gap-2 font-bold">
+              <Search className="size-4 text-green-600 dark:text-green-400" />
+              Tìm sân pickleball ngay
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1 space-y-1.5">
+                <Label className="flex items-center gap-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  <MapPin className="size-3.5" />
+                  Địa điểm
+                </Label>
+                <Input
+                  placeholder="Quận, phường, khu vực, tên sân..."
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") handleSearch();
+                  }}
+                />
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <Label className="flex items-center gap-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  <Calendar className="size-3.5" />
+                  Ngày & giờ
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={dateTime}
+                  onChange={(event) => setDateTime(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") handleSearch();
+                  }}
+                />
+              </div>
+              <Button
+                onClick={handleSearch}
+                className="gap-1.5 bg-green-600 text-white hover:bg-green-700"
+              >
+                <Search className="size-4" />
+                Tìm ngay
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <section className="bg-muted/40 px-4 pt-12 pb-12">
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
             <div className="flex flex-col gap-2">
               <span className="inline-flex w-fit items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700 dark:bg-green-950/50 dark:text-green-400">
