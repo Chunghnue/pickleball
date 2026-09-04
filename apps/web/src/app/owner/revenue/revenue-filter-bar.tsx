@@ -45,7 +45,7 @@ export function RevenueFilterBar({
           type="button"
           onClick={() => onApply({ from: draftFrom, to: draftTo })}
           disabled={isInvalid}
-          className="gap-2"
+          className="gap-2 bg-blue-600 text-white hover:bg-blue-700"
         >
           <Filter className="size-4" />
           Lọc

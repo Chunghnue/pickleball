@@ -70,7 +70,10 @@ export default function OwnerRevenuePage() {
         </div>
         <a
           href={`/api/reports/revenue/export?${exportQs}`}
-          className={buttonVariants({ variant: "outline", className: "gap-2" })}
+          className={buttonVariants({
+            variant: "outline",
+            className: "gap-2 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40",
+          })}
         >
           <Download className="size-4" />
           Xuất báo cáo
