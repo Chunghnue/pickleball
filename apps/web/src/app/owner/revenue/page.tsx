@@ -72,7 +72,8 @@ export default function OwnerRevenuePage() {
           href={`/api/reports/revenue/export?${exportQs}`}
           className={buttonVariants({
             variant: "outline",
-            className: "gap-2 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40",
+            className:
+              "gap-2 rounded-full border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-950/60",
           })}
         >
           <Download className="size-4" />
