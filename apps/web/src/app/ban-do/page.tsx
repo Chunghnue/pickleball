@@ -95,13 +95,22 @@ export default function BanDoPage() {
                           {venue.district ? `${venue.district}, ` : ""}
                           {venue.city}
                         </span>
-                        <div className="mt-1 flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">{venue.courtsCount} sân</span>
+                        <span className="text-xs text-muted-foreground">{venue.courtsCount} sân</span>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <Link
+                            href={`/venues/${venue.id}`}
+                            className={cn(
+                              buttonVariants({ size: "sm" }),
+                              "h-7 flex-1 rounded-full bg-green-600 px-3 text-xs text-white hover:bg-green-700",
+                            )}
+                          >
+                            Đặt sân
+                          </Link>
                           <Link
                             href={`/venues/${venue.id}`}
                             className={cn(
                               buttonVariants({ variant: "outline", size: "sm" }),
-                              "h-7 rounded-full px-3 text-xs",
+                              "h-7 flex-1 rounded-full px-3 text-xs",
                             )}
                           >
                             Chi tiết

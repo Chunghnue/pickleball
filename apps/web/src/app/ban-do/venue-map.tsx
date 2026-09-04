@@ -5,11 +5,11 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import { MapContainer, Marker, Popup, TileLayer, ZoomControl, useMap } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Globe, LocateFixed, Map as MapIcon, Maximize, Satellite } from "lucide-react";
+import { Globe, LocateFixed, Map as MapIcon, Maximize, Minus, Plus, Satellite } from "lucide-react";
 import { GoogleMutantLayer, type GoogleLayerType } from "./google-mutant-layer";
 
 export interface VenueMapItem {
@@ -138,6 +138,31 @@ function MapControls({ venues }: { venues: VenueMapItem[] }) {
   );
 }
 
+function ZoomButtons() {
+  const map = useMap();
+
+  return (
+    <div className="absolute right-3 bottom-3 z-[1000] flex flex-col gap-1.5">
+      <button
+        type="button"
+        onClick={() => map.zoomIn()}
+        title="Phóng to"
+        className="flex size-9 items-center justify-center rounded-md bg-card shadow-md ring-1 ring-foreground/10 hover:bg-accent"
+      >
+        <Plus className="size-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => map.zoomOut()}
+        title="Thu nhỏ"
+        className="flex size-9 items-center justify-center rounded-md bg-card shadow-md ring-1 ring-foreground/10 hover:bg-accent"
+      >
+        <Minus className="size-4" />
+      </button>
+    </div>
+  );
+}
+
 type LayerOption = "osm" | GoogleLayerType;
 
 function LayerSwitcher({ layer, onChange }: { layer: LayerOption; onChange: (layer: LayerOption) => void }) {
@@ -188,7 +213,6 @@ export default function VenueMap({ venues }: VenueMapProps) {
       zoomControl={false}
       style={{ height: "100%", width: "100%" }}
     >
-      <ZoomControl position="bottomright" />
       {layer === "osm" && (
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -219,6 +243,7 @@ export default function VenueMap({ venues }: VenueMapProps) {
       </MarkerClusterGroup>
       <FitToVenuesOnce venues={venues} />
       <MapControls venues={venues} />
+      <ZoomButtons />
       <LayerSwitcher layer={layer} onChange={setLayer} />
     </MapContainer>
   );
