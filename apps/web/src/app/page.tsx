@@ -16,10 +16,12 @@ import {
   Map,
   MapPin,
   Mail,
+  MessageCircle,
   Monitor,
   Rocket,
   Search,
   Star,
+  User,
   Users,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +39,28 @@ const MANAGEMENT_FEATURES = [
   { icon: Users, label: "Quản lý khách hàng, phân loại VIP tự động" },
   { icon: Building2, label: "Quản lý nhiều chi nhánh, nhiều sân cùng lúc" },
   { icon: CheckCircle2, label: "Truy cập mọi lúc, mọi nơi ngay trên trình duyệt" },
+] as const;
+
+// Minh hoạ trải nghiệm mong muốn — chưa phải đánh giá thật từ người dùng,
+// không gắn tên/ảnh người cụ thể (xem quyết định trong hội thoại brainstorm).
+const ILLUSTRATIVE_TESTIMONIALS = [
+  {
+    rating: 5,
+    quote:
+      "Đặt sân chỉ mất chưa đầy 1 phút, xem được lịch trống ngay lập tức, rất tiện.",
+    role: "Người chơi pickleball",
+  },
+  {
+    rating: 5,
+    quote:
+      "Không cần gọi điện hỏi còn sân trống hay không nữa, cứ vào trang là biết ngay.",
+    role: "Người chơi cuối tuần",
+  },
+  {
+    rating: 4,
+    quote: "Giao diện dễ dùng, đặt sân nhanh gọn cho cả nhóm.",
+    role: "Đội chơi pickleball",
+  },
 ] as const;
 
 export default function HomePage() {
@@ -467,6 +491,54 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 py-16">
+          <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-2 text-center">
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-950/50 dark:text-green-400">
+              <MessageCircle className="size-3.5" />
+              VÍ DỤ MINH HOẠ
+            </span>
+            <h2 className="text-2xl font-bold sm:text-3xl">
+              Khách hàng nói gì về chúng tôi?
+            </h2>
+            <p className="max-w-lg text-sm text-muted-foreground">
+              Minh hoạ trải nghiệm mong muốn khi dùng nền tảng — chưa phải
+              đánh giá thật từ người dùng.
+            </p>
+            <div className="mt-6 grid w-full gap-5 sm:grid-cols-3">
+              {ILLUSTRATIVE_TESTIMONIALS.map((testimonial, index) => (
+                <Card key={index} className="h-full text-left shadow-sm">
+                  <CardContent className="flex flex-1 flex-col gap-3">
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={cn(
+                            "size-4",
+                            i < testimonial.rating
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-muted-foreground/30",
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <p className="flex-1 text-sm text-muted-foreground">
+                      &ldquo;{testimonial.quote}&rdquo;
+                    </p>
+                    <div className="flex items-center gap-2 border-t pt-3">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400">
+                        <User className="size-4" />
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {testimonial.role}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </section>
