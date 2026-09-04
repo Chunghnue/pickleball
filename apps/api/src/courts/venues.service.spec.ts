@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { VenuesService } from './venues.service';
 import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
 import { VenueSlugHistory } from './entities/venue-slug-history.entity';
 import { VenueOperatingHours } from './entities/venue-operating-hours.entity';
-import { Court } from './entities/court.entity';
+import { Court, CourtStatus } from './entities/court.entity';
 import { Booking } from '../bookings/entities/booking.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { UsersService } from '../users/users.service';
@@ -83,8 +83,14 @@ async function buildTestingModule() {
         useFactory: mockOperatingHoursRepository,
       },
       { provide: getRepositoryToken(Court), useFactory: mockCourtsRepository },
-      { provide: getRepositoryToken(Booking), useFactory: mockBookingsRepository },
-      { provide: getRepositoryToken(Payment), useFactory: mockPaymentsRepository },
+      {
+        provide: getRepositoryToken(Booking),
+        useFactory: mockBookingsRepository,
+      },
+      {
+        provide: getRepositoryToken(Payment),
+        useFactory: mockPaymentsRepository,
+      },
       { provide: UsersService, useFactory: mockUsersService },
       { provide: NotificationsService, useFactory: mockNotificationsService },
       { provide: DataSource, useFactory: mockDataSource },
@@ -93,34 +99,16 @@ async function buildTestingModule() {
 
   return {
     service: module.get(VenuesService),
-    venuesRepo: module.get(getRepositoryToken(Venue)) as ReturnType<
-      typeof mockVenuesRepository
-    >,
-    venueImagesRepo: module.get(getRepositoryToken(VenueImage)) as ReturnType<
-      typeof mockVenueImagesRepository
-    >,
-    slugHistoryRepo: module.get(getRepositoryToken(VenueSlugHistory)) as ReturnType<
-      typeof mockSlugHistoryRepository
-    >,
-    operatingHoursRepo: module.get(getRepositoryToken(VenueOperatingHours)) as ReturnType<
-      typeof mockOperatingHoursRepository
-    >,
-    courtsRepo: module.get(getRepositoryToken(Court)) as ReturnType<
-      typeof mockCourtsRepository
-    >,
-    bookingsRepo: module.get(getRepositoryToken(Booking)) as ReturnType<
-      typeof mockBookingsRepository
-    >,
-    paymentsRepo: module.get(getRepositoryToken(Payment)) as ReturnType<
-      typeof mockPaymentsRepository
-    >,
-    usersService: module.get(UsersService) as ReturnType<
-      typeof mockUsersService
-    >,
-    notificationsService: module.get(NotificationsService) as ReturnType<
-      typeof mockNotificationsService
-    >,
-    dataSource: module.get(DataSource) as ReturnType<typeof mockDataSource>,
+    venuesRepo: module.get(getRepositoryToken(Venue)),
+    venueImagesRepo: module.get(getRepositoryToken(VenueImage)),
+    slugHistoryRepo: module.get(getRepositoryToken(VenueSlugHistory)),
+    operatingHoursRepo: module.get(getRepositoryToken(VenueOperatingHours)),
+    courtsRepo: module.get(getRepositoryToken(Court)),
+    bookingsRepo: module.get(getRepositoryToken(Booking)),
+    paymentsRepo: module.get(getRepositoryToken(Payment)),
+    usersService: module.get(UsersService),
+    notificationsService: module.get(NotificationsService),
+    dataSource: module.get(DataSource),
   };
 }
 
@@ -168,7 +156,9 @@ describe('VenuesService.create — isDefault', () => {
     const { service, venuesRepo } = await buildTestingModule();
     venuesRepo.count.mockResolvedValue(0);
     venuesRepo.create.mockImplementation((data) => data);
-    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-1', ...data }));
+    venuesRepo.save.mockImplementation((data) =>
+      Promise.resolve({ id: 'venue-1', ...data }),
+    );
 
     const result = await service.create('owner-1', {
       name: 'ABC Pickleball',
@@ -183,7 +173,9 @@ describe('VenuesService.create — isDefault', () => {
     const { service, venuesRepo } = await buildTestingModule();
     venuesRepo.count.mockResolvedValue(1);
     venuesRepo.create.mockImplementation((data) => data);
-    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-2', ...data }));
+    venuesRepo.save.mockImplementation((data) =>
+      Promise.resolve({ id: 'venue-2', ...data }),
+    );
 
     const result = await service.create('owner-1', {
       name: 'XYZ Pickleball',
@@ -201,7 +193,9 @@ describe('VenuesService.create — phone', () => {
     venuesRepo.count.mockResolvedValue(0);
     venuesRepo.findOne.mockResolvedValue(null);
     venuesRepo.create.mockImplementation((data) => data);
-    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-1', ...data }));
+    venuesRepo.save.mockImplementation((data) =>
+      Promise.resolve({ id: 'venue-1', ...data }),
+    );
 
     const withPhone = await service.create('owner-1', {
       name: 'ABC Pickleball',
@@ -226,7 +220,9 @@ describe('VenuesService.create — slug', () => {
     venuesRepo.count.mockResolvedValue(0);
     venuesRepo.findOne.mockResolvedValue(null);
     venuesRepo.create.mockImplementation((data) => data);
-    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-1', ...data }));
+    venuesRepo.save.mockImplementation((data) =>
+      Promise.resolve({ id: 'venue-1', ...data }),
+    );
 
     const result = await service.create('owner-1', {
       name: 'Sân Đình Văn Chung',
@@ -244,7 +240,9 @@ describe('VenuesService.create — slug', () => {
       .mockResolvedValueOnce({ id: 'other-venue', slug: 'abc-pickleball' })
       .mockResolvedValueOnce(null);
     venuesRepo.create.mockImplementation((data) => data);
-    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-2', ...data }));
+    venuesRepo.save.mockImplementation((data) =>
+      Promise.resolve({ id: 'venue-2', ...data }),
+    );
 
     const result = await service.create('owner-1', {
       name: 'ABC Pickleball',
@@ -260,7 +258,9 @@ describe('VenuesService.create — slug', () => {
     venuesRepo.count.mockResolvedValue(0);
     venuesRepo.findOne.mockResolvedValue(null);
     venuesRepo.create.mockImplementation((data) => data);
-    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-1', ...data }));
+    venuesRepo.save.mockImplementation((data) =>
+      Promise.resolve({ id: 'venue-1', ...data }),
+    );
 
     const result = await service.create('owner-1', {
       name: 'ABC Pickleball',
@@ -275,7 +275,10 @@ describe('VenuesService.create — slug', () => {
   it('throws ConflictException when the requested slug is already taken', async () => {
     const { service, venuesRepo } = await buildTestingModule();
     venuesRepo.count.mockResolvedValue(0);
-    venuesRepo.findOne.mockResolvedValue({ id: 'other-venue', slug: 'taken-slug' });
+    venuesRepo.findOne.mockResolvedValue({
+      id: 'other-venue',
+      slug: 'taken-slug',
+    });
 
     await expect(
       service.create('owner-1', {
@@ -292,7 +295,9 @@ describe('VenuesService.create — slug', () => {
     venuesRepo.count.mockResolvedValue(0);
     venuesRepo.findOne.mockResolvedValue(null);
     venuesRepo.create.mockImplementation((data) => data);
-    venuesRepo.save.mockImplementation((data) => Promise.resolve({ id: 'venue-1', ...data }));
+    venuesRepo.save.mockImplementation((data) =>
+      Promise.resolve({ id: 'venue-1', ...data }),
+    );
 
     const withFields = await service.create('owner-1', {
       name: 'ABC Pickleball',
@@ -326,7 +331,9 @@ describe('VenuesService.update — phone', () => {
     venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
     venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
 
-    const result = await service.update('owner-1', 'venue-1', { phone: '0368886999' });
+    const result = await service.update('owner-1', 'venue-1', {
+      phone: '0368886999',
+    });
 
     expect(result.phone).toBe('0368886999');
   });
@@ -457,7 +464,8 @@ describe('VenuesService.update — slug', () => {
   });
 
   it('changes the slug and records history when available and under the limit', async () => {
-    const { service, venuesRepo, slugHistoryRepo, dataSource } = await buildTestingModule();
+    const { service, venuesRepo, slugHistoryRepo, dataSource } =
+      await buildTestingModule();
     venuesRepo.findOne
       .mockResolvedValueOnce({
         id: 'venue-1',
@@ -472,7 +480,9 @@ describe('VenuesService.update — slug', () => {
     const manager = { insert: jest.fn().mockResolvedValue(undefined) };
     dataSource.transaction.mockImplementation((cb) => cb(manager));
 
-    const result = await service.update('owner-1', 'venue-1', { slug: 'new-slug' });
+    const result = await service.update('owner-1', 'venue-1', {
+      slug: 'new-slug',
+    });
 
     expect(result.slug).toBe('new-slug');
     expect(manager.insert).toHaveBeenCalledWith(VenueSlugHistory, {
@@ -482,7 +492,8 @@ describe('VenuesService.update — slug', () => {
   });
 
   it('allows the first-ever slug change even if the venue itself was just updated', async () => {
-    const { service, venuesRepo, slugHistoryRepo, dataSource } = await buildTestingModule();
+    const { service, venuesRepo, slugHistoryRepo, dataSource } =
+      await buildTestingModule();
     venuesRepo.findOne
       .mockResolvedValueOnce({
         id: 'venue-1',
@@ -497,7 +508,9 @@ describe('VenuesService.update — slug', () => {
     const manager = { insert: jest.fn().mockResolvedValue(undefined) };
     dataSource.transaction.mockImplementation((cb) => cb(manager));
 
-    const result = await service.update('owner-1', 'venue-1', { slug: 'new-slug' });
+    const result = await service.update('owner-1', 'venue-1', {
+      slug: 'new-slug',
+    });
 
     expect(result.slug).toBe('new-slug');
   });
@@ -519,7 +532,11 @@ describe('VenuesService.update — slug', () => {
   it('throws ConflictException when the new slug is already used by another venue', async () => {
     const { service, venuesRepo } = await buildTestingModule();
     venuesRepo.findOne
-      .mockResolvedValueOnce({ id: 'venue-1', ownerId: 'owner-1', slug: 'old-slug' })
+      .mockResolvedValueOnce({
+        id: 'venue-1',
+        ownerId: 'owner-1',
+        slug: 'old-slug',
+      })
       .mockResolvedValueOnce({ id: 'venue-2', slug: 'taken-slug' });
 
     await expect(
@@ -530,7 +547,11 @@ describe('VenuesService.update — slug', () => {
   it('throws BadRequestException at 3 changes already within the last 180 days', async () => {
     const { service, venuesRepo, slugHistoryRepo } = await buildTestingModule();
     venuesRepo.findOne
-      .mockResolvedValueOnce({ id: 'venue-1', ownerId: 'owner-1', slug: 'old-slug' })
+      .mockResolvedValueOnce({
+        id: 'venue-1',
+        ownerId: 'owner-1',
+        slug: 'old-slug',
+      })
       .mockResolvedValueOnce(null);
     slugHistoryRepo.count.mockResolvedValue(3);
 
@@ -542,7 +563,11 @@ describe('VenuesService.update — slug', () => {
   it('throws BadRequestException when the last change was under 60 days ago', async () => {
     const { service, venuesRepo, slugHistoryRepo } = await buildTestingModule();
     venuesRepo.findOne
-      .mockResolvedValueOnce({ id: 'venue-1', ownerId: 'owner-1', slug: 'old-slug' })
+      .mockResolvedValueOnce({
+        id: 'venue-1',
+        ownerId: 'owner-1',
+        slug: 'old-slug',
+      })
       .mockResolvedValueOnce(null);
     slugHistoryRepo.count.mockResolvedValue(1);
     slugHistoryRepo.findOne.mockResolvedValue({
@@ -559,8 +584,16 @@ describe('VenuesService.setDefault', () => {
   it('unsets every other venue of the owner and sets the target as default', async () => {
     const { service, venuesRepo, dataSource } = await buildTestingModule();
     venuesRepo.findOne
-      .mockResolvedValueOnce({ id: 'venue-2', ownerId: 'owner-1', isDefault: false })
-      .mockResolvedValueOnce({ id: 'venue-2', ownerId: 'owner-1', isDefault: true });
+      .mockResolvedValueOnce({
+        id: 'venue-2',
+        ownerId: 'owner-1',
+        isDefault: false,
+      })
+      .mockResolvedValueOnce({
+        id: 'venue-2',
+        ownerId: 'owner-1',
+        isDefault: true,
+      });
     const manager = { update: jest.fn().mockResolvedValue(undefined) };
     dataSource.transaction.mockImplementation((cb) => cb(manager));
 
@@ -571,7 +604,11 @@ describe('VenuesService.setDefault', () => {
       { ownerId: 'owner-1' },
       { isDefault: false },
     );
-    expect(manager.update).toHaveBeenCalledWith(Venue, { id: 'venue-2' }, { isDefault: true });
+    expect(manager.update).toHaveBeenCalledWith(
+      Venue,
+      { id: 'venue-2' },
+      { isDefault: true },
+    );
     expect(result.isDefault).toBe(true);
   });
 
@@ -587,8 +624,13 @@ describe('VenuesService.setDefault', () => {
 
 describe('VenuesService.remove', () => {
   it('throws ConflictException when any court in the venue has booking history', async () => {
-    const { service, venuesRepo, courtsRepo, bookingsRepo } = await buildTestingModule();
-    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1', isDefault: false });
+    const { service, venuesRepo, courtsRepo, bookingsRepo } =
+      await buildTestingModule();
+    venuesRepo.findOne.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      isDefault: false,
+    });
     courtsRepo.find.mockResolvedValue([{ id: 'court-1', venueId: 'venue-1' }]);
     bookingsRepo.count.mockResolvedValue(1);
 
@@ -600,7 +642,11 @@ describe('VenuesService.remove', () => {
   it('deletes the venue and its courts when there is no booking history', async () => {
     const { service, venuesRepo, courtsRepo, bookingsRepo, dataSource } =
       await buildTestingModule();
-    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1', isDefault: false });
+    venuesRepo.findOne.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      isDefault: false,
+    });
     courtsRepo.find.mockResolvedValue([{ id: 'court-1', venueId: 'venue-1' }]);
     bookingsRepo.count.mockResolvedValue(0);
     const manager = { delete: jest.fn().mockResolvedValue(undefined) };
@@ -614,12 +660,20 @@ describe('VenuesService.remove', () => {
   it('promotes the oldest remaining venue to default when the deleted venue was default', async () => {
     const { service, venuesRepo, courtsRepo, bookingsRepo, dataSource } =
       await buildTestingModule();
-    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1', isDefault: true });
+    venuesRepo.findOne.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      isDefault: true,
+    });
     courtsRepo.find.mockResolvedValue([]);
     bookingsRepo.count.mockResolvedValue(0);
     const manager = { delete: jest.fn().mockResolvedValue(undefined) };
     dataSource.transaction.mockImplementation((cb) => cb(manager));
-    const remainingVenue = { id: 'venue-2', ownerId: 'owner-1', isDefault: false };
+    const remainingVenue = {
+      id: 'venue-2',
+      ownerId: 'owner-1',
+      isDefault: false,
+    };
     venuesRepo.find.mockResolvedValue([remainingVenue]);
     venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
 
@@ -637,7 +691,11 @@ describe('VenuesService.remove', () => {
   it('does not touch other venues when the deleted venue was not default', async () => {
     const { service, venuesRepo, courtsRepo, bookingsRepo, dataSource } =
       await buildTestingModule();
-    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1', isDefault: false });
+    venuesRepo.findOne.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      isDefault: false,
+    });
     courtsRepo.find.mockResolvedValue([]);
     bookingsRepo.count.mockResolvedValue(0);
     const manager = { delete: jest.fn().mockResolvedValue(undefined) };
@@ -698,13 +756,27 @@ describe('VenuesService.findMineWithMetrics', () => {
     const { service, venuesRepo, courtsRepo } = await buildTestingModule();
     venuesRepo.createQueryBuilder.mockReturnValue(
       buildMockQueryBuilder([
-        { id: 'venue-b', name: 'B Venue', ownerId: 'owner-1', isDefault: false, createdAt: new Date('2026-01-01') },
-        { id: 'venue-a', name: 'A Venue', ownerId: 'owner-1', isDefault: true, createdAt: new Date('2026-02-01') },
+        {
+          id: 'venue-b',
+          name: 'B Venue',
+          ownerId: 'owner-1',
+          isDefault: false,
+          createdAt: new Date('2026-01-01'),
+        },
+        {
+          id: 'venue-a',
+          name: 'A Venue',
+          ownerId: 'owner-1',
+          isDefault: true,
+          createdAt: new Date('2026-02-01'),
+        },
       ]),
     );
     courtsRepo.find.mockResolvedValue([]);
 
-    const result = await service.findMineWithMetrics('owner-1', { sort: 'name' });
+    const result = await service.findMineWithMetrics('owner-1', {
+      sort: 'name',
+    });
 
     expect(result.map((v) => v.id)).toEqual(['venue-a', 'venue-b']);
   });
@@ -713,7 +785,11 @@ describe('VenuesService.findMineWithMetrics', () => {
 describe('VenuesService.uploadLogo', () => {
   it('sets logoUrl from the uploaded filename', async () => {
     const { service, venuesRepo } = await buildTestingModule();
-    venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1', logoUrl: null });
+    venuesRepo.findOne.mockResolvedValue({
+      id: 'venue-1',
+      ownerId: 'owner-1',
+      logoUrl: null,
+    });
     venuesRepo.save.mockImplementation((data) => Promise.resolve(data));
 
     const result = await service.uploadLogo('owner-1', 'venue-1', {
@@ -728,7 +804,9 @@ describe('VenuesService.uploadLogo', () => {
     venuesRepo.findOne.mockResolvedValue(null);
 
     await expect(
-      service.uploadLogo('owner-1', 'venue-1', { filename: 'abc.png' } as Express.Multer.File),
+      service.uploadLogo('owner-1', 'venue-1', {
+        filename: 'abc.png',
+      } as Express.Multer.File),
     ).rejects.toThrow('Venue venue-1 không tồn tại');
   });
 });
@@ -753,7 +831,10 @@ describe('VenuesService images', () => {
   it('removeImage deletes an image belonging to an owned venue', async () => {
     const { service, venuesRepo, venueImagesRepo } = await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
-    venueImagesRepo.findOne.mockResolvedValue({ id: 'image-1', venueId: 'venue-1' });
+    venueImagesRepo.findOne.mockResolvedValue({
+      id: 'image-1',
+      venueId: 'venue-1',
+    });
 
     await service.removeImage('owner-1', 'venue-1', 'image-1');
 
@@ -872,16 +953,51 @@ describe('VenuesService.findByIdOrThrow', () => {
 });
 
 describe('VenuesService public reads', () => {
-  it('searchPublic without a query returns only active, non-hidden venues', async () => {
-    const { service, venuesRepo } = await buildTestingModule();
+  it('searchPublic without a query returns only active, non-hidden venues, newest first', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
     venuesRepo.find.mockResolvedValue([{ id: 'venue-1' }]);
+    courtsRepo.find.mockResolvedValue([]);
 
     const result = await service.searchPublic();
 
     expect(venuesRepo.find).toHaveBeenCalledWith({
       where: { status: VenueStatus.ACTIVE, isHidden: false },
+      order: { createdAt: 'DESC' },
     });
-    expect(result).toEqual([{ id: 'venue-1' }]);
+    expect(result).toEqual([{ id: 'venue-1', courtsCount: 0 }]);
+  });
+
+  it('searchPublic enriches each venue with its count of active courts', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.find.mockResolvedValue([
+      { id: 'venue-1' },
+      { id: 'venue-2' },
+    ]);
+    courtsRepo.find.mockResolvedValue([
+      { id: 'court-1', venueId: 'venue-1' },
+      { id: 'court-2', venueId: 'venue-1' },
+      { id: 'court-3', venueId: 'venue-2' },
+    ]);
+
+    const result = await service.searchPublic();
+
+    expect(courtsRepo.find).toHaveBeenCalledWith({
+      where: { venueId: In(['venue-1', 'venue-2']), status: CourtStatus.ACTIVE },
+    });
+    expect(result).toEqual([
+      { id: 'venue-1', courtsCount: 2 },
+      { id: 'venue-2', courtsCount: 1 },
+    ]);
+  });
+
+  it('searchPublic returns an empty array without querying courts when there are no venues', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.find.mockResolvedValue([]);
+
+    const result = await service.searchPublic();
+
+    expect(result).toEqual([]);
+    expect(courtsRepo.find).not.toHaveBeenCalled();
   });
 
   it('findPublicById throws NotFoundException for an inactive, hidden, or missing venue', async () => {
@@ -940,7 +1056,8 @@ describe('VenuesService.findImagesByVenue', () => {
 
 describe('VenuesService.getOperatingHours', () => {
   it('returns the default 7-day schedule when no rows exist yet', async () => {
-    const { service, venuesRepo, operatingHoursRepo } = await buildTestingModule();
+    const { service, venuesRepo, operatingHoursRepo } =
+      await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
     operatingHoursRepo.find.mockResolvedValue([]);
 
@@ -956,10 +1073,18 @@ describe('VenuesService.getOperatingHours', () => {
   });
 
   it('returns saved rows mapped to the view shape', async () => {
-    const { service, venuesRepo, operatingHoursRepo } = await buildTestingModule();
+    const { service, venuesRepo, operatingHoursRepo } =
+      await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
     operatingHoursRepo.find.mockResolvedValue([
-      { id: 'row-1', venueId: 'venue-1', dayOfWeek: 1, isOpen: false, openTime: null, closeTime: null },
+      {
+        id: 'row-1',
+        venueId: 'venue-1',
+        dayOfWeek: 1,
+        isOpen: false,
+        openTime: null,
+        closeTime: null,
+      },
     ]);
 
     const result = await service.getOperatingHours('owner-1', 'venue-1');
@@ -970,10 +1095,18 @@ describe('VenuesService.getOperatingHours', () => {
   });
 
   it('normalizes Postgres HH:mm:ss time values down to HH:mm', async () => {
-    const { service, venuesRepo, operatingHoursRepo } = await buildTestingModule();
+    const { service, venuesRepo, operatingHoursRepo } =
+      await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
     operatingHoursRepo.find.mockResolvedValue([
-      { id: 'row-1', venueId: 'venue-1', dayOfWeek: 1, isOpen: true, openTime: '07:00:00', closeTime: '21:00:00' },
+      {
+        id: 'row-1',
+        venueId: 'venue-1',
+        dayOfWeek: 1,
+        isOpen: true,
+        openTime: '07:00:00',
+        closeTime: '21:00:00',
+      },
     ]);
 
     const result = await service.getOperatingHours('owner-1', 'venue-1');
@@ -985,7 +1118,14 @@ describe('VenuesService.getOperatingHours', () => {
 });
 
 describe('VenuesService.setOperatingHours', () => {
-  function sevenDays(overrides: Partial<{ dayOfWeek: number; isOpen: boolean; openTime?: string; closeTime?: string }>[] = []) {
+  function sevenDays(
+    overrides: Partial<{
+      dayOfWeek: number;
+      isOpen: boolean;
+      openTime?: string;
+      closeTime?: string;
+    }>[] = [],
+  ) {
     const base = [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
       dayOfWeek,
       isOpen: true,
@@ -994,7 +1134,7 @@ describe('VenuesService.setOperatingHours', () => {
     }));
     for (const override of overrides) {
       const idx = base.findIndex((d) => d.dayOfWeek === override.dayOfWeek);
-      base[idx] = { ...base[idx], ...override } as (typeof base)[number];
+      base[idx] = { ...base[idx], ...override };
     }
     return base;
   }
@@ -1004,7 +1144,11 @@ describe('VenuesService.setOperatingHours', () => {
     venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
 
     await expect(
-      service.setOperatingHours('owner-1', 'venue-1', sevenDays().slice(0, 6) as never),
+      service.setOperatingHours(
+        'owner-1',
+        'venue-1',
+        sevenDays().slice(0, 6) as never,
+      ),
     ).rejects.toThrow('Phải gửi đúng 7 ngày trong tuần');
   });
 
@@ -1022,7 +1166,9 @@ describe('VenuesService.setOperatingHours', () => {
   it('rejects openTime >= closeTime when isOpen is true', async () => {
     const { service, venuesRepo } = await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
-    const items = sevenDays([{ dayOfWeek: 2, isOpen: true, openTime: '20:00', closeTime: '08:00' }]);
+    const items = sevenDays([
+      { dayOfWeek: 2, isOpen: true, openTime: '20:00', closeTime: '08:00' },
+    ]);
 
     await expect(
       service.setOperatingHours('owner-1', 'venue-1', items as never),
@@ -1032,7 +1178,9 @@ describe('VenuesService.setOperatingHours', () => {
   it('rejects openTime/closeTime present while isOpen is false', async () => {
     const { service, venuesRepo } = await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
-    const items = sevenDays([{ dayOfWeek: 3, isOpen: false, openTime: '08:00', closeTime: '20:00' }]);
+    const items = sevenDays([
+      { dayOfWeek: 3, isOpen: false, openTime: '08:00', closeTime: '20:00' },
+    ]);
 
     await expect(
       service.setOperatingHours('owner-1', 'venue-1', items as never),
@@ -1040,23 +1188,30 @@ describe('VenuesService.setOperatingHours', () => {
   });
 
   it('deletes existing rows and inserts the new 7 inside a transaction', async () => {
-    const { service, venuesRepo, dataSource, operatingHoursRepo } = await buildTestingModule();
+    const { service, venuesRepo, dataSource, operatingHoursRepo } =
+      await buildTestingModule();
     venuesRepo.findOne.mockResolvedValue({ id: 'venue-1', ownerId: 'owner-1' });
     const manager = {
       delete: jest.fn().mockResolvedValue(undefined),
       create: jest.fn((_entity: unknown, data: unknown) => data),
       save: jest.fn().mockResolvedValue(undefined),
     };
-    dataSource.transaction.mockImplementation((cb: (m: unknown) => unknown) => cb(manager));
+    dataSource.transaction.mockImplementation((cb: (m: unknown) => unknown) =>
+      cb(manager),
+    );
     operatingHoursRepo.find.mockResolvedValue(
       sevenDays().map((d) => ({ ...d, id: 'x', venueId: 'venue-1' })),
     );
 
-    await service.setOperatingHours('owner-1', 'venue-1', sevenDays() as never);
+    await service.setOperatingHours('owner-1', 'venue-1', sevenDays());
 
-    expect(manager.delete).toHaveBeenCalledWith(VenueOperatingHours, { venueId: 'venue-1' });
+    expect(manager.delete).toHaveBeenCalledWith(VenueOperatingHours, {
+      venueId: 'venue-1',
+    });
     expect(manager.save).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.objectContaining({ dayOfWeek: 0, venueId: 'venue-1' })]),
+      expect.arrayContaining([
+        expect.objectContaining({ dayOfWeek: 0, venueId: 'venue-1' }),
+      ]),
     );
   });
 });

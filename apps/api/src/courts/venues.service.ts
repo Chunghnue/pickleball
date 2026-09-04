@@ -13,7 +13,7 @@ import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
 import { VenueSlugHistory } from './entities/venue-slug-history.entity';
 import { VenueOperatingHours } from './entities/venue-operating-hours.entity';
-import { Court } from './entities/court.entity';
+import { Court, CourtStatus } from './entities/court.entity';
 import { CourtImage } from './entities/court-image.entity';
 import { Booking } from '../bookings/entities/booking.entity';
 import { Payment, PaymentStatus } from '../payments/entities/payment.entity';
@@ -28,6 +28,10 @@ import { slugify } from './slug.util';
 import { getCurrentMonthRange } from '../common/date-range.utils';
 import { getUploadsDir } from './court-image-upload.config';
 
+export interface VenueWithCourtsCount extends Venue {
+  courtsCount: number;
+}
+
 export interface VenueWithMetrics extends Venue {
   courtsCount: number;
   bookingsThisMonth: number;
@@ -41,12 +45,14 @@ export interface OperatingHourView {
   closeTime: string | null;
 }
 
-const DEFAULT_OPERATING_HOURS: OperatingHourView[] = [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
-  dayOfWeek,
-  isOpen: true,
-  openTime: '06:00',
-  closeTime: '22:00',
-}));
+const DEFAULT_OPERATING_HOURS: OperatingHourView[] = [0, 1, 2, 3, 4, 5, 6].map(
+  (dayOfWeek) => ({
+    dayOfWeek,
+    isOpen: true,
+    openTime: '06:00',
+    closeTime: '22:00',
+  }),
+);
 
 // Postgres `time` columns round-trip through node-postgres/TypeORM as
 // "HH:mm:ss" strings, not "HH:mm" — normalize before returning to callers.
@@ -78,7 +84,9 @@ export class VenuesService {
   ) {}
 
   async create(ownerId: string, dto: CreateVenueDto): Promise<Venue> {
-    const existingCount = await this.venuesRepository.count({ where: { ownerId } });
+    const existingCount = await this.venuesRepository.count({
+      where: { ownerId },
+    });
     const slug = await this.resolveSlugForCreate(dto.slug, dto.name);
     const venue = this.venuesRepository.create({
       ownerId,
@@ -104,7 +112,9 @@ export class VenuesService {
   ): Promise<string> {
     const trimmed = requested?.trim();
     if (trimmed) {
-      const taken = await this.venuesRepository.findOne({ where: { slug: trimmed } });
+      const taken = await this.venuesRepository.findOne({
+        where: { slug: trimmed },
+      });
       if (taken) {
         throw new ConflictException('Đường dẫn này đã được sử dụng');
       }
@@ -117,14 +127,18 @@ export class VenuesService {
     const base = slugify(name);
     let candidate = base;
     for (let attempt = 0; attempt < 20; attempt++) {
-      const taken = await this.venuesRepository.findOne({ where: { slug: candidate } });
+      const taken = await this.venuesRepository.findOne({
+        where: { slug: candidate },
+      });
       if (!taken) {
         return candidate;
       }
       const suffix = Math.floor(1000 + Math.random() * 9000);
       candidate = `${base}-${suffix}`;
     }
-    throw new ConflictException('Không thể tạo đường dẫn duy nhất, vui lòng thử lại');
+    throw new ConflictException(
+      'Không thể tạo đường dẫn duy nhất, vui lòng thử lại',
+    );
   }
 
   findMineByOwner(ownerId: string): Promise<Venue[]> {
@@ -162,7 +176,9 @@ export class VenuesService {
   }
 
   private async changeSlug(venue: Venue, nextSlug: string): Promise<void> {
-    const taken = await this.venuesRepository.findOne({ where: { slug: nextSlug } });
+    const taken = await this.venuesRepository.findOne({
+      where: { slug: nextSlug },
+    });
     if (taken && taken.id !== venue.id) {
       throw new ConflictException('Đường dẫn này đã được sử dụng');
     }
@@ -173,7 +189,9 @@ export class VenuesService {
       where: { venueId: venue.id, changedAt: MoreThanOrEqual(cutoff180) },
     });
     if (recentChangeCount >= 3) {
-      throw new BadRequestException('Đã đạt giới hạn đổi đường dẫn (3 lần/180 ngày)');
+      throw new BadRequestException(
+        'Đã đạt giới hạn đổi đường dẫn (3 lần/180 ngày)',
+      );
     }
 
     const lastChange = await this.slugHistoryRepository.findOne({
@@ -255,7 +273,10 @@ export class VenuesService {
     venue.logoUrl = `/uploads/venues/${venueId}/${file.filename}`;
     const saved = await this.venuesRepository.save(venue);
     if (oldLogoUrl) {
-      const oldPath = join(getUploadsDir(), oldLogoUrl.replace('/uploads/', ''));
+      const oldPath = join(
+        getUploadsDir(),
+        oldLogoUrl.replace('/uploads/', ''),
+      );
       await unlink(oldPath).catch(() => undefined);
     }
     return saved;
@@ -293,10 +314,7 @@ export class VenuesService {
     return this.venueImagesRepository.find({ where: { venueId } });
   }
 
-  async getOwnedVenueOrThrow(
-    ownerId: string,
-    venueId: string,
-  ): Promise<Venue> {
+  async getOwnedVenueOrThrow(ownerId: string, venueId: string): Promise<Venue> {
     const venue = await this.venuesRepository.findOne({
       where: { id: venueId },
     });
@@ -369,19 +387,53 @@ export class VenuesService {
     return saved;
   }
 
-  searchPublic(query?: string): Promise<Venue[]> {
-    if (!query) {
-      return this.venuesRepository.find({
-        where: { status: VenueStatus.ACTIVE, isHidden: false },
-      });
-    }
-    return this.venuesRepository.find({
-      where: [
-        { status: VenueStatus.ACTIVE, isHidden: false, name: ILike(`%${query}%`) },
-        { status: VenueStatus.ACTIVE, isHidden: false, address: ILike(`%${query}%`) },
-        { status: VenueStatus.ACTIVE, isHidden: false, city: ILike(`%${query}%`) },
-      ],
+  async searchPublic(query?: string): Promise<VenueWithCourtsCount[]> {
+    const where = query
+      ? [
+          {
+            status: VenueStatus.ACTIVE,
+            isHidden: false,
+            name: ILike(`%${query}%`),
+          },
+          {
+            status: VenueStatus.ACTIVE,
+            isHidden: false,
+            address: ILike(`%${query}%`),
+          },
+          {
+            status: VenueStatus.ACTIVE,
+            isHidden: false,
+            city: ILike(`%${query}%`),
+          },
+        ]
+      : { status: VenueStatus.ACTIVE, isHidden: false };
+
+    const venues = await this.venuesRepository.find({
+      where,
+      order: { createdAt: 'DESC' },
     });
+    if (venues.length === 0) {
+      return [];
+    }
+
+    const courts = await this.courtsRepository.find({
+      where: {
+        venueId: In(venues.map((venue) => venue.id)),
+        status: CourtStatus.ACTIVE,
+      },
+    });
+    const courtsCountByVenue = new Map<string, number>();
+    for (const court of courts) {
+      courtsCountByVenue.set(
+        court.venueId,
+        (courtsCountByVenue.get(court.venueId) ?? 0) + 1,
+      );
+    }
+
+    return venues.map((venue) => ({
+      ...venue,
+      courtsCount: courtsCountByVenue.get(venue.id) ?? 0,
+    }));
   }
 
   async findPublicById(id: string): Promise<Venue> {
@@ -435,7 +487,9 @@ export class VenuesService {
       where: { venueId: In(venues.map((venue) => venue.id)) },
     });
     const courtIds = courts.map((court) => court.id);
-    const venueIdByCourtId = new Map(courts.map((court) => [court.id, court.venueId]));
+    const venueIdByCourtId = new Map(
+      courts.map((court) => [court.id, court.venueId]),
+    );
     const courtsCountByVenue = new Map<string, number>();
     for (const court of courts) {
       courtsCountByVenue.set(
@@ -461,12 +515,19 @@ export class VenuesService {
       for (const row of bookingRows) {
         const venueId = venueIdByCourtId.get(row.courtId);
         if (!venueId) continue;
-        bookingsByVenue.set(venueId, (bookingsByVenue.get(venueId) ?? 0) + Number(row.count));
+        bookingsByVenue.set(
+          venueId,
+          (bookingsByVenue.get(venueId) ?? 0) + Number(row.count),
+        );
       }
 
       const revenueRows = await this.paymentsRepository
         .createQueryBuilder('payment')
-        .innerJoin('bookings', 'booking', 'booking.id::text = payment.booking_id')
+        .innerJoin(
+          'bookings',
+          'booking',
+          'booking.id::text = payment.booking_id',
+        )
         .select('booking.court_id', 'courtId')
         .addSelect('SUM(booking.total_price)', 'revenue')
         .where('booking.court_id IN (:...courtIds)', { courtIds })
@@ -478,7 +539,10 @@ export class VenuesService {
       for (const row of revenueRows) {
         const venueId = venueIdByCourtId.get(row.courtId);
         if (!venueId) continue;
-        revenueByVenue.set(venueId, (revenueByVenue.get(venueId) ?? 0) + Number(row.revenue));
+        revenueByVenue.set(
+          venueId,
+          (revenueByVenue.get(venueId) ?? 0) + Number(row.revenue),
+        );
       }
     }
 
@@ -492,10 +556,9 @@ export class VenuesService {
     return this.sortVenues(enriched, opts.sort ?? 'default');
   }
 
-  private sortVenues<T extends { isDefault: boolean; name: string; createdAt: Date }>(
-    venues: T[],
-    sort: 'default' | 'name' | 'newest',
-  ): T[] {
+  private sortVenues<
+    T extends { isDefault: boolean; name: string; createdAt: Date },
+  >(venues: T[], sort: 'default' | 'name' | 'newest'): T[] {
     const copy = [...venues];
     if (sort === 'name') {
       return copy.sort((a, b) => a.name.localeCompare(b.name));
@@ -506,7 +569,10 @@ export class VenuesService {
     return copy.sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
   }
 
-  async getOperatingHours(ownerId: string, venueId: string): Promise<OperatingHourView[]> {
+  async getOperatingHours(
+    ownerId: string,
+    venueId: string,
+  ): Promise<OperatingHourView[]> {
     await this.getOwnedVenueOrThrow(ownerId, venueId);
     const rows = await this.operatingHoursRepository.find({
       where: { venueId },
@@ -544,7 +610,9 @@ export class VenuesService {
           );
         }
         if (item.openTime >= item.closeTime) {
-          throw new BadRequestException(`Ngày ${item.dayOfWeek} giờ mở phải trước giờ đóng`);
+          throw new BadRequestException(
+            `Ngày ${item.dayOfWeek} giờ mở phải trước giờ đóng`,
+          );
         }
       } else if (item.openTime || item.closeTime) {
         throw new BadRequestException(
