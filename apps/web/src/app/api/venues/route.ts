@@ -5,11 +5,13 @@ import { clearAuthCookies } from '@/lib/auth-cookies';
 import { toNextResponse } from '@/lib/proxy-response';
 
 export async function GET(request: NextRequest) {
-  const query = request.nextUrl.searchParams.get('query');
-  const url = query
-    ? `${API_BASE_URL}/venues?query=${encodeURIComponent(query)}`
-    : `${API_BASE_URL}/venues`;
-  const upstream = await fetch(url);
+  const params = new URLSearchParams();
+  for (const key of ['query', 'date', 'time']) {
+    const value = request.nextUrl.searchParams.get(key);
+    if (value) params.set(key, value);
+  }
+  const qs = params.toString();
+  const upstream = await fetch(`${API_BASE_URL}/venues${qs ? `?${qs}` : ''}`);
   return toNextResponse(upstream);
 }
 

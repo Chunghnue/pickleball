@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, ImageOff, ListChecks, MapPin, Star } from "lucide-react";
+import { ArrowRight, Calendar, ImageOff, ListChecks, MapPin, Search, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PublicHeader } from "@/components/public-header";
@@ -16,6 +17,7 @@ export default function HomePage() {
   const router = useRouter();
   const [venues, setVenues] = useState<PublicVenueSummary[] | null>(null);
   const [query, setQuery] = useState("");
+  const [dateTime, setDateTime] = useState("");
 
   useEffect(() => {
     fetch("/api/venues")
@@ -26,9 +28,15 @@ export default function HomePage() {
   const summary = computeHomeSummary(venues ?? []);
 
   function handleSearch() {
-    router.push(
-      query ? `/venues?query=${encodeURIComponent(query)}` : "/venues",
-    );
+    const params = new URLSearchParams();
+    if (query) params.set("query", query);
+    if (dateTime) {
+      const [date, time] = dateTime.split("T");
+      if (date) params.set("date", date);
+      if (time) params.set("time", time.slice(0, 5));
+    }
+    const qs = params.toString();
+    router.push(`/venues${qs ? `?${qs}` : ""}`);
   }
 
   return (
@@ -45,22 +53,48 @@ export default function HomePage() {
             <p className="text-muted-foreground">
               Tìm và đặt sân trống gần bạn chỉ trong vài giây.
             </p>
-            <div className="flex w-full max-w-md gap-2 rounded-2xl bg-card p-2 shadow-md ring-1 ring-foreground/10">
-              <Input
-                placeholder="Tìm theo tên hoặc địa điểm"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") handleSearch();
-                }}
-                className="border-none shadow-none focus-visible:ring-0"
-              />
-              <Button
-                onClick={handleSearch}
-                className="bg-green-600 text-white hover:bg-green-700"
-              >
-                Tìm ngay
-              </Button>
+            <div className="w-full max-w-3xl rounded-2xl bg-card p-5 text-left shadow-md ring-1 ring-foreground/10">
+              <p className="mb-4 flex items-center gap-2 font-bold">
+                <Search className="size-4 text-green-600 dark:text-green-400" />
+                Tìm sân pickleball ngay
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="flex-1 space-y-1.5">
+                  <Label className="flex items-center gap-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                    <MapPin className="size-3.5" />
+                    Địa điểm
+                  </Label>
+                  <Input
+                    placeholder="Quận, phường, khu vực, tên sân..."
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") handleSearch();
+                    }}
+                  />
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <Label className="flex items-center gap-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                    <Calendar className="size-3.5" />
+                    Ngày & giờ
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    value={dateTime}
+                    onChange={(event) => setDateTime(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") handleSearch();
+                    }}
+                  />
+                </div>
+                <Button
+                  onClick={handleSearch}
+                  className="gap-1.5 bg-green-600 text-white hover:bg-green-700"
+                >
+                  <Search className="size-4" />
+                  Tìm ngay
+                </Button>
+              </div>
             </div>
             {venues !== null && (
               <p className="text-sm text-muted-foreground">

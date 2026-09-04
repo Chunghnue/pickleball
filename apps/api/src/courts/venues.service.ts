@@ -16,6 +16,7 @@ import { VenueOperatingHours } from './entities/venue-operating-hours.entity';
 import { Court, CourtStatus } from './entities/court.entity';
 import { CourtImage } from './entities/court-image.entity';
 import { Booking } from '../bookings/entities/booking.entity';
+import { BookingSlot } from '../bookings/entities/booking-slot.entity';
 import { Payment, PaymentStatus } from '../payments/entities/payment.entity';
 import { PricingRule } from '../pricing/entities/pricing-rule.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
@@ -27,6 +28,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { slugify } from './slug.util';
 import { getCurrentMonthRange } from '../common/date-range.utils';
 import { getUploadsDir } from './court-image-upload.config';
+import { generateSlotTimes } from './slot-generator';
+import { DATE_PATTERN, TIME_PATTERN } from './time.util';
 
 export interface VenueWithCourtsCount extends Venue {
   courtsCount: number;
@@ -75,6 +78,8 @@ export class VenuesService {
     private readonly courtsRepository: Repository<Court>,
     @InjectRepository(Booking)
     private readonly bookingsRepository: Repository<Booking>,
+    @InjectRepository(BookingSlot)
+    private readonly bookingSlotsRepository: Repository<BookingSlot>,
     @InjectRepository(Payment)
     private readonly paymentsRepository: Repository<Payment>,
     @InjectDataSource()
@@ -387,7 +392,31 @@ export class VenuesService {
     return saved;
   }
 
-  async searchPublic(query?: string): Promise<VenueWithCourtsCount[]> {
+  async searchPublic(
+    query?: string,
+    date?: string,
+    time?: string,
+  ): Promise<VenueWithCourtsCount[]> {
+    if ((date && !time) || (time && !date)) {
+      throw new BadRequestException(
+        'date và time phải được truyền cùng nhau',
+      );
+    }
+    if (date && !DATE_PATTERN.test(date)) {
+      throw new BadRequestException('date phải theo định dạng YYYY-MM-DD');
+    }
+    if (date) {
+      const today = new Date().toISOString().slice(0, 10);
+      if (date < today) {
+        throw new BadRequestException(
+          'Không thể tìm sân của ngày trong quá khứ',
+        );
+      }
+    }
+    if (time && !TIME_PATTERN.test(time)) {
+      throw new BadRequestException('time phải theo định dạng HH:mm');
+    }
+
     const where = query
       ? [
           {
@@ -430,10 +459,56 @@ export class VenuesService {
       );
     }
 
-    return venues.map((venue) => ({
+    const withCourtsCount = venues.map((venue) => ({
       ...venue,
       courtsCount: courtsCountByVenue.get(venue.id) ?? 0,
     }));
+
+    if (!date || !time) {
+      return withCourtsCount;
+    }
+
+    const availableVenueIds = await this.findVenueIdsWithAvailability(
+      courts,
+      date,
+      time,
+    );
+    return withCourtsCount.filter((venue) => availableVenueIds.has(venue.id));
+  }
+
+  private async findVenueIdsWithAvailability(
+    courts: Court[],
+    date: string,
+    time: string,
+  ): Promise<Set<string>> {
+    const candidateCourtIds = courts
+      .filter((court) =>
+        generateSlotTimes({
+          openTime: court.openTime,
+          closeTime: court.closeTime,
+          slotDurationMinutes: court.slotDurationMinutes,
+        }).some((slot) => slot.start === time),
+      )
+      .map((court) => court.id);
+    if (candidateCourtIds.length === 0) {
+      return new Set();
+    }
+
+    const bookedSlots = await this.bookingSlotsRepository.find({
+      where: { courtId: In(candidateCourtIds), date, slotStart: time },
+    });
+    const bookedCourtIds = new Set(bookedSlots.map((slot) => slot.courtId));
+
+    const availableVenueIds = new Set<string>();
+    for (const court of courts) {
+      if (
+        candidateCourtIds.includes(court.id) &&
+        !bookedCourtIds.has(court.id)
+      ) {
+        availableVenueIds.add(court.venueId);
+      }
+    }
+    return availableVenueIds;
   }
 
   async findPublicById(id: string): Promise<Venue> {

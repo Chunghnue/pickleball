@@ -38,7 +38,10 @@ export class VenuesController {
   @Post()
   @UseGuards(JwtAuthGuard, OwnerScopeGuard)
   @OwnerScope('full')
-  create(@EffectiveOwnerId() effectiveOwnerId: string, @Body() dto: CreateVenueDto) {
+  create(
+    @EffectiveOwnerId() effectiveOwnerId: string,
+    @Body() dto: CreateVenueDto,
+  ) {
     return this.venuesService.create(effectiveOwnerId, dto);
   }
 
@@ -49,7 +52,10 @@ export class VenuesController {
     @EffectiveOwnerId() effectiveOwnerId: string,
     @Query() query: ListVenuesDto,
   ) {
-    const venues = await this.venuesService.findMineWithMetrics(effectiveOwnerId, query);
+    const venues = await this.venuesService.findMineWithMetrics(
+      effectiveOwnerId,
+      query,
+    );
     return Promise.all(
       venues.map(async (venue) => ({
         ...venue,
@@ -168,8 +174,12 @@ export class VenuesController {
   }
 
   @Get()
-  search(@Query('query') query?: string) {
-    return this.venuesService.searchPublic(query);
+  search(
+    @Query('query') query?: string,
+    @Query('date') date?: string,
+    @Query('time') time?: string,
+  ) {
+    return this.venuesService.searchPublic(query, date, time);
   }
 
   @Get('by-slug/:slug')

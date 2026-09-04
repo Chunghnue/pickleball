@@ -5,6 +5,7 @@ import { VenueImage } from './entities/venue-image.entity';
 import { Court } from './entities/court.entity';
 import { CourtImage } from './entities/court-image.entity';
 import { Booking } from '../bookings/entities/booking.entity';
+import { BookingSlot } from '../bookings/entities/booking-slot.entity';
 import { VenueSlugHistory } from './entities/venue-slug-history.entity';
 import { VenueOperatingHours } from './entities/venue-operating-hours.entity';
 import { Payment } from '../payments/entities/payment.entity';
@@ -18,7 +19,17 @@ import { PricingModule } from '../pricing/pricing.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Venue, VenueImage, Court, CourtImage, Booking, VenueSlugHistory, Payment, VenueOperatingHours]),
+    TypeOrmModule.forFeature([
+      Venue,
+      VenueImage,
+      Court,
+      CourtImage,
+      Booking,
+      BookingSlot,
+      VenueSlugHistory,
+      Payment,
+      VenueOperatingHours,
+    ]),
     UsersModule,
     NotificationsModule,
     PricingModule,

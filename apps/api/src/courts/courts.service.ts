@@ -15,11 +15,9 @@ import { VenuesService } from './venues.service';
 import { CreateCourtDto } from './dto/create-court.dto';
 import { UpdateCourtDto } from './dto/update-court.dto';
 import { generateSlotTimes, Slot } from './slot-generator';
-import { timeToMinutes } from './time.util';
+import { DATE_PATTERN, timeToMinutes } from './time.util';
 import { getUploadsDir } from './court-image-upload.config';
 import { PricingService } from '../pricing/pricing.service';
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface CourtWithImages extends Court {
   images: CourtImage[];
@@ -78,7 +76,9 @@ export class CourtsService {
     if (venues.length === 0) {
       return [];
     }
-    const venueNameById = new Map(venues.map((venue) => [venue.id, venue.name]));
+    const venueNameById = new Map(
+      venues.map((venue) => [venue.id, venue.name]),
+    );
     const courts = await this.courtsRepository.find({
       where: { venueId: In(venues.map((venue) => venue.id)) },
     });
@@ -140,7 +140,11 @@ export class CourtsService {
     return this.courtsRepository.save(court);
   }
 
-  async remove(ownerId: string, venueId: string, courtId: string): Promise<void> {
+  async remove(
+    ownerId: string,
+    venueId: string,
+    courtId: string,
+  ): Promise<void> {
     await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
     const court = await this.courtsRepository.findOne({
       where: { id: courtId, venueId },
@@ -193,7 +197,12 @@ export class CourtsService {
     if (!image) {
       throw new NotFoundException(`Ảnh ${imageId} không tồn tại`);
     }
-    const filePath = join(getUploadsDir(), 'courts', courtId, basename(image.url));
+    const filePath = join(
+      getUploadsDir(),
+      'courts',
+      courtId,
+      basename(image.url),
+    );
     await unlink(filePath).catch(() => undefined);
     await this.courtImagesRepository.remove(image);
   }
@@ -239,8 +248,14 @@ export class CourtsService {
 
     const slots: Slot[] = [];
     for (const slotTime of slotTimes) {
-      const resolvedPrice = await this.pricingService.resolvePrice(courtId, date, slotTime.start);
-      const price = Math.round(resolvedPrice * (court.slotDurationMinutes / 60) * 100) / 100;
+      const resolvedPrice = await this.pricingService.resolvePrice(
+        courtId,
+        date,
+        slotTime.start,
+      );
+      const price =
+        Math.round(resolvedPrice * (court.slotDurationMinutes / 60) * 100) /
+        100;
       slots.push({ ...slotTime, price });
     }
     return slots;

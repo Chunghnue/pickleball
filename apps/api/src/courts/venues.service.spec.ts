@@ -8,6 +8,7 @@ import { VenueSlugHistory } from './entities/venue-slug-history.entity';
 import { VenueOperatingHours } from './entities/venue-operating-hours.entity';
 import { Court, CourtStatus } from './entities/court.entity';
 import { Booking } from '../bookings/entities/booking.entity';
+import { BookingSlot } from '../bookings/entities/booking-slot.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -46,6 +47,10 @@ const mockCourtsRepository = () => ({
 const mockBookingsRepository = () => ({
   count: jest.fn(),
   createQueryBuilder: jest.fn(),
+});
+
+const mockBookingSlotsRepository = () => ({
+  find: jest.fn(),
 });
 
 const mockPaymentsRepository = () => ({
@@ -88,6 +93,10 @@ async function buildTestingModule() {
         useFactory: mockBookingsRepository,
       },
       {
+        provide: getRepositoryToken(BookingSlot),
+        useFactory: mockBookingSlotsRepository,
+      },
+      {
         provide: getRepositoryToken(Payment),
         useFactory: mockPaymentsRepository,
       },
@@ -105,6 +114,7 @@ async function buildTestingModule() {
     operatingHoursRepo: module.get(getRepositoryToken(VenueOperatingHours)),
     courtsRepo: module.get(getRepositoryToken(Court)),
     bookingsRepo: module.get(getRepositoryToken(Booking)),
+    bookingSlotsRepo: module.get(getRepositoryToken(BookingSlot)),
     paymentsRepo: module.get(getRepositoryToken(Payment)),
     usersService: module.get(UsersService),
     notificationsService: module.get(NotificationsService),
@@ -998,6 +1008,88 @@ describe('VenuesService public reads', () => {
 
     expect(result).toEqual([]);
     expect(courtsRepo.find).not.toHaveBeenCalled();
+  });
+
+  it('searchPublic throws when only date is given without time', async () => {
+    const { service } = await buildTestingModule();
+    await expect(service.searchPublic(undefined, '2099-01-01')).rejects.toThrow(
+      'date và time phải được truyền cùng nhau',
+    );
+  });
+
+  it('searchPublic throws when only time is given without date', async () => {
+    const { service } = await buildTestingModule();
+    await expect(
+      service.searchPublic(undefined, undefined, '10:00'),
+    ).rejects.toThrow('date và time phải được truyền cùng nhau');
+  });
+
+  it('searchPublic throws for a malformed date', async () => {
+    const { service } = await buildTestingModule();
+    await expect(
+      service.searchPublic(undefined, '01-01-2099', '10:00'),
+    ).rejects.toThrow('date phải theo định dạng YYYY-MM-DD');
+  });
+
+  it('searchPublic throws for a past date', async () => {
+    const { service } = await buildTestingModule();
+    await expect(
+      service.searchPublic(undefined, '2020-01-01', '10:00'),
+    ).rejects.toThrow('Không thể tìm sân của ngày trong quá khứ');
+  });
+
+  it('searchPublic throws for a malformed time', async () => {
+    const { service } = await buildTestingModule();
+    await expect(
+      service.searchPublic(undefined, '2099-01-01', '25:00'),
+    ).rejects.toThrow('time phải theo định dạng HH:mm');
+  });
+
+  it('searchPublic with date+time only returns venues with a court free at that time', async () => {
+    const { service, venuesRepo, courtsRepo, bookingSlotsRepo } =
+      await buildTestingModule();
+    venuesRepo.find.mockResolvedValue([
+      { id: 'venue-free' },
+      { id: 'venue-booked' },
+      { id: 'venue-no-matching-grid' },
+    ]);
+    courtsRepo.find.mockResolvedValue([
+      {
+        id: 'court-free',
+        venueId: 'venue-free',
+        openTime: '06:00',
+        closeTime: '22:00',
+        slotDurationMinutes: 60,
+      },
+      {
+        id: 'court-booked',
+        venueId: 'venue-booked',
+        openTime: '06:00',
+        closeTime: '22:00',
+        slotDurationMinutes: 60,
+      },
+      {
+        id: 'court-odd-grid',
+        venueId: 'venue-no-matching-grid',
+        openTime: '06:00',
+        closeTime: '22:00',
+        slotDurationMinutes: 90,
+      },
+    ]);
+    bookingSlotsRepo.find.mockResolvedValue([
+      { courtId: 'court-booked', date: '2099-01-01', slotStart: '10:00' },
+    ]);
+
+    const result = await service.searchPublic(undefined, '2099-01-01', '10:00');
+
+    expect(bookingSlotsRepo.find).toHaveBeenCalledWith({
+      where: {
+        courtId: In(['court-free', 'court-booked']),
+        date: '2099-01-01',
+        slotStart: '10:00',
+      },
+    });
+    expect(result.map((v) => v.id)).toEqual(['venue-free']);
   });
 
   it('findPublicById throws NotFoundException for an inactive, hidden, or missing venue', async () => {
