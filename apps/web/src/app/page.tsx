@@ -10,6 +10,7 @@ import {
   Calendar,
   CalendarClock,
   CheckCircle2,
+  ChevronRight,
   Globe,
   ImageOff,
   ListChecks,
@@ -343,24 +344,39 @@ export default function HomePage() {
         </section>
 
         {summary.cities.length > 0 && (
-          <section className="px-4 py-12">
-            <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-              <h2 className="text-xl font-bold">Đặt sân theo thành phố</h2>
-              <div className="flex flex-wrap gap-2">
+          <section className="bg-muted/40 px-4 py-16">
+            <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-2 text-center">
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-950/50 dark:text-green-400">
+                <Globe className="size-3.5" />
+                TOÀN QUỐC
+              </span>
+              <h2 className="text-2xl font-bold sm:text-3xl">
+                Đặt sân pickleball theo tỉnh thành
+              </h2>
+              <p className="max-w-lg text-sm text-muted-foreground">
+                Tìm sân tại các tỉnh thành đang có cơ sở trên nền tảng
+              </p>
+              <div className="mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {summary.cities.map((city) => (
                   <Link
-                    key={city}
-                    href={`/venues?query=${encodeURIComponent(city)}`}
-                    className={cn(
-                      buttonVariants({
-                        variant: "outline",
-                        size: "sm",
-                        className:
-                          "rounded-full border-green-200 bg-green-50 text-green-600 hover:bg-green-100 dark:border-green-900 dark:bg-green-950/40 dark:text-green-400 dark:hover:bg-green-950/60",
-                      }),
-                    )}
+                    key={city.name}
+                    href={`/venues?query=${encodeURIComponent(city.name)}`}
+                    className="flex items-center justify-between gap-2 rounded-xl border bg-card p-3 text-left shadow-sm transition-colors hover:border-green-300 hover:bg-green-50 dark:hover:border-green-800 dark:hover:bg-green-950/30"
                   >
-                    {city}
+                    <span className="flex items-center gap-2">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400">
+                        <Globe className="size-4" />
+                      </span>
+                      <span>
+                        <span className="block text-sm font-semibold">
+                          {city.name}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          ({city.count})
+                        </span>
+                      </span>
+                    </span>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                   </Link>
                 ))}
               </div>

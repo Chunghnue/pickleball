@@ -60,12 +60,15 @@ describe('computeHomeSummary', () => {
     ]);
   });
 
-  it('dedupes cities, preserving first-occurrence order', () => {
+  it('groups cities with a venue count each, sorted alphabetically', () => {
     const venues = [
-      venue({ id: 'v1', city: 'Hà Nội' }),
-      venue({ id: 'v2', city: 'Hồ Chí Minh' }),
-      venue({ id: 'v3', city: 'Hà Nội' }),
+      venue({ id: 'v1', city: 'Hồ Chí Minh' }),
+      venue({ id: 'v2', city: 'Hà Nội' }),
+      venue({ id: 'v3', city: 'Hồ Chí Minh' }),
     ];
-    expect(computeHomeSummary(venues).cities).toEqual(['Hà Nội', 'Hồ Chí Minh']);
+    expect(computeHomeSummary(venues).cities).toEqual([
+      { name: 'Hà Nội', count: 1 },
+      { name: 'Hồ Chí Minh', count: 2 },
+    ]);
   });
 });
