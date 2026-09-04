@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
-import { cn } from "@/lib/utils";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 import {
   computeMaxConsecutiveDuration,
@@ -125,13 +124,15 @@ export default function VenueDetailPage() {
           <VenueBreadcrumb venue={venue} />
           <VenueHero images={venue.images} />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <VenueInfoCard venue={venue} />
-            <SidebarCard venue={venue} />
-          </div>
-          <AvailabilityCard venue={venue} />
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <VenueMapCard venue={venue} />
-            <ContactCard venue={venue} />
+            <div className="flex flex-col gap-4 lg:col-span-2">
+              <VenueInfoCard venue={venue} />
+              <AvailabilityCard venue={venue} />
+              <VenueMapCard venue={venue} />
+            </div>
+            <div className="flex flex-col gap-4">
+              <SidebarCard venue={venue} />
+              <ContactCard venue={venue} />
+            </div>
           </div>
         </main>
       </div>
@@ -207,7 +208,7 @@ function VenueInfoCard({ venue }: { venue: PublicVenueDetail }) {
   const openNow = isOpenNow(today);
 
   return (
-    <div className={cn(CARD_CLASS, "lg:col-span-2")}>
+    <div className={CARD_CLASS}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700 dark:bg-green-950 dark:text-green-400">
           Pickleball
@@ -558,7 +559,7 @@ function VenueMapCard({ venue }: { venue: PublicVenueDetail }) {
   if (venue.latitude == null || venue.longitude == null) return null;
 
   return (
-    <div className={cn(CARD_CLASS, "lg:col-span-2")}>
+    <div className={CARD_CLASS}>
       <h2 className="flex items-center gap-1.5 font-semibold">
         <MapPin className="size-4 text-green-600" />
         Vị trí
