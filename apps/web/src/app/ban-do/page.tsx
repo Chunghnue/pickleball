@@ -49,7 +49,7 @@ export default function BanDoPage() {
     <>
       <PublicHeader />
       <main className="flex flex-1 flex-col">
-        <div className="relative flex min-h-[600px] flex-1">
+        <div className="relative isolate flex min-h-[600px] flex-1">
           {listOpen && (
             <aside className="flex w-72 shrink-0 flex-col border-r bg-card sm:w-80">
               <div className="flex items-center justify-between border-b p-3">
