@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import {
   CheckCircle2,
   Clock,
+  Crown,
   LayoutGrid,
   Mail,
   Map as MapIcon,
@@ -169,6 +170,10 @@ function uniformHours(operatingHours: OperatingHourItem[]): OperatingHourItem | 
   return allSame ? first : null;
 }
 
+function isVipCourt(name: string): boolean {
+  return /\bvip\b/i.test(name);
+}
+
 function VenueBreadcrumb({ venue }: { venue: PublicVenueDetail }) {
   return (
     <nav className="flex items-center gap-2 text-sm">
@@ -284,18 +289,31 @@ function VenueInfoCard({ venue }: { venue: PublicVenueDetail }) {
         Danh sách sân ({venue.courts.length})
       </h2>
       <div className="mt-2 flex flex-wrap gap-2">
-        {venue.courts.map((court) => (
-          <span
-            key={court.id}
-            className="flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-sm dark:border-neutral-800"
-          >
-            <MapPin className="size-3.5 text-green-600" />
-            {court.name}
-            {court.capacity != null && (
-              <span className="text-muted-foreground">({court.capacity} người)</span>
-            )}
-          </span>
-        ))}
+        {venue.courts.map((court) => {
+          const vip = isVipCourt(court.name);
+          return (
+            <span
+              key={court.id}
+              className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm ${
+                vip
+                  ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                  : "border-gray-200 dark:border-neutral-800"
+              }`}
+            >
+              {vip ? (
+                <Crown className="size-3.5 text-amber-600 dark:text-amber-400" />
+              ) : (
+                <MapPin className="size-3.5 text-green-600" />
+              )}
+              {court.name}
+              {court.capacity != null && (
+                <span className={vip ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}>
+                  ({court.capacity} người)
+                </span>
+              )}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -459,12 +477,29 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
           {venue.courts.map((court) => {
             const slots = slotsByCourtId[court.id] ?? [];
             if (slots.length === 0) return null;
+            const vip = isVipCourt(court.name);
             return (
-              <div key={court.id}>
+              <div
+                key={court.id}
+                className={
+                  vip
+                    ? "rounded-xl border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-900 dark:bg-amber-950/20"
+                    : undefined
+                }
+              >
                 <div className="mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5 font-medium">
-                    <MapPin className="size-3.5 text-green-600" />
+                    {vip ? (
+                      <Crown className="size-3.5 text-amber-600 dark:text-amber-400" />
+                    ) : (
+                      <MapPin className="size-3.5 text-green-600" />
+                    )}
                     {court.name}
+                    {vip && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase dark:bg-amber-900 dark:text-amber-300">
+                        VIP
+                      </span>
+                    )}
                     {court.capacity != null && (
                       <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
                         <Users className="size-3" />
@@ -472,7 +507,11 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
                       </span>
                     )}
                   </span>
-                  <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                  <span
+                    className={`text-sm font-semibold ${
+                      vip ? "text-amber-700 dark:text-amber-400" : "text-green-700 dark:text-green-400"
+                    }`}
+                  >
                     {court.pricePerHour.toLocaleString("vi-VN")}đ/giờ
                   </span>
                 </div>
@@ -493,7 +532,9 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
                             ? "cursor-not-allowed border-gray-200 bg-gray-100 text-muted-foreground dark:border-neutral-800 dark:bg-neutral-800"
                             : isSelected
                               ? "border-green-700 bg-green-700 text-white"
-                              : "border-gray-200 hover:border-green-600 hover:bg-green-50 dark:border-neutral-800 dark:hover:bg-green-950"
+                              : vip
+                                ? "border-amber-200 bg-white hover:border-amber-500 hover:bg-amber-50 dark:border-amber-900 dark:bg-transparent dark:hover:bg-amber-950"
+                                : "border-gray-200 hover:border-green-600 hover:bg-green-50 dark:border-neutral-800 dark:hover:bg-green-950"
                         }`}
                       >
                         {slot.start}
