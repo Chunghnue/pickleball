@@ -1292,6 +1292,76 @@ describe('VenuesService public reads', () => {
   });
 });
 
+describe('VenuesService.searchPublic — sort=courts', () => {
+  it('orders venues by count of active courts, descending, tie-broken by name ascending', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.find
+      .mockResolvedValueOnce([
+        { id: 'venue-a', name: 'Venue A' },
+        { id: 'venue-b', name: 'Venue B' },
+        { id: 'venue-c', name: 'Venue C' },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'venue-a', name: 'Venue A' },
+        { id: 'venue-b', name: 'Venue B' },
+        { id: 'venue-c', name: 'Venue C' },
+      ]);
+    courtsRepo.createQueryBuilder.mockReturnValue(
+      buildMockRawQueryBuilder([
+        { venueId: 'venue-a', count: '1' },
+        { venueId: 'venue-c', count: '3' },
+      ]),
+    );
+
+    const result = await service.searchPublic(
+      undefined, undefined, undefined, undefined, 'courts',
+    );
+
+    expect(result.items.map((v) => v.id)).toEqual([
+      'venue-c', 'venue-a', 'venue-b',
+    ]);
+    expect(result.items.map((v) => v.courtsCount)).toEqual([3, 1, 0]);
+    expect(result.total).toBe(3);
+  });
+
+  it('paginates the sorted-by-count list', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.find
+      .mockResolvedValueOnce([
+        { id: 'venue-a', name: 'Venue A' },
+        { id: 'venue-b', name: 'Venue B' },
+        { id: 'venue-c', name: 'Venue C' },
+      ])
+      .mockResolvedValueOnce([{ id: 'venue-b', name: 'Venue B' }]);
+    courtsRepo.createQueryBuilder.mockReturnValue(
+      buildMockRawQueryBuilder([
+        { venueId: 'venue-a', count: '3' },
+        { venueId: 'venue-b', count: '2' },
+        { venueId: 'venue-c', count: '1' },
+      ]),
+    );
+
+    const result = await service.searchPublic(
+      undefined, undefined, undefined, undefined, 'courts', '2', '1',
+    );
+
+    expect(result.items.map((v) => v.id)).toEqual(['venue-b']);
+    expect(result.total).toBe(3);
+    expect(result.page).toBe(2);
+  });
+
+  it('returns an empty result when no venue matches the filters', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.find.mockResolvedValueOnce([]);
+
+    const result = await service.searchPublic(
+      undefined, undefined, undefined, undefined, 'courts',
+    );
+
+    expect(result).toEqual({ items: [], total: 0, page: 1, pageSize: 20 });
+  });
+});
+
 describe('VenuesService.findPublicBySlug', () => {
   it('returns the venue for an active, non-hidden slug', async () => {
     const { service, venuesRepo } = await buildTestingModule();

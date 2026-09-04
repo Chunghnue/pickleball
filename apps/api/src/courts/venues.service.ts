@@ -559,15 +559,55 @@ export class VenuesService {
   }
 
   private async searchPublicSortedByCourts(
-    _query: string | undefined,
-    _city: string | undefined,
-    _availableVenueIds: string[] | undefined,
-    _page: number,
-    _pageSize: number,
+    query: string | undefined,
+    city: string | undefined,
+    availableVenueIds: string[] | undefined,
+    page: number,
+    pageSize: number,
   ): Promise<SearchVenuesResult> {
-    throw new BadRequestException(
-      "sort phải là 'name', 'courts' hoặc 'city'",
+    const candidates = await this.venuesRepository.find({
+      where: this.buildSearchWhere(query, city, availableVenueIds),
+      select: { id: true, name: true },
+    });
+    const total = candidates.length;
+    if (total === 0) {
+      return { items: [], total: 0, page, pageSize };
+    }
+
+    const candidateIds = candidates.map((venue) => venue.id);
+    const countRows = await this.courtsRepository
+      .createQueryBuilder('court')
+      .select('court.venue_id', 'venueId')
+      .addSelect('COUNT(*)', 'count')
+      .where('court.status = :status', { status: CourtStatus.ACTIVE })
+      .andWhere('court.venue_id IN (:...ids)', { ids: candidateIds })
+      .groupBy('court.venue_id')
+      .getRawMany<{ venueId: string; count: string }>();
+    const countByVenue = new Map(
+      countRows.map((row) => [row.venueId, Number(row.count)]),
     );
+
+    const sorted = [...candidates].sort((a, b) => {
+      const diff =
+        (countByVenue.get(b.id) ?? 0) - (countByVenue.get(a.id) ?? 0);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+    });
+    const pageIds = sorted
+      .slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+      .map((venue) => venue.id);
+    if (pageIds.length === 0) {
+      return { items: [], total, page, pageSize };
+    }
+
+    const pageVenues = await this.venuesRepository.find({
+      where: { id: In(pageIds) },
+    });
+    const venueById = new Map(pageVenues.map((venue) => [venue.id, venue]));
+    const items = pageIds.map((id) => ({
+      ...venueById.get(id)!,
+      courtsCount: countByVenue.get(id) ?? 0,
+    }));
+    return { items, total, page, pageSize };
   }
 
   private async findVenueIdsWithAvailability(
