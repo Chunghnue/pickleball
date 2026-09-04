@@ -9,6 +9,8 @@ import {
   CheckCircle2,
   Clock,
   LayoutGrid,
+  Mail,
+  Map as MapIcon,
   MapPin,
   Navigation,
   Phone,
@@ -56,6 +58,7 @@ interface PublicVenueDetail {
   city: string;
   district: string | null;
   phone: string;
+  email: string | null;
   description: string | null;
   cancellationCutoffHours: number;
   logoUrl: string | null;
@@ -152,6 +155,18 @@ function isOpenNow(today: OperatingHourItem | undefined): boolean {
   const [openH, openM] = today.openTime.split(":").map(Number);
   const [closeH, closeM] = today.closeTime.split(":").map(Number);
   return nowMinutes >= openH * 60 + openM && nowMinutes < closeH * 60 + closeM;
+}
+
+function uniformHours(operatingHours: OperatingHourItem[]): OperatingHourItem | null {
+  const [first, ...rest] = operatingHours;
+  if (!first) return null;
+  const allSame = rest.every(
+    (h) =>
+      h.isOpen === first.isOpen &&
+      h.openTime === first.openTime &&
+      h.closeTime === first.closeTime,
+  );
+  return allSame ? first : null;
 }
 
 function VenueBreadcrumb({ venue }: { venue: PublicVenueDetail }) {
@@ -561,11 +576,15 @@ function VenueMapCard({ venue }: { venue: PublicVenueDetail }) {
   return (
     <div className={CARD_CLASS}>
       <h2 className="flex items-center gap-1.5 font-semibold">
-        <MapPin className="size-4 text-green-600" />
+        <MapIcon className="size-4 text-green-600" />
         Vị trí
       </h2>
       <div className="mt-3 overflow-hidden rounded-xl">
-        <VenueLocationMap latitude={venue.latitude} longitude={venue.longitude} />
+        <VenueLocationMap
+          latitude={venue.latitude}
+          longitude={venue.longitude}
+          name={venue.name}
+        />
       </div>
       <div className="mt-3 flex gap-2">
         <a
@@ -591,36 +610,59 @@ function VenueMapCard({ venue }: { venue: PublicVenueDetail }) {
 
 function ContactCard({ venue }: { venue: PublicVenueDetail }) {
   const orderedHours = orderForDisplay(venue.operatingHours);
+  const uniform = uniformHours(venue.operatingHours);
 
   return (
     <div className={CARD_CLASS}>
       <h2 className="font-semibold">Thông tin liên hệ</h2>
-      <a
-        href={`tel:${venue.phone}`}
-        className="mt-3 flex items-center gap-1.5 text-sm hover:underline"
-      >
-        <Phone className="size-4 text-green-600" />
-        {venue.phone}
-      </a>
-      <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-        <MapPin className="size-4 shrink-0 text-green-600" />
-        {venue.address}
-        {venue.district ? `, ${venue.district}` : ""}, {venue.city}
-      </p>
-      <table className="mt-3 w-full text-sm">
-        <tbody>
-          {orderedHours.map((row) => (
-            <tr key={row.dayOfWeek}>
-              <td className="py-0.5 pr-4 font-medium">{DAY_LABELS[row.dayOfWeek]}</td>
-              <td className="py-0.5 text-right text-muted-foreground">
-                {row.isOpen && row.openTime && row.closeTime
-                  ? `${row.openTime}–${row.closeTime}`
-                  : "Đóng cửa"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="mt-3 flex flex-col gap-2 text-sm">
+        <a href={`tel:${venue.phone}`} className="flex items-center gap-1.5 hover:underline">
+          <Phone className="size-4 text-green-600" />
+          {venue.phone}
+        </a>
+        <p className="flex items-center gap-1.5 text-muted-foreground">
+          <MapPin className="size-4 shrink-0 text-green-600" />
+          {venue.address}
+          {venue.district ? `, ${venue.district}` : ""}, {venue.city}
+        </p>
+        {uniform ? (
+          <p className="flex items-center gap-1.5 text-muted-foreground">
+            <Clock className="size-4 shrink-0 text-green-600" />
+            {uniform.isOpen && uniform.openTime && uniform.closeTime
+              ? `${uniform.openTime} – ${uniform.closeTime} hàng ngày`
+              : "Đóng cửa"}
+          </p>
+        ) : (
+          <div className="flex items-start gap-1.5 text-muted-foreground">
+            <Clock className="mt-0.5 size-4 shrink-0 text-green-600" />
+            <div className="flex flex-1 flex-col gap-0.5">
+              {orderedHours.map((row) => (
+                <div key={row.dayOfWeek} className="flex items-center justify-between gap-4">
+                  <span className="font-medium text-foreground">{DAY_LABELS[row.dayOfWeek]}</span>
+                  <span>
+                    {row.isOpen && row.openTime && row.closeTime
+                      ? `${row.openTime}–${row.closeTime}`
+                      : "Đóng cửa"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {venue.email && (
+        <>
+          <div className={DIVIDER_CLASS} />
+          <a
+            href={`mailto:${venue.email}`}
+            className="flex w-full items-center justify-center gap-1.5 rounded-full border border-green-700 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+          >
+            <Mail className="size-4" />
+            Liên hệ chủ sân
+          </a>
+        </>
+      )}
     </div>
   );
 }
