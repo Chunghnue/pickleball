@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
@@ -24,7 +24,6 @@ import {
   computeMaxConsecutiveDuration,
   type AvailabilitySlot,
 } from "@/lib/slot-selection";
-import { buildTimeColumns, findSlotIndex, type GridColumn } from "./availability-grid";
 import { DAY_LABELS, orderForDisplay } from "@/app/owner/settings/operating-hours-format";
 
 const VenueLocationMap = dynamic(() => import("./venue-location-map"), {
@@ -357,15 +356,9 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, venue.id]);
 
-  const columns = useMemo(
-    () => (slotsByCourtId ? buildTimeColumns(slotsByCourtId) : []),
-    [slotsByCourtId],
-  );
-
-  function handleCellClick(courtId: string, column: GridColumn) {
-    if (!slotsByCourtId) return;
-    const index = findSlotIndex(slotsByCourtId[courtId], column);
-    if (index === -1 || slotsByCourtId[courtId][index].isBooked) return;
+  function handleCellClick(courtId: string, index: number) {
+    const slots = slotsByCourtId?.[courtId];
+    if (!slots || slots[index].isBooked) return;
     if (selected?.courtId === courtId && selected.index === index) {
       setSelected(null);
       return;
@@ -418,6 +411,9 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
     selectedSlots && selected
       ? computeMaxConsecutiveDuration(selectedSlots, selected.index)
       : 0;
+  const hasAnySlots =
+    slotsByCourtId != null &&
+    Object.values(slotsByCourtId).some((slots) => slots.length > 0);
 
   return (
     <div className={CARD_CLASS}>
@@ -438,103 +434,78 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
 
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
-      {!error && slotsByCourtId && columns.length === 0 && (
+      {!error && slotsByCourtId && !hasAnySlots && (
         <p className="mt-3 text-sm text-muted-foreground">Không có khung giờ nào.</p>
       )}
 
-      {!error && slotsByCourtId && columns.length > 0 && (
-        <>
-          <div className="mt-3 overflow-x-auto rounded-lg border border-gray-200 dark:border-neutral-800">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 dark:border-neutral-800 dark:bg-neutral-900">
-                  <th className="sticky left-0 bg-gray-50 p-2 text-left font-medium dark:bg-neutral-900">
-                    Sân
-                  </th>
-                  {columns.map((column) => (
-                    <th
-                      key={`${column.start}-${column.end}`}
-                      className="whitespace-nowrap p-2 text-left font-medium"
-                    >
-                      {column.start}–{column.end}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {venue.courts.map((court) => {
-                  const slots = slotsByCourtId[court.id] ?? [];
-                  return (
-                    <tr key={court.id} className="border-b border-gray-100 last:border-b-0 dark:border-neutral-800">
-                      <td className="sticky left-0 whitespace-nowrap bg-white p-2 font-medium dark:bg-neutral-900">
-                        <MapPin className="mr-1 inline size-3.5 text-green-600" />
-                        {court.name}
-                        <span className="ml-1.5 font-semibold text-green-700 dark:text-green-400">
-                          {court.pricePerHour.toLocaleString("vi-VN")}đ/giờ
-                        </span>
-                        {court.capacity != null && (
-                          <span className="ml-1 inline-flex items-center gap-1 text-xs font-normal text-muted-foreground">
-                            <Users className="size-3" />
-                            {court.capacity} người
-                          </span>
-                        )}
-                      </td>
-                      {columns.map((column) => {
-                        const index = findSlotIndex(slots, column);
-                        if (index === -1) {
-                          return (
-                            <td
-                              key={`${column.start}-${column.end}`}
-                              className="p-1"
-                            />
-                          );
-                        }
-                        const slot = slots[index];
-                        const isSelected =
-                          selected?.courtId === court.id &&
-                          index >= selected.index &&
-                          index < selected.index + durationSlots;
-                        return (
-                          <td key={`${column.start}-${column.end}`} className="p-1">
-                            <button
-                              type="button"
-                              disabled={slot.isBooked}
-                              onClick={() => handleCellClick(court.id, column)}
-                              className={`w-full rounded-lg border px-2 py-1.5 text-xs whitespace-nowrap transition-colors ${
-                                slot.isBooked
-                                  ? "cursor-not-allowed border-gray-200 bg-gray-100 text-muted-foreground dark:border-neutral-800 dark:bg-neutral-800"
-                                  : isSelected
-                                    ? "border-green-700 bg-green-700 text-white"
-                                    : "border-gray-200 hover:border-green-600 hover:bg-green-50 dark:border-neutral-800 dark:hover:bg-green-950"
-                              }`}
-                            >
-                              {slot.price.toLocaleString("vi-VN")}đ
-                            </button>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+      {!error && slotsByCourtId && hasAnySlots && (
+        <div className="mt-4 flex flex-col gap-5">
+          {venue.courts.map((court) => {
+            const slots = slotsByCourtId[court.id] ?? [];
+            if (slots.length === 0) return null;
+            return (
+              <div key={court.id}>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <MapPin className="size-3.5 text-green-600" />
+                    {court.name}
+                    {court.capacity != null && (
+                      <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
+                        <Users className="size-3" />
+                        {court.capacity} người
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                    {court.pricePerHour.toLocaleString("vi-VN")}đ/giờ
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {slots.map((slot, index) => {
+                    const isSelected =
+                      selected?.courtId === court.id &&
+                      index >= selected.index &&
+                      index < selected.index + durationSlots;
+                    return (
+                      <button
+                        key={slot.start}
+                        type="button"
+                        disabled={slot.isBooked}
+                        onClick={() => handleCellClick(court.id, index)}
+                        className={`rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                          slot.isBooked
+                            ? "cursor-not-allowed border-gray-200 bg-gray-100 text-muted-foreground dark:border-neutral-800 dark:bg-neutral-800"
+                            : isSelected
+                              ? "border-green-700 bg-green-700 text-white"
+                              : "border-gray-200 hover:border-green-600 hover:bg-green-50 dark:border-neutral-800 dark:hover:bg-green-950"
+                        }`}
+                      >
+                        {slot.start}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-          <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="size-3 rounded-sm border border-gray-200 dark:border-neutral-800" />
-              Trống
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="size-3 rounded-sm bg-gray-200 dark:bg-neutral-800" />
-              Đã đặt
-            </span>
-          </div>
-        </>
+      {!error && slotsByCourtId && hasAnySlots && (
+        <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="size-3 rounded-sm border border-gray-200 dark:border-neutral-800" />
+            Trống
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-3 rounded-sm bg-gray-200 dark:bg-neutral-800" />
+            Đã đặt
+          </span>
+        </div>
       )}
 
       {selectedSlots && selected && maxDuration > 0 && (
-        <div className="mt-3 rounded-lg border border-gray-200 p-3 text-sm dark:border-neutral-800">
+        <div className="mt-4 rounded-lg border border-gray-200 p-3 text-sm dark:border-neutral-800">
           <p className="font-medium">
             {venue.courts.find((c) => c.id === selected.courtId)?.name} ·{" "}
             {selectedSlots[selected.index].start}–
@@ -566,15 +537,18 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
           <p className="mt-1 text-xs text-muted-foreground">
             Hủy trước {venue.cancellationCutoffHours}h miễn phí
           </p>
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={handleConfirmBooking}
-            className="mt-3 w-full rounded-full bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Xác nhận đặt sân
-          </button>
         </div>
+      )}
+
+      {!error && slotsByCourtId && hasAnySlots && (
+        <button
+          type="button"
+          disabled={!selected || submitting}
+          onClick={handleConfirmBooking}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-green-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-muted-foreground dark:disabled:bg-neutral-800"
+        >
+          {selected ? "Xác nhận đặt sân" : "Chọn khung giờ để đặt sân"}
+        </button>
       )}
     </div>
   );
