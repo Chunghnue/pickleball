@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, LogIn, LogOut, Map, Search, User } from "lucide-react";
+import { BookOpen, LandPlot, LogIn, LogOut, Map, Search, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,7 +82,8 @@ export function PublicHeader() {
               className: "gap-1.5 rounded-full bg-green-600 text-white hover:bg-green-700",
             })}
           >
-            Đăng ký chủ sân
+            <LandPlot className="size-4" />
+            Chủ Sân
           </Link>
           {fullName !== null ? (
             <DropdownMenu>
