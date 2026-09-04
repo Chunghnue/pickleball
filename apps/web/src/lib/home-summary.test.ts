@@ -8,6 +8,7 @@ function venue(overrides: Partial<PublicVenueSummary>): PublicVenueSummary {
     address: '123 Đường ABC',
     city: 'Hà Nội',
     courtsCount: 2,
+    logoUrl: null,
     ...overrides,
   };
 }
@@ -46,6 +47,17 @@ describe('computeHomeSummary', () => {
   it('returns fewer than 6 featured venues when there are fewer than 6 total', () => {
     const venues = [venue({ id: 'v1' }), venue({ id: 'v2' })];
     expect(computeHomeSummary(venues).featured).toHaveLength(2);
+  });
+
+  it('passes logoUrl through unchanged for featured venues', () => {
+    const venues = [
+      venue({ id: 'v1', logoUrl: '/uploads/venues/v1/logo.webp' }),
+      venue({ id: 'v2', logoUrl: null }),
+    ];
+    expect(computeHomeSummary(venues).featured.map((v) => v.logoUrl)).toEqual([
+      '/uploads/venues/v1/logo.webp',
+      null,
+    ]);
   });
 
   it('dedupes cities, preserving first-occurrence order', () => {

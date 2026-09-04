@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, ImageOff, MapPin, Star } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -76,30 +77,83 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="px-4 py-12">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-            <h2 className="text-xl font-bold">Cơ sở nổi bật</h2>
+        <section className="bg-muted/40 px-4 py-12">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700 dark:bg-green-950/50 dark:text-green-400">
+                <Star className="size-3 fill-current" />
+                NỔI BẬT
+              </span>
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="text-2xl font-bold">Cơ sở thể thao nổi bật</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Các cơ sở mới nhất trên nền tảng
+                  </p>
+                </div>
+                <Link
+                  href="/venues"
+                  className={cn(
+                    buttonVariants({
+                      variant: "outline",
+                      size: "sm",
+                      className:
+                        "gap-1.5 rounded-full border-green-200 text-green-700 hover:bg-green-50 dark:border-green-900 dark:text-green-400 dark:hover:bg-green-950/40",
+                    }),
+                  )}
+                >
+                  Xem tất cả
+                  <ArrowRight className="size-4" />
+                </Link>
+              </div>
+            </div>
+
             {venues === null && <p className="text-muted-foreground">Đang tải...</p>}
             {venues !== null && venues.length === 0 && (
               <p className="text-muted-foreground">Chưa có cơ sở nào.</p>
             )}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {summary.featured.map((venue) => (
-                <Link key={venue.id} href={`/venues/${venue.id}`}>
-                  <Card className="h-full rounded-2xl shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-                    <CardHeader>
-                      <CardTitle className="text-base">{venue.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <p className="text-sm text-muted-foreground">
+                <Card
+                  key={venue.id}
+                  className="h-full gap-0 overflow-hidden rounded-2xl py-0 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="relative aspect-video w-full bg-muted">
+                    {venue.logoUrl ? (
+                      <img
+                        src={venue.logoUrl}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex size-full items-center justify-center text-muted-foreground">
+                        <ImageOff className="size-8" />
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="flex flex-1 flex-col gap-3 p-4">
+                    <div className="space-y-1">
+                      <h3 className="font-bold">{venue.name}</h3>
+                      <p className="flex items-start gap-1 text-sm text-muted-foreground">
+                        <MapPin className="mt-0.5 size-3.5 shrink-0" />
                         {venue.address}, {venue.city}
                       </p>
-                      <span className="inline-block rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950/40 dark:text-green-400">
-                        {venue.courtsCount} sân
-                      </span>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </div>
+                    <p className="text-right text-xs text-muted-foreground">
+                      {venue.courtsCount} sân
+                    </p>
+                    <Link
+                      href={`/venues/${venue.id}`}
+                      className={cn(
+                        buttonVariants({
+                          className: "w-full rounded-full bg-green-600 text-white hover:bg-green-700",
+                        }),
+                      )}
+                    >
+                      Xem chi tiết
+                    </Link>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>

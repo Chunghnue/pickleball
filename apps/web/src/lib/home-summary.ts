@@ -4,6 +4,7 @@ export interface PublicVenueSummary {
   address: string;
   city: string;
   courtsCount: number;
+  logoUrl: string | null;
 }
 
 export interface HomeSummary {
