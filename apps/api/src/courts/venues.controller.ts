@@ -182,6 +182,11 @@ export class VenuesController {
     return this.venuesService.searchPublic(query, date, time);
   }
 
+  @Get('cities')
+  listCities() {
+    return this.venuesService.listActiveCities();
+  }
+
   @Get('by-slug/:slug')
   async findBySlug(@Param('slug') slug: string) {
     const venue = await this.venuesService.findPublicBySlug(slug);

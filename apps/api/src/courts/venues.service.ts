@@ -511,6 +511,19 @@ export class VenuesService {
     return availableVenueIds;
   }
 
+  async listActiveCities(): Promise<{ city: string; count: number }[]> {
+    const rows = await this.venuesRepository
+      .createQueryBuilder('venue')
+      .select('venue.city', 'city')
+      .addSelect('COUNT(*)', 'count')
+      .where('venue.status = :status', { status: VenueStatus.ACTIVE })
+      .andWhere('venue.is_hidden = false')
+      .groupBy('venue.city')
+      .orderBy('venue.city', 'ASC')
+      .getRawMany<{ city: string; count: string }>();
+    return rows.map((row) => ({ city: row.city, count: Number(row.count) }));
+  }
+
   async findPublicById(id: string): Promise<Venue> {
     const venue = await this.venuesRepository.findOne({
       where: { id, status: VenueStatus.ACTIVE, isHidden: false },

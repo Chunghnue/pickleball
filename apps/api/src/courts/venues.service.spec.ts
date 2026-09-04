@@ -138,6 +138,7 @@ function buildMockRawQueryBuilder<T>(result: T[]) {
   qb.where = jest.fn().mockReturnValue(qb);
   qb.andWhere = jest.fn().mockReturnValue(qb);
   qb.groupBy = jest.fn().mockReturnValue(qb);
+  qb.orderBy = jest.fn().mockReturnValue(qb);
   qb.getRawMany = jest.fn().mockResolvedValue(result);
   return qb;
 }
@@ -959,6 +960,32 @@ describe('VenuesService.findByIdOrThrow', () => {
     await expect(service.findByIdOrThrow('venue-1')).rejects.toThrow(
       'Venue venue-1 không tồn tại',
     );
+  });
+});
+
+describe('VenuesService.listActiveCities', () => {
+  it('groups active, non-hidden venues by city, sorted alphabetically', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.createQueryBuilder.mockReturnValue(
+      buildMockRawQueryBuilder([
+        { city: 'Hà Nội', count: '3' },
+        { city: 'Hồ Chí Minh', count: '5' },
+      ]),
+    );
+
+    const result = await service.listActiveCities();
+
+    expect(result).toEqual([
+      { city: 'Hà Nội', count: 3 },
+      { city: 'Hồ Chí Minh', count: 5 },
+    ]);
+  });
+
+  it('returns an empty array when there are no active venues', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.createQueryBuilder.mockReturnValue(buildMockRawQueryBuilder([]));
+
+    expect(await service.listActiveCities()).toEqual([]);
   });
 });
 
