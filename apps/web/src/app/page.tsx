@@ -132,7 +132,7 @@ export default function HomePage() {
                     )}
                   </div>
                   <CardContent className="flex flex-1 flex-col gap-3 p-4">
-                    <div className="space-y-1">
+                    <div className="flex-1 space-y-1">
                       <h3 className="font-bold">{venue.name}</h3>
                       <p className="flex items-start gap-1 text-sm text-muted-foreground">
                         <MapPin className="mt-0.5 size-3.5 shrink-0" />
