@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -70,17 +70,34 @@ function createClusterIcon(cluster: ClusterLike): L.DivIcon {
 // Tự fit khung nhìn theo kết quả CHỈ 1 lần khi venues load xong lần đầu —
 // đổi bộ lọc sau đó không tự động di chuyển bản đồ, người dùng bấm "Về tổng
 // quan" (MapControls) nếu muốn fit lại. Xem spec §2.
-function FitToVenuesOnce({ venues }: { venues: VenueMapItem[] }) {
+function FitToVenuesOnce({
+  venues,
+  focusVenueId,
+  markerRefs,
+}: {
+  venues: VenueMapItem[];
+  focusVenueId?: string | null;
+  markerRefs: RefObject<Record<string, L.Marker | null>>;
+}) {
   const map = useMap();
   const didFit = useRef(false);
 
   useEffect(() => {
     if (didFit.current) return;
+    if (focusVenueId) {
+      const target = venues.find((v) => v.id === focusVenueId);
+      if (target && hasCoords(target)) {
+        didFit.current = true;
+        map.flyTo([target.latitude, target.longitude], 16);
+        markerRefs.current[target.id]?.openPopup();
+        return;
+      }
+    }
     const withCoords = venues.filter(hasCoords);
     if (withCoords.length === 0) return;
     didFit.current = true;
     map.fitBounds(boundsOf(withCoords), { padding: [40, 40] });
-  }, [venues, map]);
+  }, [venues, map, focusVenueId, markerRefs]);
 
   return null;
 }
@@ -200,11 +217,13 @@ function LayerSwitcher({ layer, onChange }: { layer: LayerOption; onChange: (lay
 
 export interface VenueMapProps {
   venues: VenueMapItem[];
+  focusVenueId?: string | null;
 }
 
-export default function VenueMap({ venues }: VenueMapProps) {
+export default function VenueMap({ venues, focusVenueId }: VenueMapProps) {
   const [layer, setLayer] = useState<LayerOption>("osm");
   const venuesWithCoords = useMemo(() => venues.filter(hasCoords), [venues]);
+  const markerRefs = useRef<Record<string, L.Marker | null>>({});
 
   return (
     <MapContainer
@@ -224,7 +243,14 @@ export default function VenueMap({ venues }: VenueMapProps) {
       )}
       <MarkerClusterGroup chunkedLoading iconCreateFunction={createClusterIcon}>
         {venuesWithCoords.map((venue) => (
-          <Marker key={venue.id} position={[venue.latitude, venue.longitude]} icon={venueMarkerIcon}>
+          <Marker
+            key={venue.id}
+            position={[venue.latitude, venue.longitude]}
+            icon={venueMarkerIcon}
+            ref={(instance) => {
+              markerRefs.current[venue.id] = instance;
+            }}
+          >
             <Popup>
               <div className="flex flex-col gap-1">
                 <strong>{venue.name}</strong>
@@ -241,7 +267,7 @@ export default function VenueMap({ venues }: VenueMapProps) {
           </Marker>
         ))}
       </MarkerClusterGroup>
-      <FitToVenuesOnce venues={venues} />
+      <FitToVenuesOnce venues={venues} focusVenueId={focusVenueId} markerRefs={markerRefs} />
       <MapControls venues={venues} />
       <ZoomButtons />
       <LayerSwitcher layer={layer} onChange={setLayer} />

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Building2, ImageOff, MapPin, Menu, Search, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { PublicHeader } from "@/components/public-header";
@@ -17,6 +18,16 @@ interface CityOption {
 }
 
 export default function BanDoPage() {
+  return (
+    <Suspense>
+      <BanDoPageContent />
+    </Suspense>
+  );
+}
+
+function BanDoPageContent() {
+  const searchParams = useSearchParams();
+  const focusVenueId = searchParams.get("venueId");
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("");
   const [venues, setVenues] = useState<VenueMapItem[] | null>(null);
@@ -125,7 +136,7 @@ export default function BanDoPage() {
           )}
 
           <div className="relative flex-1">
-            {venues !== null && <VenueMap venues={venues} />}
+            {venues !== null && <VenueMap venues={venues} focusVenueId={focusVenueId} />}
 
             {!listOpen && (
               <button
