@@ -3,7 +3,25 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Calendar, ImageOff, ListChecks, Map, MapPin, Search, Star } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  Building2,
+  Calendar,
+  CalendarClock,
+  CheckCircle2,
+  Globe,
+  ImageOff,
+  ListChecks,
+  Map,
+  MapPin,
+  Mail,
+  Monitor,
+  Rocket,
+  Search,
+  Star,
+  Users,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +30,14 @@ import { cn } from "@/lib/utils";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import { computeHomeSummary, type PublicVenueSummary } from "@/lib/home-summary";
+
+const MANAGEMENT_FEATURES = [
+  { icon: CalendarClock, label: "Quản lý lịch đặt sân real-time, tránh trùng lịch" },
+  { icon: BarChart3, label: "Báo cáo doanh thu chi tiết theo ngày, tuần, tháng" },
+  { icon: Users, label: "Quản lý khách hàng, phân loại VIP tự động" },
+  { icon: Building2, label: "Quản lý nhiều chi nhánh, nhiều sân cùng lúc" },
+  { icon: CheckCircle2, label: "Truy cập mọi lúc, mọi nơi ngay trên trình duyệt" },
+] as const;
 
 export default function HomePage() {
   const router = useRouter();
@@ -318,26 +344,130 @@ export default function HomePage() {
           </section>
         )}
 
-        <section className="bg-green-600 px-4 py-14 text-white">
-          <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-4 text-center">
-            <h2 className="text-xl font-bold">
-              Phần mềm quản lý dành cho chủ sân
-            </h2>
-            <ul className="text-green-50">
-              <li>Quản lý lịch đặt sân realtime</li>
-              <li>Báo cáo doanh thu chi tiết</li>
-              <li>Quản lý khách hàng</li>
-            </ul>
-            <Link
-              href="/register/owner"
-              className={cn(
-                buttonVariants({
-                  className: "bg-white text-green-600 hover:bg-green-50",
-                }),
-              )}
-            >
-              Đăng ký chủ sân
-            </Link>
+        <section className="relative overflow-hidden bg-gradient-to-br from-green-950 via-green-900 to-emerald-950 px-4 py-16 text-white">
+          <div className="mx-auto grid w-full max-w-7xl gap-10 lg:grid-cols-2 lg:items-center">
+            <div>
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-green-800/60 px-3 py-1 text-xs font-semibold text-green-300">
+                <Monitor className="size-3.5" />
+                Giải pháp công nghệ
+              </span>
+              <h2 className="mt-4 text-3xl font-extrabold sm:text-4xl">
+                Phần Mềm Quản Lý
+                <br />
+                <span className="text-green-400">Sân Pickleball Chuyên Nghiệp</span>
+              </h2>
+              <p className="mt-4 max-w-lg text-white/70">
+                Nền tảng cung cấp{" "}
+                <span className="font-semibold text-white">
+                  phần mềm quản lý sân pickleball
+                </span>{" "}
+                toàn diện, giúp chủ sân quản lý lịch đặt sân, theo dõi doanh
+                thu và khách hàng, tất cả trên cùng một nơi.
+              </p>
+              <ul className="mt-6 space-y-3">
+                {MANAGEMENT_FEATURES.map(({ icon: Icon, label }) => (
+                  <li key={label} className="flex items-start gap-2.5">
+                    <Icon className="mt-0.5 size-4 shrink-0 text-green-400" />
+                    <span className="text-white/80">{label}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/register/owner"
+                  className={cn(
+                    buttonVariants({
+                      className: "gap-1.5 rounded-full bg-white text-green-700 hover:bg-green-50",
+                    }),
+                  )}
+                >
+                  <Rocket className="size-4" />
+                  Đăng ký chủ sân
+                </Link>
+                <a
+                  href="mailto:chungdv84@gmail.com"
+                  className={cn(
+                    buttonVariants({
+                      variant: "outline",
+                      className:
+                        "gap-1.5 rounded-full border-white/40 bg-transparent text-white hover:bg-white/10",
+                    }),
+                  )}
+                >
+                  <Mail className="size-4" />
+                  Liên hệ qua email
+                </a>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+              <div className="rounded-xl bg-slate-900 p-4 shadow-2xl">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex gap-1.5">
+                    <span className="size-2.5 rounded-full bg-red-400" />
+                    <span className="size-2.5 rounded-full bg-yellow-400" />
+                    <span className="size-2.5 rounded-full bg-green-400" />
+                  </div>
+                  <span className="flex items-center gap-1 text-xs text-white/40">
+                    <Globe className="size-3" />
+                    quản lý.pickleball
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-3">
+                  <div className="col-span-2 rounded-lg bg-white/5 p-3">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-white/70">
+                      <CalendarClock className="size-4 text-green-400" />
+                      Lịch đặt sân
+                    </div>
+                    <div className="mt-3 grid grid-cols-4 gap-1">
+                      {Array.from({ length: 16 }).map((_, i) => (
+                        <span
+                          key={i}
+                          className={cn(
+                            "h-3 rounded-sm",
+                            [2, 6, 9, 13].includes(i)
+                              ? "bg-green-500"
+                              : "bg-white/10",
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="col-span-3 space-y-2 rounded-lg bg-white/5 p-3">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-white/70">
+                      <BarChart3 className="size-4 text-green-400" />
+                      Doanh thu tuần
+                    </div>
+                    <div className="flex h-16 items-end gap-1.5">
+                      {[40, 65, 50, 80, 55, 90, 70].map((h, i) => (
+                        <span
+                          key={i}
+                          style={{ height: `${h}%` }}
+                          className="flex-1 rounded-sm bg-green-500/70"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="col-span-5 space-y-2 rounded-lg bg-white/5 p-3">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-white/70">
+                      <Users className="size-4 text-green-400" />
+                      Khách hàng gần đây
+                    </div>
+                    {["Nguyễn Văn A", "Trần Thị B", "Lê Văn C"].map((name) => (
+                      <div
+                        key={name}
+                        className="flex items-center justify-between rounded-md bg-white/5 px-2 py-1.5 text-xs text-white/60"
+                      >
+                        <span>{name}</span>
+                        <span className="rounded-full bg-green-500/20 px-1.5 py-0.5 text-[10px] font-medium text-green-300">
+                          VIP
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </main>
