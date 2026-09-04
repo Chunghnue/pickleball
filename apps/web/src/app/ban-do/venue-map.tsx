@@ -9,7 +9,7 @@ import { MapContainer, Marker, Popup, TileLayer, ZoomControl, useMap } from "rea
 import MarkerClusterGroup from "react-leaflet-cluster";
 import Link from "next/link";
 import { toast } from "sonner";
-import { LocateFixed, Maximize } from "lucide-react";
+import { Globe, LocateFixed, Map as MapIcon, Maximize, Satellite } from "lucide-react";
 import { GoogleMutantLayer, type GoogleLayerType } from "./google-mutant-layer";
 
 export interface VenueMapItem {
@@ -143,26 +143,32 @@ type LayerOption = "osm" | GoogleLayerType;
 function LayerSwitcher({ layer, onChange }: { layer: LayerOption; onChange: (layer: LayerOption) => void }) {
   if (!HAS_GOOGLE_MAPS_KEY) return null;
 
-  const options: { value: LayerOption; label: string }[] = [
-    { value: "roadmap", label: "Google" },
-    { value: "satellite", label: "Vệ tinh" },
-    { value: "osm", label: "OSM" },
+  const options: { value: LayerOption; label: string; icon: typeof MapIcon }[] = [
+    { value: "roadmap", label: "Google", icon: MapIcon },
+    { value: "satellite", label: "Vệ tinh", icon: Satellite },
+    { value: "osm", label: "OSM", icon: Globe },
   ];
 
   return (
-    <div className="absolute top-3 right-3 z-[1000] flex overflow-hidden rounded-lg bg-card shadow-md ring-1 ring-foreground/10">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={`px-2.5 py-1.5 text-xs font-medium ${
-            layer === option.value ? "bg-green-600 text-white" : "text-muted-foreground hover:bg-accent"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
+    <div className="absolute top-3 right-3 z-[1000] flex items-center gap-1 rounded-full bg-card p-1 shadow-md ring-1 ring-foreground/10">
+      {options.map((option) => {
+        const Icon = option.icon;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+              layer === option.value
+                ? "bg-green-600 text-white"
+                : "text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            <Icon className="size-3.5" />
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
