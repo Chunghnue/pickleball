@@ -6,7 +6,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, ILike, In, MoreThanOrEqual, Repository } from 'typeorm';
+import {
+  DataSource,
+  FindOptionsOrder,
+  FindOptionsWhere,
+  ILike,
+  In,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
 import { Venue, VenueStatus } from './entities/venue.entity';
@@ -35,6 +43,13 @@ export interface VenueWithCourtsCount extends Venue {
   courtsCount: number;
 }
 
+export interface SearchVenuesResult {
+  items: VenueWithCourtsCount[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface VenueWithMetrics extends Venue {
   courtsCount: number;
   bookingsThisMonth: number;
@@ -61,6 +76,21 @@ const DEFAULT_OPERATING_HOURS: OperatingHourView[] = [0, 1, 2, 3, 4, 5, 6].map(
 // "HH:mm:ss" strings, not "HH:mm" — normalize before returning to callers.
 function toHhMm(value: string | null): string | null {
   return value ? value.slice(0, 5) : null;
+}
+
+const SEARCH_DEFAULT_PAGE_SIZE = 20;
+const SEARCH_MAX_PAGE_SIZE = 100;
+
+function clampPage(raw?: string): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.floor(n);
+}
+
+function clampPageSize(raw?: string): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return SEARCH_DEFAULT_PAGE_SIZE;
+  return Math.min(SEARCH_MAX_PAGE_SIZE, Math.max(1, Math.floor(n)));
 }
 
 @Injectable()
@@ -396,7 +426,11 @@ export class VenuesService {
     query?: string,
     date?: string,
     time?: string,
-  ): Promise<VenueWithCourtsCount[]> {
+    city?: string,
+    sort?: string,
+    pageRaw?: string,
+    pageSizeRaw?: string,
+  ): Promise<SearchVenuesResult> {
     if ((date && !time) || (time && !date)) {
       throw new BadRequestException(
         'date và time phải được truyền cùng nhau',
@@ -416,35 +450,95 @@ export class VenuesService {
     if (time && !TIME_PATTERN.test(time)) {
       throw new BadRequestException('time phải theo định dạng HH:mm');
     }
-
-    const where = query
-      ? [
-          {
-            status: VenueStatus.ACTIVE,
-            isHidden: false,
-            name: ILike(`%${query}%`),
-          },
-          {
-            status: VenueStatus.ACTIVE,
-            isHidden: false,
-            address: ILike(`%${query}%`),
-          },
-          {
-            status: VenueStatus.ACTIVE,
-            isHidden: false,
-            city: ILike(`%${query}%`),
-          },
-        ]
-      : { status: VenueStatus.ACTIVE, isHidden: false };
-
-    const venues = await this.venuesRepository.find({
-      where,
-      order: { createdAt: 'DESC' },
-    });
-    if (venues.length === 0) {
-      return [];
+    if (sort && sort !== 'name' && sort !== 'courts' && sort !== 'city') {
+      throw new BadRequestException(
+        "sort phải là 'name', 'courts' hoặc 'city'",
+      );
     }
 
+    const page = clampPage(pageRaw);
+    const pageSize = clampPageSize(pageSizeRaw);
+
+    let availableVenueIds: string[] | undefined;
+    if (date && time) {
+      const candidates = await this.venuesRepository.find({
+        where: this.buildSearchWhere(query, city),
+        select: { id: true },
+      });
+      if (candidates.length === 0) {
+        return { items: [], total: 0, page, pageSize };
+      }
+      const candidateIds = candidates.map((venue) => venue.id);
+      const courts = await this.courtsRepository.find({
+        where: { venueId: In(candidateIds), status: CourtStatus.ACTIVE },
+      });
+      availableVenueIds = [
+        ...(await this.findVenueIdsWithAvailability(courts, date, time)),
+      ];
+      if (availableVenueIds.length === 0) {
+        return { items: [], total: 0, page, pageSize };
+      }
+    }
+
+    if (sort === 'courts') {
+      return this.searchPublicSortedByCourts(
+        query,
+        city,
+        availableVenueIds,
+        page,
+        pageSize,
+      );
+    }
+
+    const where = this.buildSearchWhere(query, city, availableVenueIds);
+    const total = await this.venuesRepository.count({ where });
+    if (total === 0) {
+      return { items: [], total: 0, page, pageSize };
+    }
+    const order: FindOptionsOrder<Venue> =
+      sort === 'name'
+        ? { name: 'ASC' }
+        : sort === 'city'
+          ? { city: 'ASC', name: 'ASC' }
+          : { createdAt: 'DESC' };
+    const venues = await this.venuesRepository.find({
+      where,
+      order,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+    const items = await this.attachCourtsCount(venues);
+    return { items, total, page, pageSize };
+  }
+
+  private buildSearchWhere(
+    query?: string,
+    city?: string,
+    venueIds?: string[],
+  ): FindOptionsWhere<Venue> | FindOptionsWhere<Venue>[] {
+    const common: FindOptionsWhere<Venue> = {
+      status: VenueStatus.ACTIVE,
+      isHidden: false,
+    };
+    if (city) common.city = city;
+    if (venueIds) common.id = In(venueIds);
+
+    if (!query) return common;
+
+    const branches: FindOptionsWhere<Venue>[] = [
+      { ...common, name: ILike(`%${query}%`) },
+      { ...common, address: ILike(`%${query}%`) },
+    ];
+    if (!city) {
+      branches.push({ ...common, city: ILike(`%${query}%`) });
+    }
+    return branches;
+  }
+
+  private async attachCourtsCount(
+    venues: Venue[],
+  ): Promise<VenueWithCourtsCount[]> {
+    if (venues.length === 0) return [];
     const courts = await this.courtsRepository.find({
       where: {
         venueId: In(venues.map((venue) => venue.id)),
@@ -458,22 +552,22 @@ export class VenuesService {
         (courtsCountByVenue.get(court.venueId) ?? 0) + 1,
       );
     }
-
-    const withCourtsCount = venues.map((venue) => ({
+    return venues.map((venue) => ({
       ...venue,
       courtsCount: courtsCountByVenue.get(venue.id) ?? 0,
     }));
+  }
 
-    if (!date || !time) {
-      return withCourtsCount;
-    }
-
-    const availableVenueIds = await this.findVenueIdsWithAvailability(
-      courts,
-      date,
-      time,
+  private async searchPublicSortedByCourts(
+    _query: string | undefined,
+    _city: string | undefined,
+    _availableVenueIds: string[] | undefined,
+    _page: number,
+    _pageSize: number,
+  ): Promise<SearchVenuesResult> {
+    throw new BadRequestException(
+      "sort phải là 'name', 'courts' hoặc 'city'",
     );
-    return withCourtsCount.filter((venue) => availableVenueIds.has(venue.id));
   }
 
   private async findVenueIdsWithAvailability(

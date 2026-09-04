@@ -178,8 +178,20 @@ export class VenuesController {
     @Query('query') query?: string,
     @Query('date') date?: string,
     @Query('time') time?: string,
+    @Query('city') city?: string,
+    @Query('sort') sort?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
-    return this.venuesService.searchPublic(query, date, time);
+    return this.venuesService.searchPublic(
+      query,
+      date,
+      time,
+      city,
+      sort,
+      page,
+      pageSize,
+    );
   }
 
   @Get('cities')

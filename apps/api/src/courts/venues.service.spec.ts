@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource, In } from 'typeorm';
+import { DataSource, ILike, In } from 'typeorm';
 import { VenuesService } from './venues.service';
 import { Venue, VenueStatus } from './entities/venue.entity';
 import { VenueImage } from './entities/venue-image.entity';
@@ -990,26 +990,35 @@ describe('VenuesService.listActiveCities', () => {
 });
 
 describe('VenuesService public reads', () => {
-  it('searchPublic without a query returns only active, non-hidden venues, newest first', async () => {
+  it('searchPublic without a query returns only active, non-hidden venues, newest first, wrapped in a page envelope', async () => {
     const { service, venuesRepo, courtsRepo } = await buildTestingModule();
-    venuesRepo.find.mockResolvedValue([{ id: 'venue-1' }]);
+    venuesRepo.count.mockResolvedValue(1);
+    venuesRepo.find.mockResolvedValue([{ id: 'venue-1', name: 'A' }]);
     courtsRepo.find.mockResolvedValue([]);
 
     const result = await service.searchPublic();
 
+    expect(venuesRepo.count).toHaveBeenCalledWith({
+      where: { status: VenueStatus.ACTIVE, isHidden: false },
+    });
     expect(venuesRepo.find).toHaveBeenCalledWith({
       where: { status: VenueStatus.ACTIVE, isHidden: false },
       order: { createdAt: 'DESC' },
+      skip: 0,
+      take: 20,
     });
-    expect(result).toEqual([{ id: 'venue-1', courtsCount: 0 }]);
+    expect(result).toEqual({
+      items: [{ id: 'venue-1', name: 'A', courtsCount: 0 }],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    });
   });
 
-  it('searchPublic enriches each venue with its count of active courts', async () => {
+  it('enriches each venue with its count of active courts', async () => {
     const { service, venuesRepo, courtsRepo } = await buildTestingModule();
-    venuesRepo.find.mockResolvedValue([
-      { id: 'venue-1' },
-      { id: 'venue-2' },
-    ]);
+    venuesRepo.count.mockResolvedValue(2);
+    venuesRepo.find.mockResolvedValue([{ id: 'venue-1' }, { id: 'venue-2' }]);
     courtsRepo.find.mockResolvedValue([
       { id: 'court-1', venueId: 'venue-1' },
       { id: 'court-2', venueId: 'venue-1' },
@@ -1021,20 +1030,136 @@ describe('VenuesService public reads', () => {
     expect(courtsRepo.find).toHaveBeenCalledWith({
       where: { venueId: In(['venue-1', 'venue-2']), status: CourtStatus.ACTIVE },
     });
-    expect(result).toEqual([
+    expect(result.items).toEqual([
       { id: 'venue-1', courtsCount: 2 },
       { id: 'venue-2', courtsCount: 1 },
     ]);
   });
 
-  it('searchPublic returns an empty array without querying courts when there are no venues', async () => {
+  it('returns an empty result without querying venues or courts when total is 0', async () => {
     const { service, venuesRepo, courtsRepo } = await buildTestingModule();
-    venuesRepo.find.mockResolvedValue([]);
+    venuesRepo.count.mockResolvedValue(0);
 
     const result = await service.searchPublic();
 
-    expect(result).toEqual([]);
+    expect(result).toEqual({ items: [], total: 0, page: 1, pageSize: 20 });
+    expect(venuesRepo.find).not.toHaveBeenCalled();
     expect(courtsRepo.find).not.toHaveBeenCalled();
+  });
+
+  it('with a keyword and no city, matches by name, address, or city (3 OR-branches)', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(0);
+
+    await service.searchPublic('Sport');
+
+    expect(venuesRepo.count).toHaveBeenCalledWith({
+      where: [
+        { status: VenueStatus.ACTIVE, isHidden: false, name: ILike('%Sport%') },
+        { status: VenueStatus.ACTIVE, isHidden: false, address: ILike('%Sport%') },
+        { status: VenueStatus.ACTIVE, isHidden: false, city: ILike('%Sport%') },
+      ],
+    });
+  });
+
+  it('filters by an exact city match', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(1);
+    venuesRepo.find.mockResolvedValue([{ id: 'venue-1', city: 'Hà Nội' }]);
+    courtsRepo.find.mockResolvedValue([]);
+
+    await service.searchPublic(undefined, undefined, undefined, 'Hà Nội');
+
+    expect(venuesRepo.count).toHaveBeenCalledWith({
+      where: { status: VenueStatus.ACTIVE, isHidden: false, city: 'Hà Nội' },
+    });
+  });
+
+  it('combines a keyword with an exact city filter using only the name/address OR-branches (2, not 3)', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(0);
+
+    await service.searchPublic('Sport', undefined, undefined, 'Hà Nội');
+
+    expect(venuesRepo.count).toHaveBeenCalledWith({
+      where: [
+        {
+          status: VenueStatus.ACTIVE,
+          isHidden: false,
+          city: 'Hà Nội',
+          name: ILike('%Sport%'),
+        },
+        {
+          status: VenueStatus.ACTIVE,
+          isHidden: false,
+          city: 'Hà Nội',
+          address: ILike('%Sport%'),
+        },
+      ],
+    });
+  });
+
+  it('sorts by name ascending when sort="name"', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(1);
+    venuesRepo.find.mockResolvedValue([{ id: 'venue-1' }]);
+    courtsRepo.find.mockResolvedValue([]);
+
+    await service.searchPublic(undefined, undefined, undefined, undefined, 'name');
+
+    expect(venuesRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({ order: { name: 'ASC' } }),
+    );
+  });
+
+  it('sorts by city then name ascending when sort="city"', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(1);
+    venuesRepo.find.mockResolvedValue([{ id: 'venue-1' }]);
+    courtsRepo.find.mockResolvedValue([]);
+
+    await service.searchPublic(undefined, undefined, undefined, undefined, 'city');
+
+    expect(venuesRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({ order: { city: 'ASC', name: 'ASC' } }),
+    );
+  });
+
+  it('throws for an invalid sort value', async () => {
+    const { service } = await buildTestingModule();
+    await expect(
+      service.searchPublic(undefined, undefined, undefined, undefined, 'invalid'),
+    ).rejects.toThrow("sort phải là 'name', 'courts' hoặc 'city'");
+  });
+
+  it('paginates with the given page/pageSize', async () => {
+    const { service, venuesRepo, courtsRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(30);
+    venuesRepo.find.mockResolvedValue([{ id: 'venue-6' }]);
+    courtsRepo.find.mockResolvedValue([]);
+
+    const result = await service.searchPublic(
+      undefined, undefined, undefined, undefined, undefined, '2', '5',
+    );
+
+    expect(venuesRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 5, take: 5 }),
+    );
+    expect(result.page).toBe(2);
+    expect(result.pageSize).toBe(5);
+    expect(result.total).toBe(30);
+  });
+
+  it('clamps an out-of-range page to 1 and an out-of-range pageSize to 100', async () => {
+    const { service, venuesRepo } = await buildTestingModule();
+    venuesRepo.count.mockResolvedValue(0);
+
+    const result = await service.searchPublic(
+      undefined, undefined, undefined, undefined, undefined, '0', '9999',
+    );
+
+    expect(result.page).toBe(1);
+    expect(result.pageSize).toBe(100);
   });
 
   it('searchPublic throws when only date is given without time', async () => {
@@ -1075,34 +1200,39 @@ describe('VenuesService public reads', () => {
   it('searchPublic with date+time only returns venues with a court free at that time', async () => {
     const { service, venuesRepo, courtsRepo, bookingSlotsRepo } =
       await buildTestingModule();
-    venuesRepo.find.mockResolvedValue([
-      { id: 'venue-free' },
-      { id: 'venue-booked' },
-      { id: 'venue-no-matching-grid' },
-    ]);
-    courtsRepo.find.mockResolvedValue([
-      {
-        id: 'court-free',
-        venueId: 'venue-free',
-        openTime: '06:00',
-        closeTime: '22:00',
-        slotDurationMinutes: 60,
-      },
-      {
-        id: 'court-booked',
-        venueId: 'venue-booked',
-        openTime: '06:00',
-        closeTime: '22:00',
-        slotDurationMinutes: 60,
-      },
-      {
-        id: 'court-odd-grid',
-        venueId: 'venue-no-matching-grid',
-        openTime: '06:00',
-        closeTime: '22:00',
-        slotDurationMinutes: 90,
-      },
-    ]);
+    venuesRepo.find
+      .mockResolvedValueOnce([
+        { id: 'venue-free' },
+        { id: 'venue-booked' },
+        { id: 'venue-no-matching-grid' },
+      ])
+      .mockResolvedValueOnce([{ id: 'venue-free', name: 'Free Venue' }]);
+    venuesRepo.count.mockResolvedValue(1);
+    courtsRepo.find
+      .mockResolvedValueOnce([
+        {
+          id: 'court-free',
+          venueId: 'venue-free',
+          openTime: '06:00',
+          closeTime: '22:00',
+          slotDurationMinutes: 60,
+        },
+        {
+          id: 'court-booked',
+          venueId: 'venue-booked',
+          openTime: '06:00',
+          closeTime: '22:00',
+          slotDurationMinutes: 60,
+        },
+        {
+          id: 'court-odd-grid',
+          venueId: 'venue-no-matching-grid',
+          openTime: '06:00',
+          closeTime: '22:00',
+          slotDurationMinutes: 90,
+        },
+      ])
+      .mockResolvedValueOnce([]);
     bookingSlotsRepo.find.mockResolvedValue([
       { courtId: 'court-booked', date: '2099-01-01', slotStart: '10:00' },
     ]);
@@ -1116,7 +1246,37 @@ describe('VenuesService public reads', () => {
         slotStart: '10:00',
       },
     });
-    expect(result.map((v) => v.id)).toEqual(['venue-free']);
+    expect(venuesRepo.count).toHaveBeenCalledWith({
+      where: {
+        status: VenueStatus.ACTIVE,
+        isHidden: false,
+        id: In(['venue-free']),
+      },
+    });
+    expect(result.items.map((v) => v.id)).toEqual(['venue-free']);
+  });
+
+  it('returns an empty result when date+time is given but no venue has a free slot', async () => {
+    const { service, venuesRepo, courtsRepo, bookingSlotsRepo } =
+      await buildTestingModule();
+    venuesRepo.find.mockResolvedValueOnce([{ id: 'venue-booked' }]);
+    courtsRepo.find.mockResolvedValueOnce([
+      {
+        id: 'court-booked',
+        venueId: 'venue-booked',
+        openTime: '06:00',
+        closeTime: '22:00',
+        slotDurationMinutes: 60,
+      },
+    ]);
+    bookingSlotsRepo.find.mockResolvedValue([
+      { courtId: 'court-booked', date: '2099-01-01', slotStart: '10:00' },
+    ]);
+
+    const result = await service.searchPublic(undefined, '2099-01-01', '10:00');
+
+    expect(result).toEqual({ items: [], total: 0, page: 1, pageSize: 20 });
+    expect(venuesRepo.count).not.toHaveBeenCalled();
   });
 
   it('findPublicById throws NotFoundException for an inactive, hidden, or missing venue', async () => {
