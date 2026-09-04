@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Building2, ImageOff, MapPin, Menu, Search, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { PublicHeader } from "@/components/public-header";
-import { PublicFooter } from "@/components/public-footer";
 import { cn } from "@/lib/utils";
 import type { VenueMapItem } from "./venue-map";
 
@@ -168,7 +167,6 @@ export default function BanDoPage() {
           </div>
         </div>
       </main>
-      <PublicFooter />
     </>
   );
 }
