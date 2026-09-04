@@ -3,7 +3,7 @@ import Link from "next/link";
 export function PublicFooter() {
   return (
     <footer className="border-t bg-muted/30 px-4 py-10 text-sm text-muted-foreground">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 sm:flex-row sm:justify-between">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 sm:flex-row sm:justify-between">
         <div>
           <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
             Pickleball
