@@ -32,7 +32,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
-import { computeHomeSummary, type PublicVenueSummary } from "@/lib/home-summary";
+import {
+  computeHomeSummary,
+  type PublicVenueSummary,
+  type CityCount,
+} from "@/lib/home-summary";
 
 const MANAGEMENT_FEATURES = [
   { icon: CalendarClock, label: "Quản lý lịch đặt sân real-time, tránh trùng lịch" },
@@ -67,16 +71,32 @@ const ILLUSTRATIVE_TESTIMONIALS = [
 export default function HomePage() {
   const router = useRouter();
   const [venues, setVenues] = useState<PublicVenueSummary[] | null>(null);
+  const [venueCount, setVenueCount] = useState(0);
+  const [cities, setCities] = useState<CityCount[]>([]);
   const [query, setQuery] = useState("");
   const [dateTime, setDateTime] = useState("");
 
   useEffect(() => {
-    fetch("/api/venues")
-      .then((res) => res.json())
-      .then((data) => setVenues(Array.isArray(data) ? data : []));
+    Promise.all([
+      fetch("/api/venues?pageSize=100").then((res) => res.json()),
+      fetch("/api/venues/cities").then((res) => res.json()),
+    ]).then(([venuesData, citiesData]) => {
+      setVenues(Array.isArray(venuesData.items) ? venuesData.items : []);
+      setVenueCount(
+        typeof venuesData.total === "number" ? venuesData.total : 0,
+      );
+      setCities(
+        Array.isArray(citiesData)
+          ? citiesData.map((c: { city: string; count: number }) => ({
+              name: c.city,
+              count: c.count,
+            }))
+          : [],
+      );
+    });
   }, []);
 
-  const summary = computeHomeSummary(venues ?? []);
+  const summary = computeHomeSummary(venues ?? [], venueCount, cities);
 
   function handleSearch() {
     const params = new URLSearchParams();
