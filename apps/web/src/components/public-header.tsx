@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LogOut, User } from "lucide-react";
+import { BookOpen, LogIn, LogOut, Map, Search, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,53 +31,62 @@ export function PublicHeader() {
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">
+          <Link href="/" className="text-xl font-bold text-green-600 dark:text-green-400">
             Pickleball
           </Link>
-          <Link
-            href="/venues"
-            className="text-sm font-medium text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400"
-          >
-            Tìm sân
-          </Link>
+          <nav className="flex items-center gap-5">
+            <Link
+              href="/venues"
+              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-green-600 dark:hover:text-green-400"
+            >
+              <Search className="size-4" />
+              Tìm sân
+            </Link>
+            <Link
+              href="/ban-do"
+              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-green-600 dark:hover:text-green-400"
+            >
+              <Map className="size-4" />
+              Bản đồ
+            </Link>
+            <Link
+              href="/blog"
+              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-green-600 dark:hover:text-green-400"
+            >
+              <BookOpen className="size-4" />
+              Blog
+            </Link>
+          </nav>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/register/owner"
-            className={buttonVariants({
-              variant: "outline",
-              size: "sm",
-              className:
-                "rounded-full border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-950/60",
-            })}
-          >
-            Đăng ký chủ sân
-          </Link>
+        <div className="flex items-center gap-4">
           {fullName === null ? (
             <>
               <Link
                 href="/login"
-                className={buttonVariants({
-                  variant: "ghost",
-                  size: "sm",
-                  className: "hover:text-blue-600 dark:hover:text-blue-400",
-                })}
+                className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-green-600 dark:hover:text-green-400"
               >
+                <LogIn className="size-4" />
                 Đăng nhập
               </Link>
               <Link
                 href="/register"
-                className={buttonVariants({
-                  size: "sm",
-                  className: "bg-blue-600 text-white hover:bg-blue-700",
-                })}
+                className="text-sm font-medium text-muted-foreground hover:text-green-600 dark:hover:text-green-400"
               >
                 Đăng ký
               </Link>
             </>
-          ) : (
+          ) : null}
+          <Link
+            href="/register/owner"
+            className={buttonVariants({
+              className: "gap-1.5 rounded-full bg-green-600 text-white hover:bg-green-700",
+            })}
+          >
+            Đăng ký chủ sân
+          </Link>
+          {fullName !== null ? (
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white outline-none hover:bg-blue-700 focus-visible:ring-3 focus-visible:ring-ring/50">
+              <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-full bg-green-600 text-sm font-medium text-white outline-none hover:bg-green-700 focus-visible:ring-3 focus-visible:ring-ring/50">
                 {initial}
               </DropdownMenuTrigger>
               <DropdownMenuContent>
@@ -99,7 +108,7 @@ export function PublicHeader() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
+          ) : null}
         </div>
       </div>
     </header>
