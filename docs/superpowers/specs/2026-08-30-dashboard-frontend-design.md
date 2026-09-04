@@ -24,7 +24,9 @@ GET /api/dashboard/summary -> GET /dashboard/summary
 
 ## 3. Phạm vi venue: luôn tổng hợp tất cả
 
-API hỗ trợ `?venueId=` để lọc theo 1 venue, nhưng `BranchSwitcher` hiện tại (`apps/web/src/components/branch-switcher.tsx`) chỉ giữ `selectedId` ở local state — không lưu vào URL/context/localStorage nào để trang khác đọc lại. Vì vậy Dashboard **không** wiring theo `BranchSwitcher`, luôn gọi API không kèm `venueId` (tổng hợp mọi venue của owner) — khớp với spec backend mục 8 đã loại "bộ chọn chi nhánh dạng UI" ra khỏi phạm vi, chờ module Chi nhánh riêng.
+~~API hỗ trợ `?venueId=` để lọc theo 1 venue, nhưng `BranchSwitcher` hiện tại... không lưu vào URL/context/localStorage nào để trang khác đọc lại. Vì vậy Dashboard không wiring theo `BranchSwitcher`...~~
+
+**Cập nhật 2026-09-04:** Đảo lại — module Chi nhánh (từ 2026-09-02) đã thay `BranchSwitcher` cục bộ bằng `useBranch()`/`BranchProvider` toàn cục (`apps/web/src/lib/branch-context.tsx`), dùng chung ở Bookings/Customers/Pricing/Revenue Reports. Dashboard được build **trước** khi wiring này tồn tại và chưa từng được cập nhật theo — đây là lỗi bỏ sót, không phải quyết định có chủ đích còn hiệu lực. Dashboard giờ **có** dùng `useBranch()` giống các trang khác: `venueId` gắn vào query khi `selectedVenueId !== ALL_BRANCHES_ID`, refetch khi đổi chi nhánh. `apps/web/src/app/api/dashboard/summary/route.ts` cũng sửa để forward query string (trước đây bỏ qua hoàn toàn, nên dù trang có gửi `venueId` thì route proxy vẫn không chuyển tiếp).
 
 ## 4. Cấu trúc file
 
@@ -96,7 +98,7 @@ Codebase hiện tại không có test cho page/component (`*.test.tsx`), chỉ t
 
 ## 8. Ngoài phạm vi
 
-- Bộ chọn chi nhánh (venue switcher) cho Dashboard — chờ `BranchSwitcher` được wiring thật (module Chi nhánh riêng), xem mục 3.
+- ~~Bộ chọn chi nhánh (venue switcher) cho Dashboard~~ — **đã wiring, xem mục 3 (cập nhật 2026-09-04)**.
 - Component UI kit `Table` mới — dùng card-list cho danh sách đặt lịch, đúng pattern đã có.
 - Tuỳ chỉnh khoảng thời gian biểu đồ doanh thu (7 ngày/90 ngày/tuỳ chọn) — khớp phạm vi cố định 30 ngày của backend.
 - State lỗi riêng biệt với state loading (ví dụ banner lỗi khi fetch thất bại ngoài 401) — khớp mức độ đơn giản hiện có ở `/admin/stats`.

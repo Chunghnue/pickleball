@@ -14,6 +14,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getGreeting } from "@/lib/greeting";
+import { ALL_BRANCHES_ID, useBranch } from "@/lib/branch-context";
 import type { BookingStatus } from "@/app/owner/bookings/types";
 import { StatCards } from "./stat-cards";
 import { RevenueChart } from "./revenue-chart";
@@ -75,11 +76,14 @@ const QUICK_ACTIONS = [
 
 export default function OwnerDashboardPage() {
   const router = useRouter();
+  const { selectedVenueId } = useBranch();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
 
   useEffect(() => {
     async function load() {
-      const response = await fetch("/api/dashboard/summary");
+      const qs =
+        selectedVenueId === ALL_BRANCHES_ID ? "" : `?venueId=${selectedVenueId}`;
+      const response = await fetch(`/api/dashboard/summary${qs}`);
       if (response.status === 401) {
         router.push("/login?returnTo=%2Fowner%2Fdashboard");
         return;
@@ -88,7 +92,7 @@ export default function OwnerDashboardPage() {
       setSummary(data);
     }
     load();
-  }, [router]);
+  }, [router, selectedVenueId]);
 
   return (
     <main className="flex w-full flex-1 flex-col gap-6 bg-muted/30 p-8">
