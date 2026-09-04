@@ -13,6 +13,22 @@ Spec này viết trước khi module Staff Accounts (`OwnerScopeGuard`/tier `ope
 - **Không có cột `payments.amount`** (bảng `payments` chỉ có `status`/`paidAt`/`note`/`paidBy`/`refundedAt`/`refundedBy`). Số tiền của một giao dịch luôn là `bookings.total_price` của booking gắn với payment đó (join `payment.booking_id = booking.id`) — đúng cách Dashboard (`dashboard.service.ts`) và Customers (`customers.service.ts`) đã làm. Mọi chỗ ghi "`payments.amount`" bên dưới đọc là "`bookings.total_price` của booking tương ứng payment đó".
 - **Quyền truy cập dùng tier `operational`** (`@OwnerScope('operational')`), không phải "role owner → 403" thuần tuý — khớp với quyền của Dashboard: owner và mọi nhân viên (`manager`/`cashier`/`staff`) đều xem được. `EffectiveOwnerId` (không phải `userId` thô) dùng để scope venue, đúng pattern `DashboardController`.
 
+## 0.1. Cập nhật 2026-09-04 — thêm phân trang `transactions`
+
+`transactions` ở §3 giờ **có phân trang** — đảo lại quyết định "MVP trả toàn bộ" ở §6, theo yêu cầu thực tế (bảng dài gây khó dùng). `GET /reports/revenue` nhận thêm 2 query param tuỳ chọn `page`/`pageSize` (string, parse/clamp phía service — đúng pattern `ListCustomersDto`/`CustomersService`: `page` mặc định `1`, `pageSize` mặc định `20`, tối đa `100`). Response thêm 3 trường ngang hàng `transactions`:
+
+```jsonc
+{
+  // ... các trường khác giữ nguyên
+  "transactions": [ /* chỉ N mục của trang hiện tại, vẫn sắp giảm dần theo paidAt */ ],
+  "transactionsPage": 1,
+  "transactionsPageSize": 20,
+  "transactionsTotal": 42   // = currentPeriod.transactionCount (cùng 1 định nghĩa, không query COUNT riêng)
+}
+```
+
+`GET /reports/revenue/export` **không đổi** — vẫn xuất toàn bộ giao dịch trong kỳ (không phân trang), vì mục đích file CSV là lấy trọn dữ liệu.
+
 ## 1. Mục tiêu
 
 Thống kê tài chính chi tiết theo khoảng thời gian tuỳ chọn: doanh thu kỳ này so với kỳ trước, biểu đồ doanh thu theo ngày, danh sách từng giao dịch, và xuất báo cáo ra file.
@@ -94,7 +110,7 @@ Trả về file CSV (`Content-Type: text/csv`, header `Content-Disposition: atta
 
 - Xuất PDF/Excel có định dạng — chỉ CSV thô ở MVP.
 - Giới hạn độ dài tối đa của khoảng `[from, to]` — chưa cần vì quy mô dữ liệu MVP còn nhỏ; cân nhắc lại nếu ảnh hưởng hiệu năng.
-- Phân trang danh sách giao dịch — MVP trả toàn bộ, giống cách các danh sách khác trong hệ thống hiện chưa phân trang.
+- ~~Phân trang danh sách giao dịch~~ — **đã làm, xem §0.1** (endpoint JSON có phân trang; endpoint export CSV vẫn trả toàn bộ, có chủ đích).
 - Lưu snapshot báo cáo lịch sử (báo cáo một kỳ đã qua sẽ đổi nếu có payment bị refund sau đó — xem giới hạn ở §2).
 - Bộ lọc theo phương thức thanh toán — hệ thống chỉ có xác nhận thủ công (paid/unpaid/refunded), không có khái niệm "phương thức" (tiền mặt/chuyển khoản) trong schema hiện tại.
 - Frontend (spec riêng, sau khi spec API này được duyệt).

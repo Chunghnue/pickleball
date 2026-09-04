@@ -29,6 +29,14 @@ Sau khi trang đã build xong theo spec gốc ở trên, đối chiếu lại v�
 - **Header bảng giao dịch đổi cách đếm**: "Danh sách giao dịch" (bỏ số trong ngoặc) + "Tổng: N giao dịch" ở góc phải cùng hàng, thay vì "Danh sách giao dịch (N)" gộp một chỗ.
 - **Cột "Thanh toán"/"Trạng thái" tách lại làm 2** (đảo quyết định ở §2) — cả hai cùng hiển thị badge xanh lá "Đã thanh toán" vì không có dữ liệu phương thức riêng biệt.
 
+### 2.2. Cập nhật 2026-09-04 — thêm phân trang bảng giao dịch
+
+Đảo quyết định "không phân trang" ở §7, theo backend spec §0.1 (API giờ nhận `page`/`pageSize`, trả thêm `transactionsPage`/`transactionsPageSize`/`transactionsTotal`). Frontend áp dụng đúng pattern đã có ở `customer-table.tsx`:
+
+- `page.tsx` thêm state `page` (mặc định `1`), reset về `1` khi `appliedRange` hoặc venue đổi (giống `useEffect(() => setPage(1), [tier, debouncedSearch, selectedVenueId])` của Customers).
+- `buildRevenueQuery` nhận thêm `page`/`pageSize` tuỳ chọn — chỉ gắn khi gọi fetch chính; **không gắn cho `exportHref`** (CSV vẫn xuất toàn bộ, đúng backend spec §0.1).
+- `revenue-transactions-table.tsx` thêm footer phân trang y hệt `customer-table.tsx`: "Hiển thị X–Y / total" + nút Trước/Sau (disable ở biên), chỉ hiện khi `total > pageSize`. Dòng "Tổng: N giao dịch" ở header đổi sang đọc từ `transactionsTotal` (tổng toàn kỳ) thay vì `transactions.length` (chỉ trang hiện tại).
+
 ## 3. Kiến trúc trang (`apps/web/src/app/owner/revenue/`)
 
 Trang client component (`"use client"`), fetch qua route proxy `/api/*` (`fetchApi` → `toNextResponse`, cookie auth gắn phía server) — theo đúng mẫu `apps/web/src/app/api/dashboard/summary/route.ts`. Không gọi thẳng backend từ client.
@@ -145,7 +153,7 @@ State: `appliedRange: {from, to}` (khởi tạo bằng `defaultDateRange()`), `d
 ## 7. Ngoài phạm vi
 
 - Xuất PDF/Excel định dạng đẹp — chỉ CSV thô, đúng backend spec §6.
-- Phân trang bảng giao dịch — backend trả toàn bộ ở MVP.
+- ~~Phân trang bảng giao dịch~~ — **đã làm, xem §2.2**.
 - Bộ lọc theo phương thức thanh toán — schema hiện tại không có khái niệm này (backend spec §6).
 - Lưu/so sánh nhiều kỳ cùng lúc (chỉ kỳ hiện tại vs kỳ liền trước, theo đúng response backend).
 - Biểu đồ tương tác nâng cao (zoom, export ảnh biểu đồ).
