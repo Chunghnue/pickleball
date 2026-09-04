@@ -6,7 +6,7 @@ import { toNextResponse } from '@/lib/proxy-response';
 
 export async function GET(request: NextRequest) {
   const params = new URLSearchParams();
-  for (const key of ['query', 'date', 'time']) {
+  for (const key of ['query', 'date', 'time', 'city', 'sort', 'page', 'pageSize']) {
     const value = request.nextUrl.searchParams.get(key);
     if (value) params.set(key, value);
   }
