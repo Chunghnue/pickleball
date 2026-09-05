@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Clock, LayoutGrid, MapPin, Users } from "lucide-react";
+import { Clock, LayoutGrid, Mail, MapPin, Phone, User, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PublicHeader } from "@/components/public-header";
@@ -408,41 +408,81 @@ function DatSanPageContent() {
       </div>
 
       <div className={CARD_CLASS}>
-        <h2 className="font-semibold">Thông tin liên hệ</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-green-600 text-xs font-bold text-white">
+            3
+          </span>
+          <h2 className="font-bold">Thông tin liên hệ</h2>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="contact-name">Họ tên *</Label>
-            <Input
-              id="contact-name"
-              value={contactName}
-              onChange={(event) => setContactName(event.target.value)}
-              required
-            />
+            <Label
+              htmlFor="contact-name"
+              className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              Họ tên *
+            </Label>
+            <div className="relative mt-1.5">
+              <User className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="contact-name"
+                value={contactName}
+                onChange={(event) => setContactName(event.target.value)}
+                required
+                className="h-11 rounded-xl border-gray-200 bg-gray-50 pl-9 dark:border-neutral-700 dark:bg-neutral-800/50"
+              />
+            </div>
           </div>
           <div>
-            <Label htmlFor="contact-phone">Số điện thoại *</Label>
-            <Input
-              id="contact-phone"
-              value={contactPhone}
-              onChange={(event) => setContactPhone(event.target.value)}
-              required
-            />
+            <Label
+              htmlFor="contact-phone"
+              className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              Số điện thoại *
+            </Label>
+            <div className="relative mt-1.5">
+              <Phone className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="contact-phone"
+                value={contactPhone}
+                onChange={(event) => setContactPhone(event.target.value)}
+                required
+                className="h-11 rounded-xl border-gray-200 bg-gray-50 pl-9 dark:border-neutral-700 dark:bg-neutral-800/50"
+              />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="contact-email">Email (tuỳ chọn)</Label>
-            <Input
-              id="contact-email"
-              type="email"
-              value={contactEmail}
-              onChange={(event) => setContactEmail(event.target.value)}
-            />
+          <div className="sm:col-span-2">
+            <Label
+              htmlFor="contact-email"
+              className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              Email
+            </Label>
+            <div className="relative mt-1.5">
+              <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="contact-email"
+                type="email"
+                value={contactEmail}
+                onChange={(event) => setContactEmail(event.target.value)}
+                className="h-11 rounded-xl border-gray-200 bg-gray-50 pl-9 dark:border-neutral-700 dark:bg-neutral-800/50"
+              />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="contact-note">Ghi chú (tuỳ chọn)</Label>
-            <Input
+          <div className="sm:col-span-2">
+            <Label
+              htmlFor="contact-note"
+              className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              Ghi chú
+            </Label>
+            <textarea
               id="contact-note"
               value={note}
               onChange={(event) => setNote(event.target.value)}
+              placeholder="Yêu cầu đặc biệt..."
+              rows={3}
+              className="mt-1.5 w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:border-neutral-700 dark:bg-neutral-800/50"
             />
           </div>
         </div>
