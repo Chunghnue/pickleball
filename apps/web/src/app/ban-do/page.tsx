@@ -109,7 +109,7 @@ function BanDoPageContent() {
                         <span className="text-xs text-muted-foreground">{venue.courtsCount} sân</span>
                         <div className="mt-1 flex items-center gap-1.5">
                           <Link
-                            href={`/venues/${venue.id}`}
+                            href={`/dat-san?venueId=${venue.id}`}
                             className={cn(
                               buttonVariants({ size: "sm" }),
                               "h-7 flex-1 rounded-full bg-green-600 px-3 text-xs text-white hover:bg-green-700",
