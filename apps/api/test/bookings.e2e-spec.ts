@@ -3,8 +3,17 @@ import { JwtService } from '@nestjs/jwt';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
-import { StaffRole, User, UserRole, UserStatus } from '../src/users/entities/user.entity';
+import {
+  createTestApp,
+  clearDatabase,
+  mockMailService,
+} from './utils/test-app';
+import {
+  StaffRole,
+  User,
+  UserRole,
+  UserStatus,
+} from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../src/courts/entities/court.entity';
 import { Booking } from '../src/bookings/entities/booking.entity';
@@ -50,6 +59,35 @@ describe('Bookings (e2e)', () => {
       userId: user.id,
       token: loginResponse.body.accessToken as string,
     };
+  }
+
+  // Signs a JWT directly instead of going through /auth/login — that endpoint
+  // is throttled to 10 req/60s and this file's other tests already use the
+  // full budget (see the cashier test below for the original precedent).
+  async function createActiveUserWithToken(
+    email: string,
+    role: UserRole,
+  ): Promise<{ userId: string; token: string }> {
+    const passwordHash = await bcrypt.hash('password123', 10);
+    const repo = dataSource.getRepository(User);
+    const user = await repo.save(
+      repo.create({
+        email,
+        passwordHash,
+        fullName: 'Test User',
+        role,
+        status: UserStatus.ACTIVE,
+        emailVerified: true,
+      }),
+    );
+    const jwtService = app.get(JwtService);
+    const token = await jwtService.signAsync({
+      sub: user.id,
+      role,
+      ownerId: null,
+      staffRole: null,
+    });
+    return { userId: user.id, token };
   }
 
   async function createActiveVenueAndCourt(
@@ -101,6 +139,8 @@ describe('Bookings (e2e)', () => {
         date: '2099-01-01',
         startTime: '08:00',
         endTime: '09:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       })
       .expect(201);
 
@@ -167,6 +207,8 @@ describe('Bookings (e2e)', () => {
           date: '2099-01-02',
           startTime: '08:00',
           endTime: '09:00',
+          contactName: 'Nguyễn Văn A',
+          contactPhone: '0900000000',
         }),
       request(app.getHttpServer())
         .post('/bookings')
@@ -176,6 +218,8 @@ describe('Bookings (e2e)', () => {
           date: '2099-01-02',
           startTime: '08:00',
           endTime: '09:00',
+          contactName: 'Nguyễn Văn B',
+          contactPhone: '0900000001',
         }),
     ]);
 
@@ -205,6 +249,8 @@ describe('Bookings (e2e)', () => {
         date: '2099-01-03',
         startTime: '08:00',
         endTime: '09:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       })
       .expect(201);
     const bookingId = createResponse.body.id;
@@ -263,6 +309,8 @@ describe('Bookings (e2e)', () => {
         date: '2099-01-04',
         startTime: '08:00',
         endTime: '09:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       })
       .expect(201);
 
@@ -276,7 +324,10 @@ describe('Bookings (e2e)', () => {
   });
 
   it('lets a cashier staff create and cancel an owner-facing booking (operational tier)', async () => {
-    const owner = await createActiveUserAndLogin('bookingsowner-staff@test.com', UserRole.OWNER);
+    const owner = await createActiveUserAndLogin(
+      'bookingsowner-staff@test.com',
+      UserRole.OWNER,
+    );
     const { venueId, courtId } = await createActiveVenueAndCourt(owner.userId);
     const passwordHash = await bcrypt.hash('password123', 10);
     const usersRepo = dataSource.getRepository(User);
@@ -321,5 +372,121 @@ describe('Bookings (e2e)', () => {
       .post(`/venues/mine/${venueId}/bookings/${createResponse.body.id}/cancel`)
       .set('Authorization', `Bearer ${cashierToken}`)
       .expect(201);
+  });
+
+  it('lets a guest without an account book a slot using contact info, and sends a confirmation email when provided', async () => {
+    const owner = await createActiveUserWithToken(
+      'owner5@test.com',
+      UserRole.OWNER,
+    );
+    const { venueId, courtId } = await createActiveVenueAndCourt(owner.userId);
+
+    const createResponse = await request(app.getHttpServer())
+      .post('/bookings')
+      .send({
+        courtId,
+        date: '2099-05-01',
+        startTime: '08:00',
+        endTime: '09:00',
+        contactName: 'Khách vãng lai',
+        contactPhone: '0911111111',
+        contactEmail: 'guest@test.com',
+      })
+      .expect(201);
+
+    expect(createResponse.body).toMatchObject({
+      courtId,
+      status: 'confirmed',
+      customerId: null,
+      contactName: 'Khách vãng lai',
+      contactPhone: '0911111111',
+    });
+    expect(mockMailService.send).toHaveBeenCalledWith(
+      'guest@test.com',
+      'Xác nhận đặt sân',
+      expect.stringContaining('Sân 1'),
+    );
+
+    const ownerBookings = await request(app.getHttpServer())
+      .get(`/venues/mine/${venueId}/bookings`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    expect(ownerBookings.body[0]).toMatchObject({
+      customerName: 'Khách vãng lai',
+      customerPhone: '0911111111',
+    });
+  });
+
+  it('does not send a guest confirmation email when contactEmail is omitted', async () => {
+    const owner = await createActiveUserWithToken(
+      'owner6@test.com',
+      UserRole.OWNER,
+    );
+    const { courtId } = await createActiveVenueAndCourt(owner.userId);
+
+    await request(app.getHttpServer())
+      .post('/bookings')
+      .send({
+        courtId,
+        date: '2099-05-02',
+        startTime: '08:00',
+        endTime: '09:00',
+        contactName: 'Khách vãng lai 2',
+        contactPhone: '0911111112',
+      })
+      .expect(201);
+
+    expect(mockMailService.send).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'Xác nhận đặt sân',
+      expect.anything(),
+    );
+    expect(mockMailService.send).toHaveBeenCalledWith(
+      'owner6@test.com',
+      'Có booking mới',
+      expect.any(String),
+    );
+  });
+
+  it('lets a logged-in customer override the display contact info while keeping the booking linked to their account', async () => {
+    const owner = await createActiveUserWithToken(
+      'owner7@test.com',
+      UserRole.OWNER,
+    );
+    const { venueId, courtId } = await createActiveVenueAndCourt(owner.userId);
+    const customer = await createActiveUserWithToken(
+      'customer7@test.com',
+      UserRole.CUSTOMER,
+    );
+
+    const createResponse = await request(app.getHttpServer())
+      .post('/bookings')
+      .set('Authorization', `Bearer ${customer.token}`)
+      .send({
+        courtId,
+        date: '2099-05-03',
+        startTime: '08:00',
+        endTime: '09:00',
+        contactName: 'Đặt hộ bạn',
+        contactPhone: '0911111113',
+      })
+      .expect(201);
+
+    const mine = await request(app.getHttpServer())
+      .get('/bookings/mine')
+      .set('Authorization', `Bearer ${customer.token}`)
+      .expect(200);
+    expect(mine.body.map((b: { id: string }) => b.id)).toContain(
+      createResponse.body.id,
+    );
+
+    const ownerBookings = await request(app.getHttpServer())
+      .get(`/venues/mine/${venueId}/bookings`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    expect(ownerBookings.body[0]).toMatchObject({
+      customerName: 'Đặt hộ bạn',
+      customerPhone: '0911111113',
+    });
   });
 });

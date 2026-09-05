@@ -2,8 +2,17 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
-import { StaffRole, User, UserRole, UserStatus } from '../src/users/entities/user.entity';
+import {
+  createTestApp,
+  clearDatabase,
+  mockMailService,
+} from './utils/test-app';
+import {
+  StaffRole,
+  User,
+  UserRole,
+  UserStatus,
+} from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../src/courts/entities/court.entity';
 
@@ -98,6 +107,8 @@ describe('Payments (e2e)', () => {
         date: '2099-02-01',
         startTime: '08:00',
         endTime: '09:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       })
       .expect(201);
     const bookingId = createResponse.body.id;
@@ -135,9 +146,7 @@ describe('Payments (e2e)', () => {
     expect(mineAfterPaid.body[0]).toMatchObject({ paymentStatus: 'paid' });
 
     await request(app.getHttpServer())
-      .post(
-        `/venues/mine/${venueId}/bookings/${bookingId}/payment/mark-paid`,
-      )
+      .post(`/venues/mine/${venueId}/bookings/${bookingId}/payment/mark-paid`)
       .set('Authorization', `Bearer ${owner.token}`)
       .send({})
       .expect(400);
@@ -165,7 +174,7 @@ describe('Payments (e2e)', () => {
     });
   });
 
-  it('rejects mark-paid/mark-refunded for a booking on another owner\'s venue', async () => {
+  it("rejects mark-paid/mark-refunded for a booking on another owner's venue", async () => {
     const owner = await createActiveUserAndLogin(
       'payowner2@test.com',
       UserRole.OWNER,
@@ -191,6 +200,8 @@ describe('Payments (e2e)', () => {
         date: '2099-02-02',
         startTime: '08:00',
         endTime: '09:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       })
       .expect(201);
 
@@ -204,7 +215,10 @@ describe('Payments (e2e)', () => {
   });
 
   it('lets a cashier staff mark a booking paid (operational tier)', async () => {
-    const owner = await createActiveUserAndLogin('payowner-staff@test.com', UserRole.OWNER);
+    const owner = await createActiveUserAndLogin(
+      'payowner-staff@test.com',
+      UserRole.OWNER,
+    );
     const { venueId, courtId } = await createActiveVenueAndCourt(owner.userId);
     const passwordHash = await bcrypt.hash('password123', 10);
     const usersRepo = dataSource.getRepository(User);
@@ -226,15 +240,27 @@ describe('Payments (e2e)', () => {
       .send({ identifier: '0911000009', password: 'password123' });
     const cashierToken = cashierLogin.body.accessToken as string;
 
-    const customer = await createActiveUserAndLogin('paycustomer-staff@test.com', UserRole.CUSTOMER);
+    const customer = await createActiveUserAndLogin(
+      'paycustomer-staff@test.com',
+      UserRole.CUSTOMER,
+    );
     const bookingResponse = await request(app.getHttpServer())
       .post('/bookings')
       .set('Authorization', `Bearer ${customer.token}`)
-      .send({ courtId, date: '2099-04-01', startTime: '08:00', endTime: '09:00' })
+      .send({
+        courtId,
+        date: '2099-04-01',
+        startTime: '08:00',
+        endTime: '09:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
+      })
       .expect(201);
 
     await request(app.getHttpServer())
-      .post(`/venues/mine/${venueId}/bookings/${bookingResponse.body.id}/payment/mark-paid`)
+      .post(
+        `/venues/mine/${venueId}/bookings/${bookingResponse.body.id}/payment/mark-paid`,
+      )
       .set('Authorization', `Bearer ${cashierToken}`)
       .send({ note: 'Tiền mặt' })
       .expect(201);

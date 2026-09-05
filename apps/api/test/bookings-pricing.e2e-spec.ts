@@ -99,6 +99,8 @@ describe('Booking price uses pricing rules (e2e)', () => {
         date: '2099-01-01',
         startTime: '18:00',
         endTime: '19:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       })
       .expect(201);
 
