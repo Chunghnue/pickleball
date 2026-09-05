@@ -229,7 +229,8 @@ function VenueInfoCard({ venue }: { venue: PublicVenueDetail }) {
   return (
     <div className={CARD_CLASS}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700 dark:bg-green-950 dark:text-green-400">
+        <span className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700 dark:bg-green-950 dark:text-green-400">
+          <span className="size-1.5 shrink-0 rounded-full bg-pink-500" />
           Pickleball
         </span>
         <span
@@ -302,7 +303,7 @@ function VenueInfoCard({ venue }: { venue: PublicVenueDetail }) {
               {vip ? (
                 <Crown className="size-3.5 text-amber-600 dark:text-amber-400" />
               ) : (
-                <MapPin className="size-3.5 text-green-600" />
+                <MapPin className="size-3.5 text-pink-500" />
               )}
               {court.name}
               {court.capacity != null && (
