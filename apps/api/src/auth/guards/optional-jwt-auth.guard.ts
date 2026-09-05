@@ -4,7 +4,10 @@ import { AuthenticatedUser } from '../decorators/current-user.decorator';
 
 @Injectable()
 export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
-  handleRequest(err: unknown, user: unknown): AuthenticatedUser | null {
-    return (user as AuthenticatedUser) || null;
+  handleRequest<TUser = AuthenticatedUser | null>(
+    err: unknown,
+    user: unknown,
+  ): TUser {
+    return ((user as AuthenticatedUser) || null) as TUser;
   }
 }
