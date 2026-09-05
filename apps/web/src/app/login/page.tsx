@@ -14,7 +14,7 @@ import { loginSchema, type LoginInput } from "@/lib/schemas";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 
 const ROLE_HOME: Record<string, string> = {
-  customer: "/me",
+  customer: "/tai-khoan/ho-so",
   // Staff accounts (manager/cashier/staff) share the owner's /owner/*
   // section — there's no separate staff area.
   staff: "/owner/dashboard",

@@ -32,7 +32,7 @@ export default function ProfilePage() {
     fetch("/api/users/me")
       .then(async (res) => {
         if (res.status === 401) {
-          router.push("/login?returnTo=%2Fme");
+          router.push("/login?returnTo=%2Ftai-khoan%2Fho-so");
           return null;
         }
         return (await res.json()) as Profile;
@@ -132,7 +132,7 @@ export default function ProfilePage() {
             </Button>
           </form>
           <Link
-            href="/me/bookings"
+            href="/tai-khoan/lich-su"
             className={`${buttonVariants({ variant: "outline" })} mt-4 w-full`}
           >
             Booking của tôi

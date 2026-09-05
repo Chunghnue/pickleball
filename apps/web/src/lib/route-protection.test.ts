@@ -17,7 +17,9 @@ describe('resolveRedirect', () => {
   });
 
   it('redirects to /login when a protected route has no token', () => {
-    expect(resolveRedirect('/me', undefined)).toBe('/login?returnTo=%2Fme');
+    expect(resolveRedirect('/tai-khoan/ho-so', undefined)).toBe(
+      '/login?returnTo=%2Ftai-khoan%2Fho-so',
+    );
   });
 
   it('lets a matching role through', () => {
@@ -25,7 +27,9 @@ describe('resolveRedirect', () => {
   });
 
   it('redirects a mismatched role to their own home', () => {
-    expect(resolveRedirect('/admin/approvals', makeToken('customer'))).toBe('/me');
+    expect(resolveRedirect('/admin/approvals', makeToken('customer'))).toBe(
+      '/tai-khoan/ho-so',
+    );
   });
 
   it('redirects an owner to /owner/dashboard when they hit a mismatched protected route', () => {
@@ -33,7 +37,9 @@ describe('resolveRedirect', () => {
   });
 
   it('redirects to /login when the token cannot be decoded', () => {
-    expect(resolveRedirect('/me', 'not-a-jwt')).toBe('/login?returnTo=%2Fme');
+    expect(resolveRedirect('/tai-khoan/ho-so', 'not-a-jwt')).toBe(
+      '/login?returnTo=%2Ftai-khoan%2Fho-so',
+    );
   });
 
   it('lets a staff account (manager/cashier/staff) through on /owner/*', () => {
@@ -43,6 +49,8 @@ describe('resolveRedirect', () => {
 
   it('redirects a staff account to /owner/dashboard when they hit a mismatched protected route', () => {
     expect(resolveRedirect('/admin/approvals', makeToken('staff'))).toBe('/owner/dashboard');
-    expect(resolveRedirect('/me', makeToken('staff'))).toBe('/owner/dashboard');
+    expect(resolveRedirect('/tai-khoan/ho-so', makeToken('staff'))).toBe(
+      '/owner/dashboard',
+    );
   });
 });

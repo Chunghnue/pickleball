@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, LandPlot, LogIn, LogOut, Map, Search, User } from "lucide-react";
+import { BookOpen, History, LandPlot, LogIn, LogOut, Map, Search, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,8 +96,16 @@ export function PublicHeader() {
               <DropdownMenuContent>
                 <DropdownMenuItem
                   render={
-                    <Link href="/me/bookings">
+                    <Link href="/tai-khoan/ho-so">
                       <User className="size-4" />
+                      Hồ sơ
+                    </Link>
+                  }
+                />
+                <DropdownMenuItem
+                  render={
+                    <Link href="/tai-khoan/lich-su">
+                      <History className="size-4" />
                       Lịch sử đặt sân
                     </Link>
                   }

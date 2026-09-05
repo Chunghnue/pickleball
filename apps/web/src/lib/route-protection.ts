@@ -3,7 +3,7 @@ import { decodeJwtPayload } from './jwt';
 export type Role = 'customer' | 'owner' | 'admin' | 'staff';
 
 const ROLE_HOME: Record<Role, string> = {
-  customer: '/me',
+  customer: '/tai-khoan/ho-so',
   // Staff accounts (manager/cashier/staff) operate inside the same /owner/*
   // section as the owner — there's no separate /staff section.
   staff: '/owner/dashboard',
@@ -12,7 +12,7 @@ const ROLE_HOME: Record<Role, string> = {
 };
 
 const PROTECTED_PREFIXES: { prefix: string; roles: Role[] }[] = [
-  { prefix: '/me', roles: ['customer'] },
+  { prefix: '/tai-khoan', roles: ['customer'] },
   { prefix: '/owner', roles: ['owner', 'staff'] },
   { prefix: '/admin', roles: ['admin'] },
 ];

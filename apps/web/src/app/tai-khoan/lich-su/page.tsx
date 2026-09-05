@@ -44,7 +44,7 @@ export default function MyBookingsPage() {
     fetch("/api/bookings/mine")
       .then(async (res) => {
         if (res.status === 401) {
-          router.push("/login?returnTo=%2Fme%2Fbookings");
+          router.push("/login?returnTo=%2Ftai-khoan%2Flich-su");
           return null;
         }
         return (await res.json()) as Booking[];

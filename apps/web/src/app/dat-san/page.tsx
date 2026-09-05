@@ -314,7 +314,7 @@ function DatSanPageContent() {
               </Link>
               {user ? (
                 <Link
-                  href="/me/bookings"
+                  href="/tai-khoan/lich-su"
                   className="rounded-full bg-green-700 px-5 py-2 text-sm font-semibold text-white hover:bg-green-800"
                 >
                   Xem lịch sử
