@@ -341,10 +341,12 @@ function DatSanPageContent() {
         <main className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 sm:p-6">
           <div className="mb-2 text-center">
             <h1 className="flex items-center justify-center gap-2 text-2xl font-bold sm:text-3xl">
-              <CalendarCheck2 className="size-7 text-green-600" />
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-green-600 sm:size-9">
+                <CalendarCheck2 className="size-5 text-white sm:size-6" />
+              </span>
               Đặt sân thể thao
             </h1>
-            <p className="mt-1 text-sm text-blue-600 dark:text-blue-400">
+            <p className="mt-1 text-sm text-amber-700 dark:text-amber-500">
               Hoàn tất đặt sân chỉ trong vài bước đơn giản
             </p>
           </div>
