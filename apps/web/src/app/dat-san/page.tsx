@@ -516,7 +516,7 @@ function DatSanPageContent() {
                       htmlFor="contact-name"
                       className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                     >
-                      Họ tên *
+                      Họ tên <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative mt-1.5">
                       <User className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -534,7 +534,7 @@ function DatSanPageContent() {
                       htmlFor="contact-phone"
                       className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                     >
-                      Số điện thoại *
+                      Số điện thoại <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative mt-1.5">
                       <Phone className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
