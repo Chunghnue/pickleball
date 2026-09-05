@@ -116,8 +116,14 @@ async function buildTestingModule() {
       { provide: UsersService, useFactory: mockUsersService },
       { provide: PaymentsService, useFactory: mockPaymentsService },
       { provide: NotificationsService, useFactory: mockNotificationsService },
-      { provide: NotificationSettingsService, useFactory: mockNotificationSettingsService },
-      { provide: CustomerContactsService, useFactory: mockCustomerContactsService },
+      {
+        provide: NotificationSettingsService,
+        useFactory: mockNotificationSettingsService,
+      },
+      {
+        provide: CustomerContactsService,
+        useFactory: mockCustomerContactsService,
+      },
       { provide: PricingService, useFactory: mockPricingService },
       { provide: DataSource, useFactory: mockDataSource },
     ],
@@ -125,35 +131,17 @@ async function buildTestingModule() {
 
   return {
     service: module.get(BookingsService),
-    bookingsRepo: module.get(getRepositoryToken(Booking)) as ReturnType<
-      typeof mockBookingsRepository
-    >,
-    bookingSlotsRepo: module.get(
-      getRepositoryToken(BookingSlot),
-    ) as ReturnType<typeof mockBookingSlotsRepository>,
-    courtsService: module.get(CourtsService) as ReturnType<
-      typeof mockCourtsService
-    >,
-    venuesService: module.get(VenuesService) as ReturnType<
-      typeof mockVenuesService
-    >,
-    usersService: module.get(UsersService) as ReturnType<
-      typeof mockUsersService
-    >,
-    paymentsService: module.get(PaymentsService) as ReturnType<
-      typeof mockPaymentsService
-    >,
-    notificationsService: module.get(NotificationsService) as ReturnType<
-      typeof mockNotificationsService
-    >,
-    notificationSettingsService: module.get(NotificationSettingsService) as ReturnType<
-      typeof mockNotificationSettingsService
-    >,
-    customerContactsService: module.get(CustomerContactsService) as ReturnType<
-      typeof mockCustomerContactsService
-    >,
-    pricingService: module.get(PricingService) as ReturnType<typeof mockPricingService>,
-    dataSource: module.get(DataSource) as ReturnType<typeof mockDataSource>,
+    bookingsRepo: module.get(getRepositoryToken(Booking)),
+    bookingSlotsRepo: module.get(getRepositoryToken(BookingSlot)),
+    courtsService: module.get(CourtsService),
+    venuesService: module.get(VenuesService),
+    usersService: module.get(UsersService),
+    paymentsService: module.get(PaymentsService),
+    notificationsService: module.get(NotificationsService),
+    notificationSettingsService: module.get(NotificationSettingsService),
+    customerContactsService: module.get(CustomerContactsService),
+    pricingService: module.get(PricingService),
+    dataSource: module.get(DataSource),
   };
 }
 
@@ -200,7 +188,12 @@ describe('BookingsService.create', () => {
     usersService.findById.mockImplementation((id: string) =>
       Promise.resolve(
         id === 'customer-1'
-          ? { id: 'customer-1', email: 'customer@test.com', fullName: 'Nguyễn Văn A', phone: '0900000000' }
+          ? {
+              id: 'customer-1',
+              email: 'customer@test.com',
+              fullName: 'Nguyễn Văn A',
+              phone: '0900000000',
+            }
           : { id: 'owner-1', email: 'owner@test.com', fullName: 'Owner' },
       ),
     );
@@ -212,6 +205,8 @@ describe('BookingsService.create', () => {
       date: '2026-08-25',
       startTime: '08:00',
       endTime: '10:00',
+      contactName: 'Nguyễn Văn A',
+      contactPhone: '0900000000',
     });
 
     expect(result.totalPrice).toBe(200000);
@@ -224,10 +219,9 @@ describe('BookingsService.create', () => {
       Array.isArray(call[0]),
     );
     expect(slotSaveCall![0]).toHaveLength(2);
-    expect(slotSaveCall![0].map((s: { slotStart: string }) => s.slotStart)).toEqual([
-      '08:00',
-      '09:00',
-    ]);
+    expect(
+      slotSaveCall![0].map((s: { slotStart: string }) => s.slotStart),
+    ).toEqual(['08:00', '09:00']);
     expect(notificationsService.notifyBookingConfirmed).toHaveBeenCalledWith({
       to: 'customer@test.com',
       customerName: 'Nguyễn Văn A',
@@ -252,8 +246,14 @@ describe('BookingsService.create', () => {
   });
 
   it('sums per-slot resolved prices instead of a single flat rate', async () => {
-    const { service, courtsService, venuesService, usersService, dataSource, pricingService } =
-      await buildTestingModule();
+    const {
+      service,
+      courtsService,
+      venuesService,
+      usersService,
+      dataSource,
+      pricingService,
+    } = await buildTestingModule();
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
     venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
     usersService.findById.mockResolvedValue({
@@ -261,7 +261,9 @@ describe('BookingsService.create', () => {
       email: 'customer@test.com',
       fullName: 'Nguyễn Văn A',
     });
-    pricingService.resolvePrice.mockResolvedValueOnce(120000).mockResolvedValueOnce(150000);
+    pricingService.resolvePrice
+      .mockResolvedValueOnce(120000)
+      .mockResolvedValueOnce(150000);
     const manager = buildMockManager();
     dataSource.transaction.mockImplementation((cb) => cb(manager));
 
@@ -270,10 +272,20 @@ describe('BookingsService.create', () => {
       date: '2026-08-25',
       startTime: '08:00',
       endTime: '10:00',
+      contactName: 'Nguyễn Văn A',
+      contactPhone: '0900000000',
     });
 
-    expect(pricingService.resolvePrice).toHaveBeenCalledWith('court-1', '2026-08-25', '08:00');
-    expect(pricingService.resolvePrice).toHaveBeenCalledWith('court-1', '2026-08-25', '09:00');
+    expect(pricingService.resolvePrice).toHaveBeenCalledWith(
+      'court-1',
+      '2026-08-25',
+      '08:00',
+    );
+    expect(pricingService.resolvePrice).toHaveBeenCalledWith(
+      'court-1',
+      '2026-08-25',
+      '09:00',
+    );
     expect(result.totalPrice).toBe(270000);
   });
 
@@ -294,6 +306,8 @@ describe('BookingsService.create', () => {
         date: '2026-08-25',
         startTime: '08:00',
         endTime: '09:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       }),
     ).rejects.toThrow('Một hoặc nhiều khung giờ đã được đặt');
   });
@@ -307,12 +321,15 @@ describe('BookingsService.create', () => {
         date: '2026-08-01',
         startTime: '08:00',
         endTime: '09:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       }),
     ).rejects.toThrow('Không thể đặt sân cho ngày trong quá khứ');
   });
 
   it('throws BadRequestException when the time range is not aligned to the slot grid', async () => {
-    const { service, courtsService, venuesService } = await buildTestingModule();
+    const { service, courtsService, venuesService } =
+      await buildTestingModule();
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
     venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
 
@@ -322,6 +339,8 @@ describe('BookingsService.create', () => {
         date: '2026-08-25',
         startTime: '08:30',
         endTime: '09:30',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       }),
     ).rejects.toThrow(
       'Khung giờ đặt không hợp lệ hoặc không thẳng hàng với slot của sân',
@@ -329,7 +348,8 @@ describe('BookingsService.create', () => {
   });
 
   it('throws NotFoundException when the court is inactive', async () => {
-    const { service, courtsService, venuesService } = await buildTestingModule();
+    const { service, courtsService, venuesService } =
+      await buildTestingModule();
     courtsService.findByIdOrThrow.mockResolvedValue({
       ...ACTIVE_COURT,
       status: CourtStatus.CLOSED,
@@ -342,12 +362,15 @@ describe('BookingsService.create', () => {
         date: '2026-08-25',
         startTime: '08:00',
         endTime: '09:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       }),
     ).rejects.toThrow('Court court-1 không tồn tại');
   });
 
   it('throws NotFoundException when the venue is not active', async () => {
-    const { service, courtsService, venuesService } = await buildTestingModule();
+    const { service, courtsService, venuesService } =
+      await buildTestingModule();
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
     venuesService.findByIdOrThrow.mockResolvedValue({
       id: 'venue-1',
@@ -360,8 +383,93 @@ describe('BookingsService.create', () => {
         date: '2026-08-25',
         startTime: '08:00',
         endTime: '09:00',
+        contactName: 'Nguyễn Văn A',
+        contactPhone: '0900000000',
       }),
     ).rejects.toThrow('Court court-1 không tồn tại');
+  });
+
+  it('creates a guest booking without a customerId, storing the submitted contact info', async () => {
+    const {
+      service,
+      courtsService,
+      venuesService,
+      usersService,
+      dataSource,
+      notificationsService,
+    } = await buildTestingModule();
+    courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
+    venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    usersService.findById.mockResolvedValue({
+      id: 'owner-1',
+      email: 'owner@test.com',
+      fullName: 'Owner',
+    });
+    const manager = buildMockManager();
+    dataSource.transaction.mockImplementation((cb) => cb(manager));
+
+    const result = await service.create(null, {
+      courtId: 'court-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      contactName: 'Khách vãng lai',
+      contactPhone: '0911111111',
+      contactEmail: 'guest@test.com',
+    });
+
+    expect(result.customerId).toBeNull();
+    expect(result.contactName).toBe('Khách vãng lai');
+    expect(result.contactPhone).toBe('0911111111');
+    expect(usersService.findById).toHaveBeenCalledTimes(1);
+    expect(usersService.findById).toHaveBeenCalledWith('owner-1');
+    expect(notificationsService.notifyBookingConfirmed).toHaveBeenCalledWith({
+      to: 'guest@test.com',
+      customerName: 'Khách vãng lai',
+      venueName: 'Venue A',
+      courtName: 'Sân 1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      totalPrice: 100000,
+    });
+    expect(notificationsService.notifyNewBookingForOwner).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customerName: 'Khách vãng lai',
+        customerPhone: '0911111111',
+      }),
+    );
+  });
+
+  it('does not send a guest confirmation email when contactEmail is omitted', async () => {
+    const {
+      service,
+      courtsService,
+      venuesService,
+      usersService,
+      dataSource,
+      notificationsService,
+    } = await buildTestingModule();
+    courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
+    venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
+    usersService.findById.mockResolvedValue({
+      id: 'owner-1',
+      email: 'owner@test.com',
+      fullName: 'Owner',
+    });
+    dataSource.transaction.mockImplementation((cb) => cb(buildMockManager()));
+
+    await service.create(null, {
+      courtId: 'court-1',
+      date: '2026-08-25',
+      startTime: '08:00',
+      endTime: '09:00',
+      contactName: 'Khách vãng lai',
+      contactPhone: '0911111111',
+    });
+
+    expect(notificationsService.notifyBookingConfirmed).not.toHaveBeenCalled();
+    expect(notificationsService.notifyNewBookingForOwner).toHaveBeenCalled();
   });
 });
 
@@ -413,8 +521,17 @@ describe('BookingsService.create — owner notification gating', () => {
     });
     usersService.findById.mockImplementation((id: string) =>
       id === 'owner-1'
-        ? Promise.resolve({ id: 'owner-1', email: 'owner@test.com', fullName: 'Owner' })
-        : Promise.resolve({ id, email: 'customer@test.com', fullName: 'Customer', phone: null }),
+        ? Promise.resolve({
+            id: 'owner-1',
+            email: 'owner@test.com',
+            fullName: 'Owner',
+          })
+        : Promise.resolve({
+            id,
+            email: 'customer@test.com',
+            fullName: 'Customer',
+            phone: null,
+          }),
     );
     dataSource.transaction.mockImplementation((cb) => cb(buildMockManager()));
 
@@ -423,15 +540,25 @@ describe('BookingsService.create — owner notification gating', () => {
       date: '2026-08-25',
       startTime: '08:00',
       endTime: '09:00',
+      contactName: 'Nguyễn Văn A',
+      contactPhone: '0900000000',
     });
 
-    expect(notificationsService.notifyNewBookingForOwner).not.toHaveBeenCalled();
+    expect(
+      notificationsService.notifyNewBookingForOwner,
+    ).not.toHaveBeenCalled();
     expect(notificationsService.notifyBookingConfirmed).toHaveBeenCalled();
   });
 
   it('sends to venue.email when set, falling back to owner.email otherwise', async () => {
-    const { service, courtsService, venuesService, usersService, dataSource, notificationsService } =
-      await buildTestingModule();
+    const {
+      service,
+      courtsService,
+      venuesService,
+      usersService,
+      dataSource,
+      notificationsService,
+    } = await buildTestingModule();
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
     venuesService.findByIdOrThrow.mockResolvedValue({
       id: 'venue-1',
@@ -442,8 +569,17 @@ describe('BookingsService.create — owner notification gating', () => {
     });
     usersService.findById.mockImplementation((id: string) =>
       id === 'owner-1'
-        ? Promise.resolve({ id: 'owner-1', email: 'owner@test.com', fullName: 'Owner' })
-        : Promise.resolve({ id, email: 'customer@test.com', fullName: 'Customer', phone: null }),
+        ? Promise.resolve({
+            id: 'owner-1',
+            email: 'owner@test.com',
+            fullName: 'Owner',
+          })
+        : Promise.resolve({
+            id,
+            email: 'customer@test.com',
+            fullName: 'Customer',
+            phone: null,
+          }),
     );
     dataSource.transaction.mockImplementation((cb) => cb(buildMockManager()));
 
@@ -452,6 +588,8 @@ describe('BookingsService.create — owner notification gating', () => {
       date: '2026-08-25',
       startTime: '08:00',
       endTime: '09:00',
+      contactName: 'Nguyễn Văn A',
+      contactPhone: '0900000000',
     });
 
     expect(notificationsService.notifyNewBookingForOwner).toHaveBeenCalledWith(
@@ -462,8 +600,13 @@ describe('BookingsService.create — owner notification gating', () => {
 
 describe('BookingsService.findMineByCustomer', () => {
   it('completes past bookings before listing, enriched with court/venue/payment info', async () => {
-    const { service, bookingsRepo, courtsService, venuesService, paymentsService } =
-      await buildTestingModule();
+    const {
+      service,
+      bookingsRepo,
+      courtsService,
+      venuesService,
+      paymentsService,
+    } = await buildTestingModule();
     bookingsRepo.find.mockResolvedValue([
       { id: 'booking-1', courtId: 'court-1' },
     ]);
@@ -533,8 +676,13 @@ describe('BookingsService.findMineByCustomer', () => {
 
 describe('BookingsService.findMineById', () => {
   it('returns the booking enriched with court/venue/payment info', async () => {
-    const { service, bookingsRepo, courtsService, venuesService, paymentsService } =
-      await buildTestingModule();
+    const {
+      service,
+      bookingsRepo,
+      courtsService,
+      venuesService,
+      paymentsService,
+    } = await buildTestingModule();
     bookingsRepo.findOne.mockResolvedValue({
       id: 'booking-1',
       customerId: 'customer-1',
@@ -709,7 +857,11 @@ describe('BookingsService cancel — owner notification', () => {
       status: BookingStatus.CONFIRMED,
     };
     bookingsRepo.findOne.mockResolvedValue(booking);
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      name: 'Sân 1',
+      venueId: 'venue-1',
+    });
     venuesService.findByIdOrThrow.mockResolvedValue({
       id: 'venue-1',
       ownerId: 'owner-1',
@@ -719,17 +871,27 @@ describe('BookingsService cancel — owner notification', () => {
     });
     usersService.findById.mockImplementation((id: string) =>
       id === 'owner-1'
-        ? Promise.resolve({ id: 'owner-1', email: 'owner@test.com', fullName: 'Owner' })
-        : Promise.resolve({ id, email: 'customer@test.com', fullName: 'Customer' }),
+        ? Promise.resolve({
+            id: 'owner-1',
+            email: 'owner@test.com',
+            fullName: 'Owner',
+          })
+        : Promise.resolve({
+            id,
+            email: 'customer@test.com',
+            fullName: 'Customer',
+          }),
     );
     dataSource.transaction.mockImplementation((cb) => cb(buildMockManager()));
 
     await service.cancelByCustomer('customer-1', 'booking-1');
 
-    expect(notificationSettingsService.getForOwner).toHaveBeenCalledWith('owner-1');
-    expect(notificationsService.notifyBookingCancelledForOwner).toHaveBeenCalledWith(
-      expect.objectContaining({ to: 'owner@test.com' }),
+    expect(notificationSettingsService.getForOwner).toHaveBeenCalledWith(
+      'owner-1',
     );
+    expect(
+      notificationsService.notifyBookingCancelledForOwner,
+    ).toHaveBeenCalledWith(expect.objectContaining({ to: 'owner@test.com' }));
   });
 
   it('does not notify the owner when the owner cancels their own booking', async () => {
@@ -753,7 +915,11 @@ describe('BookingsService cancel — owner notification', () => {
       status: BookingStatus.CONFIRMED,
     };
     bookingsRepo.findOne.mockResolvedValue(booking);
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      name: 'Sân 1',
+      venueId: 'venue-1',
+    });
     venuesService.findByIdOrThrow.mockResolvedValue({
       id: 'venue-1',
       ownerId: 'owner-1',
@@ -761,19 +927,30 @@ describe('BookingsService cancel — owner notification', () => {
       email: null,
       cancellationCutoffHours: 0,
     });
-    usersService.findById.mockResolvedValue({ id: 'customer-1', email: 'customer@test.com', fullName: 'Customer' });
+    usersService.findById.mockResolvedValue({
+      id: 'customer-1',
+      email: 'customer@test.com',
+      fullName: 'Customer',
+    });
     dataSource.transaction.mockImplementation((cb) => cb(buildMockManager()));
 
     await service.cancelByOwner('owner-1', 'venue-1', 'booking-1');
 
-    expect(notificationsService.notifyBookingCancelledForOwner).not.toHaveBeenCalled();
+    expect(
+      notificationsService.notifyBookingCancelledForOwner,
+    ).not.toHaveBeenCalled();
   });
 });
 
 describe('BookingsService.findByVenueForOwner', () => {
   it('lists bookings for every court in the venue, enriched with customer/payment info', async () => {
-    const { service, bookingsRepo, courtsService, usersService, paymentsService } =
-      await buildTestingModule();
+    const {
+      service,
+      bookingsRepo,
+      courtsService,
+      usersService,
+      paymentsService,
+    } = await buildTestingModule();
     courtsService.findByVenueForOwner.mockResolvedValue([
       { id: 'court-1' },
       { id: 'court-2' },
@@ -814,8 +991,13 @@ describe('BookingsService.findByVenueForOwner', () => {
   });
 
   it('resolves customer name/phone from customer_contacts for walk-in bookings', async () => {
-    const { service, bookingsRepo, courtsService, customerContactsService, paymentsService } =
-      await buildTestingModule();
+    const {
+      service,
+      bookingsRepo,
+      courtsService,
+      customerContactsService,
+      paymentsService,
+    } = await buildTestingModule();
     courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
     bookingsRepo.find.mockResolvedValue([
       { id: 'booking-2', customerId: null, customerContactId: 'contact-1' },
@@ -834,6 +1016,36 @@ describe('BookingsService.findByVenueForOwner', () => {
       customerPhone: '0922222222',
       bookingCode: buildBookingCode('booking-2'),
     });
+  });
+
+  it('prefers the contact snapshot on the booking over customerId/customerContactId joins', async () => {
+    const {
+      service,
+      bookingsRepo,
+      courtsService,
+      usersService,
+      customerContactsService,
+      paymentsService,
+    } = await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
+    bookingsRepo.find.mockResolvedValue([
+      {
+        id: 'booking-3',
+        customerId: 'customer-1',
+        contactName: 'Trần Thị B',
+        contactPhone: '0933333333',
+      },
+    ]);
+    paymentsService.findByBookingId.mockResolvedValue(null);
+
+    const result = await service.findByVenueForOwner('owner-1', 'venue-1', {});
+
+    expect(result[0]).toMatchObject({
+      customerName: 'Trần Thị B',
+      customerPhone: '0933333333',
+    });
+    expect(usersService.findById).not.toHaveBeenCalled();
+    expect(customerContactsService.findById).not.toHaveBeenCalled();
   });
 
   it('filters to a single court when courtId is provided', async () => {
@@ -889,7 +1101,11 @@ describe('BookingsService.cancelByOwner', () => {
     };
     dataSource.transaction.mockImplementation((cb) => cb(manager));
 
-    const result = await service.cancelByOwner('owner-1', 'venue-1', 'booking-1');
+    const result = await service.cancelByOwner(
+      'owner-1',
+      'venue-1',
+      'booking-1',
+    );
 
     expect(result.status).toBe(BookingStatus.CANCELLED);
     expect(result.cancelledBy).toBe('owner-1');
@@ -919,7 +1135,10 @@ describe('BookingsService.findByIdForOwnerOrThrow', () => {
   it('returns the booking when it belongs to a court in the venue', async () => {
     const { service, bookingsRepo, courtsService } = await buildTestingModule();
     courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
-    bookingsRepo.findOne.mockResolvedValue({ id: 'booking-1', courtId: 'court-1' });
+    bookingsRepo.findOne.mockResolvedValue({
+      id: 'booking-1',
+      courtId: 'court-1',
+    });
 
     const result = await service.findByIdForOwnerOrThrow(
       'owner-1',
@@ -966,7 +1185,10 @@ describe('BookingsService.getAvailability', () => {
 describe('BookingsService.findByIdOrThrow', () => {
   it('returns the booking regardless of who owns it', async () => {
     const { service, bookingsRepo } = await buildTestingModule();
-    bookingsRepo.findOne.mockResolvedValue({ id: 'booking-1', customerId: 'someone-else' });
+    bookingsRepo.findOne.mockResolvedValue({
+      id: 'booking-1',
+      customerId: 'someone-else',
+    });
 
     const result = await service.findByIdOrThrow('booking-1');
 
@@ -1037,25 +1259,35 @@ describe('BookingsService.createForOwner', () => {
       newCustomer: { fullName: 'Khách vãng lai', phone: '0911111111' },
     });
 
-    expect(customerContactsService.resolveSelector).toHaveBeenCalledWith('owner-1', {
-      courtId: 'court-1',
-      date: '2026-08-25',
-      startTime: '08:00',
-      endTime: '10:00',
-      newCustomer: { fullName: 'Khách vãng lai', phone: '0911111111' },
-    });
+    expect(customerContactsService.resolveSelector).toHaveBeenCalledWith(
+      'owner-1',
+      {
+        courtId: 'court-1',
+        date: '2026-08-25',
+        startTime: '08:00',
+        endTime: '10:00',
+        newCustomer: { fullName: 'Khách vãng lai', phone: '0911111111' },
+      },
+    );
     expect(result.customerContactId).toBe('contact-1');
     expect(result.totalPrice).toBe(200000);
     expect(notificationsService.notifyBookingConfirmed).not.toHaveBeenCalled();
   });
 
   it('persists the note when provided', async () => {
-    const { service, courtsService, venuesService, customerContactsService, dataSource } =
-      await buildTestingModule();
+    const {
+      service,
+      courtsService,
+      venuesService,
+      customerContactsService,
+      dataSource,
+    } = await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue(ACTIVE_VENUE);
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
     venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
-    customerContactsService.resolveSelector.mockResolvedValue({ customerContactId: 'contact-1' });
+    customerContactsService.resolveSelector.mockResolvedValue({
+      customerContactId: 'contact-1',
+    });
     const manager = buildMockManager();
     dataSource.transaction.mockImplementation((cb) => cb(manager));
 
@@ -1084,7 +1316,9 @@ describe('BookingsService.createForOwner', () => {
     venuesService.getOwnedVenueOrThrow.mockResolvedValue(ACTIVE_VENUE);
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
     venuesService.findByIdOrThrow.mockResolvedValue(ACTIVE_VENUE);
-    customerContactsService.resolveSelector.mockResolvedValue({ customerId: 'customer-1' });
+    customerContactsService.resolveSelector.mockResolvedValue({
+      customerId: 'customer-1',
+    });
     usersService.findById.mockResolvedValue({
       id: 'customer-1',
       email: 'customer@test.com',
@@ -1104,13 +1338,19 @@ describe('BookingsService.createForOwner', () => {
     expect(notificationsService.notifyBookingConfirmed).toHaveBeenCalledWith(
       expect.objectContaining({ to: 'customer@test.com' }),
     );
-    expect(notificationsService.notifyNewBookingForOwner).not.toHaveBeenCalled();
+    expect(
+      notificationsService.notifyNewBookingForOwner,
+    ).not.toHaveBeenCalled();
   });
 
   it('throws NotFoundException when the court does not belong to the venue', async () => {
-    const { service, courtsService, venuesService } = await buildTestingModule();
+    const { service, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue(ACTIVE_VENUE);
-    courtsService.findByIdOrThrow.mockResolvedValue({ ...ACTIVE_COURT, venueId: 'other-venue' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      ...ACTIVE_COURT,
+      venueId: 'other-venue',
+    });
 
     await expect(
       service.createForOwner('owner-1', 'venue-1', {
@@ -1157,11 +1397,18 @@ describe('BookingsService.cancelFutureOccurrences', () => {
     await service.cancelFutureOccurrences('schedule-1', 'owner-1');
 
     expect(manager.find).toHaveBeenCalledWith(Booking, {
-      where: { recurringScheduleId: 'schedule-1', status: BookingStatus.CONFIRMED },
+      where: {
+        recurringScheduleId: 'schedule-1',
+        status: BookingStatus.CONFIRMED,
+      },
     });
     expect(futureBooking.status).toBe(BookingStatus.CANCELLED);
-    expect(manager.delete).toHaveBeenCalledWith(BookingSlot, { bookingId: 'booking-future' });
-    expect(manager.delete).not.toHaveBeenCalledWith(BookingSlot, { bookingId: 'booking-past' });
+    expect(manager.delete).toHaveBeenCalledWith(BookingSlot, {
+      bookingId: 'booking-future',
+    });
+    expect(manager.delete).not.toHaveBeenCalledWith(BookingSlot, {
+      bookingId: 'booking-past',
+    });
     expect(pastBooking.status).toBe(BookingStatus.CONFIRMED);
   });
 });
@@ -1169,7 +1416,9 @@ describe('BookingsService.cancelFutureOccurrences', () => {
 describe('BookingsService.findByRecurringScheduleId', () => {
   it('returns bookings for the schedule ordered by date/startTime', async () => {
     const { service, bookingsRepo } = await buildTestingModule();
-    bookingsRepo.find.mockResolvedValue([{ id: 'booking-1', recurringScheduleId: 'schedule-1' }]);
+    bookingsRepo.find.mockResolvedValue([
+      { id: 'booking-1', recurringScheduleId: 'schedule-1' },
+    ]);
 
     const result = await service.findByRecurringScheduleId('schedule-1');
 
@@ -1177,7 +1426,9 @@ describe('BookingsService.findByRecurringScheduleId', () => {
       where: { recurringScheduleId: 'schedule-1' },
       order: { date: 'ASC', startTime: 'ASC' },
     });
-    expect(result).toEqual([{ id: 'booking-1', recurringScheduleId: 'schedule-1' }]);
+    expect(result).toEqual([
+      { id: 'booking-1', recurringScheduleId: 'schedule-1' },
+    ]);
   });
 });
 
@@ -1188,7 +1439,9 @@ describe('BookingsService.countByRecurringScheduleId', () => {
 
     const result = await service.countByRecurringScheduleId('schedule-1');
 
-    expect(bookingsRepo.count).toHaveBeenCalledWith({ where: { recurringScheduleId: 'schedule-1' } });
+    expect(bookingsRepo.count).toHaveBeenCalledWith({
+      where: { recurringScheduleId: 'schedule-1' },
+    });
     expect(result).toBe(3);
   });
 });

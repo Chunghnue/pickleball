@@ -37,7 +37,10 @@ type PaymentInfo = {
   paidAt: Date | null;
   refundedAt: Date | null;
 };
-type BookingWithCourtInfo = Booking & { courtName: string; venueName: string } & PaymentInfo;
+type BookingWithCourtInfo = Booking & {
+  courtName: string;
+  venueName: string;
+} & PaymentInfo;
 type BookingWithCustomerInfo = Booking & {
   customerName: string;
   customerPhone: string | null;
@@ -64,28 +67,53 @@ export class BookingsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(customerId: string, dto: CreateBookingDto): Promise<Booking> {
+  async create(
+    customerId: string | null,
+    dto: CreateBookingDto,
+  ): Promise<Booking> {
     const { booking, court, venue } = await this.createBookingRecord({
       courtId: dto.courtId,
       date: dto.date,
       startTime: dto.startTime,
       endTime: dto.endTime,
-      customerId,
+      customerId: customerId ?? undefined,
+      contactName: dto.contactName,
+      contactPhone: dto.contactPhone,
+      contactEmail: dto.contactEmail,
+      note: dto.note,
     });
 
-    const customer = await this.usersService.findById(customerId);
+    const customer = customerId
+      ? await this.usersService.findById(customerId)
+      : null;
     const owner = await this.usersService.findById(venue.ownerId);
-    await this.notificationsService.notifyBookingConfirmed({
-      to: customer?.email ?? '',
-      customerName: customer?.fullName ?? '',
-      venueName: venue.name,
-      courtName: court.name,
-      date: dto.date,
-      startTime: dto.startTime,
-      endTime: dto.endTime,
-      totalPrice: booking.totalPrice,
-    });
-    const notificationSettings = await this.notificationSettingsService.getForOwner(venue.ownerId);
+
+    if (customerId) {
+      await this.notificationsService.notifyBookingConfirmed({
+        to: customer?.email ?? '',
+        customerName: customer?.fullName ?? '',
+        venueName: venue.name,
+        courtName: court.name,
+        date: dto.date,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        totalPrice: booking.totalPrice,
+      });
+    } else if (dto.contactEmail) {
+      await this.notificationsService.notifyBookingConfirmed({
+        to: dto.contactEmail,
+        customerName: dto.contactName,
+        venueName: venue.name,
+        courtName: court.name,
+        date: dto.date,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        totalPrice: booking.totalPrice,
+      });
+    }
+
+    const notificationSettings =
+      await this.notificationSettingsService.getForOwner(venue.ownerId);
     if (notificationSettings.newBooking) {
       await this.notificationsService.notifyNewBookingForOwner({
         to: venue.email ?? owner?.email ?? '',
@@ -94,8 +122,8 @@ export class BookingsService {
         date: dto.date,
         startTime: dto.startTime,
         endTime: dto.endTime,
-        customerName: customer?.fullName ?? '',
-        customerPhone: customer?.phone ?? null,
+        customerName: customer?.fullName ?? dto.contactName,
+        customerPhone: customer?.phone ?? dto.contactPhone,
         totalPrice: booking.totalPrice,
       });
     }
@@ -113,15 +141,16 @@ export class BookingsService {
     recurringScheduleId?: string;
     totalPriceOverride?: number;
     note?: string;
+    contactName?: string;
+    contactPhone?: string;
+    contactEmail?: string;
   }): Promise<{ booking: Booking; court: Court; venue: Venue }> {
     if (!DATE_PATTERN.test(params.date)) {
       throw new BadRequestException('date phải theo định dạng YYYY-MM-DD');
     }
     const today = new Date().toISOString().slice(0, 10);
     if (params.date < today) {
-      throw new BadRequestException(
-        'Không thể đặt sân cho ngày trong quá khứ',
-      );
+      throw new BadRequestException('Không thể đặt sân cho ngày trong quá khứ');
     }
 
     const court = await this.courtsService.findByIdOrThrow(params.courtId);
@@ -133,11 +162,15 @@ export class BookingsService {
       throw new NotFoundException(`Court ${params.courtId} không tồn tại`);
     }
 
-    const slotStarts = generateBookingSlotStarts(params.startTime, params.endTime, {
-      openTime: court.openTime,
-      closeTime: court.closeTime,
-      slotDurationMinutes: court.slotDurationMinutes,
-    });
+    const slotStarts = generateBookingSlotStarts(
+      params.startTime,
+      params.endTime,
+      {
+        openTime: court.openTime,
+        closeTime: court.closeTime,
+        slotDurationMinutes: court.slotDurationMinutes,
+      },
+    );
     if (!slotStarts) {
       throw new BadRequestException(
         'Khung giờ đặt không hợp lệ hoặc không thẳng hàng với slot của sân',
@@ -169,6 +202,9 @@ export class BookingsService {
           totalPrice,
           status: BookingStatus.CONFIRMED,
           note: params.note ?? null,
+          contactName: params.contactName ?? null,
+          contactPhone: params.contactPhone ?? null,
+          contactEmail: params.contactEmail ?? null,
         });
         const saved = await manager.save(entity);
 
@@ -197,11 +233,17 @@ export class BookingsService {
     }
   }
 
-  async cancelFutureOccurrences(scheduleId: string, cancelledBy: string): Promise<void> {
+  async cancelFutureOccurrences(
+    scheduleId: string,
+    cancelledBy: string,
+  ): Promise<void> {
     const today = new Date().toISOString().slice(0, 10);
     await this.dataSource.transaction(async (manager) => {
       const bookings = await manager.find(Booking, {
-        where: { recurringScheduleId: scheduleId, status: BookingStatus.CONFIRMED },
+        where: {
+          recurringScheduleId: scheduleId,
+          status: BookingStatus.CONFIRMED,
+        },
       });
       for (const booking of bookings) {
         if (booking.date < today) {
@@ -232,13 +274,19 @@ export class BookingsService {
     venueId: string,
     dto: CreateOwnerBookingDto,
   ): Promise<Booking> {
-    const venue = await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
+    const venue = await this.venuesService.getOwnedVenueOrThrow(
+      ownerId,
+      venueId,
+    );
     const court = await this.courtsService.findByIdOrThrow(dto.courtId);
     if (court.venueId !== venueId) {
       throw new NotFoundException(`Court ${dto.courtId} không tồn tại`);
     }
 
-    const customerRef = await this.customerContactsService.resolveSelector(ownerId, dto);
+    const customerRef = await this.customerContactsService.resolveSelector(
+      ownerId,
+      dto,
+    );
 
     const { booking } = await this.createBookingRecord({
       courtId: dto.courtId,
@@ -266,7 +314,9 @@ export class BookingsService {
     return booking;
   }
 
-  async findMineByCustomer(customerId: string): Promise<BookingWithCourtInfo[]> {
+  async findMineByCustomer(
+    customerId: string,
+  ): Promise<BookingWithCourtInfo[]> {
     await this.completePastBookings();
     const bookings = await this.bookingsRepository.find({
       where: { customerId },
@@ -359,13 +409,24 @@ export class BookingsService {
   private async resolveCustomerDisplay(
     booking: Booking,
   ): Promise<{ name: string; phone: string | null }> {
+    if (booking.contactName) {
+      return { name: booking.contactName, phone: booking.contactPhone ?? null };
+    }
     if (booking.customerId) {
       const customer = await this.usersService.findById(booking.customerId);
-      return { name: customer?.fullName ?? 'Không rõ', phone: customer?.phone ?? null };
+      return {
+        name: customer?.fullName ?? 'Không rõ',
+        phone: customer?.phone ?? null,
+      };
     }
     if (booking.customerContactId) {
-      const contact = await this.customerContactsService.findById(booking.customerContactId);
-      return { name: contact?.fullName ?? 'Không rõ', phone: contact?.phone ?? null };
+      const contact = await this.customerContactsService.findById(
+        booking.customerContactId,
+      );
+      return {
+        name: contact?.fullName ?? 'Không rõ',
+        phone: contact?.phone ?? null,
+      };
     }
     return { name: 'Không rõ', phone: null };
   }
@@ -482,7 +543,8 @@ export class BookingsService {
 
     const cancelledByCustomer = cancelledBy === booking.customerId;
     if (cancelledByCustomer) {
-      const notificationSettings = await this.notificationSettingsService.getForOwner(venue.ownerId);
+      const notificationSettings =
+        await this.notificationSettingsService.getForOwner(venue.ownerId);
       if (notificationSettings.cancellation) {
         const owner = await this.usersService.findById(venue.ownerId);
         await this.notificationsService.notifyBookingCancelledForOwner({

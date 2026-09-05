@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -25,13 +26,13 @@ export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Post('bookings')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.CUSTOMER)
+  @UseGuards(OptionalJwtAuthGuard)
   create(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser | null,
     @Body() dto: CreateBookingDto,
   ) {
-    return this.bookingsService.create(user.userId, dto);
+    const customerId = user?.role === UserRole.CUSTOMER ? user.userId : null;
+    return this.bookingsService.create(customerId, dto);
   }
 
   @Get('bookings/mine')

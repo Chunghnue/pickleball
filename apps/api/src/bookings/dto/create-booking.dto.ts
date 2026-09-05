@@ -1,4 +1,4 @@
-import { IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 import { TIME_PATTERN } from '../../courts/time.util';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -16,4 +16,20 @@ export class CreateBookingDto {
 
   @Matches(TIME_PATTERN, { message: 'endTime phải theo định dạng HH:mm' })
   endTime: string;
+
+  @IsString()
+  @MinLength(1)
+  contactName: string;
+
+  @IsString()
+  @MinLength(1)
+  contactPhone: string;
+
+  @IsOptional()
+  @IsEmail()
+  contactEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
