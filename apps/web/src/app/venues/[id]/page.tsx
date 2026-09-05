@@ -439,12 +439,12 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
                   {slots.map((slot) => (
                     <div
                       key={slot.start}
-                      className={`rounded-lg border px-3 py-2.5 text-center text-sm ${
+                      className={`rounded-lg border px-3 py-2.5 text-center text-sm transition-colors ${
                         slot.isBooked
                           ? "border-gray-200 bg-gray-100 text-muted-foreground dark:border-neutral-800 dark:bg-neutral-800"
                           : vip
-                            ? "border-amber-200 bg-white dark:border-amber-900 dark:bg-transparent"
-                            : "border-gray-200 dark:border-neutral-800"
+                            ? "border-amber-200 bg-white hover:border-amber-500 hover:text-amber-600 dark:border-amber-900 dark:bg-transparent"
+                            : "border-gray-200 hover:border-green-600 hover:text-green-600 dark:border-neutral-800"
                       }`}
                     >
                       {slot.start}
