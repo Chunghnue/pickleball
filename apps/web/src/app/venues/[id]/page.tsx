@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
 import {
+  CalendarCheck2,
   CheckCircle2,
   Clock,
   Crown,
@@ -166,6 +167,10 @@ function uniformHours(operatingHours: OperatingHourItem[]): OperatingHourItem | 
 
 function isVipCourt(name: string): boolean {
   return /\bvip\b/i.test(name);
+}
+
+function formatPriceK(price: number): string {
+  return `${Math.round(price / 1000)}K`;
 }
 
 function VenueBreadcrumb({ venue }: { venue: PublicVenueDetail }) {
@@ -391,22 +396,14 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
           <Clock className="size-4 text-green-600" />
           Lịch trống hôm nay
         </h2>
-        <div className="flex items-center gap-2">
-          <Input
-            id="venue-date"
-            type="date"
-            min={today}
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-            className="w-auto"
-          />
-          <Link
-            href={`/dat-san?venueId=${venue.id}`}
-            className="rounded-full bg-green-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-800"
-          >
-            Đặt sân
-          </Link>
-        </div>
+        <Input
+          id="venue-date"
+          type="date"
+          min={today}
+          value={date}
+          onChange={(event) => setDate(event.target.value)}
+          className="w-auto"
+        />
       </div>
 
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
@@ -455,7 +452,7 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
                       vip ? "text-amber-700 dark:text-amber-400" : "text-green-700 dark:text-green-400"
                     }`}
                   >
-                    {court.pricePerHour.toLocaleString("vi-VN")}đ/giờ
+                    {formatPriceK(court.pricePerHour)}/h
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -484,18 +481,25 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
       )}
 
       {!error && slotsByCourtId && hasAnySlots && (
-        <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="mt-4 flex items-center gap-4 text-xs">
           <span className="flex items-center gap-1.5">
-            <span className="size-3 rounded-sm border border-gray-200 dark:border-neutral-800" />
+            <span className="size-3 rounded-sm bg-green-600" />
             Trống
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="size-3 rounded-sm bg-gray-200 dark:bg-neutral-800" />
+            <span className="size-3 rounded-sm bg-gray-200 dark:bg-neutral-700" />
             Đã đặt
           </span>
         </div>
       )}
 
+      <Link
+        href={`/dat-san?venueId=${venue.id}`}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-green-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-800"
+      >
+        <CalendarCheck2 className="size-4" />
+        Đặt sân ngay
+      </Link>
     </div>
   );
 }
