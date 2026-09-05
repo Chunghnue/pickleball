@@ -49,6 +49,7 @@ interface PublicVenueDetail {
   address: string;
   city: string;
   cancellationCutoffHours: number;
+  logoUrl: string | null;
   images: { id: string; url: string }[];
   courts: PublicCourt[];
 }
@@ -360,9 +361,9 @@ function DatSanPageContent() {
                 </div>
                 <div className="mt-3 flex items-center gap-3 rounded-xl border border-gray-200 p-3 dark:border-neutral-700">
                   <div className="size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-                    {venue.images[0] ? (
+                    {venue.logoUrl || venue.images[0] ? (
                       <img
-                        src={venue.images[0].url}
+                        src={venue.logoUrl ?? venue.images[0].url}
                         alt=""
                         className="size-full object-cover"
                       />
