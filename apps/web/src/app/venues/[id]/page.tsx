@@ -15,6 +15,7 @@ import {
   MapPin,
   Navigation,
   Phone,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 import { PublicHeader } from "@/components/public-header";
@@ -320,18 +321,39 @@ function VenueInfoCard({ venue }: { venue: PublicVenueDetail }) {
 function SidebarCard({ venue }: { venue: PublicVenueDetail }) {
   return (
     <div className={CARD_CLASS}>
-      <p className="text-3xl font-bold text-green-700 dark:text-green-400">
+      <p className="text-2xl font-bold text-green-700 dark:text-green-400">
         {venue.courts.length} sân
       </p>
-      <div className={DIVIDER_CLASS} />
+      <div className="mt-4 flex flex-col divide-y divide-gray-200 rounded-xl bg-gray-50 px-3 dark:divide-neutral-700 dark:bg-neutral-800/50">
+        <div className="flex items-center justify-between py-2.5 text-sm">
+          <span className="text-muted-foreground">Ngày đặt</span>
+          <span className="font-semibold">Chọn ngày</span>
+        </div>
+        <div className="flex items-center justify-between py-2.5 text-sm">
+          <span className="text-muted-foreground">Giờ đặt</span>
+          <span className="font-semibold">Chọn giờ</span>
+        </div>
+        <div className="flex items-center justify-between py-2.5 text-sm">
+          <span className="text-muted-foreground">Thời lượng</span>
+          <span className="font-semibold">1 giờ</span>
+        </div>
+      </div>
+      <Link
+        href={`/dat-san?venueId=${venue.id}`}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-green-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-800"
+      >
+        <CalendarCheck2 className="size-4" />
+        Đặt sân ngay
+      </Link>
       <a
         href={`tel:${venue.phone}`}
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-green-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-800"
+        className="mt-2 flex w-full items-center justify-center gap-2 rounded-full border border-green-700 px-4 py-3 text-sm font-semibold text-green-700 transition-colors hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
       >
         <Phone className="size-4" />
-        Gọi ngay: {venue.phone}
+        Gọi: {venue.phone}
       </a>
-      <p className="mt-3 text-center text-xs text-muted-foreground">
+      <p className="mt-3 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
+        <ShieldCheck className="size-3.5" />
         Đặt cọc an toàn · Hủy trước {venue.cancellationCutoffHours}h miễn phí
       </p>
     </div>
