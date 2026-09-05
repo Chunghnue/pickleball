@@ -346,7 +346,7 @@ function DatSanPageContent() {
               </span>
               Đặt sân thể thao
             </h1>
-            <p className="mt-1 text-sm text-amber-700 dark:text-amber-500">
+            <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-500">
               Hoàn tất đặt sân chỉ trong vài bước đơn giản
             </p>
           </div>
