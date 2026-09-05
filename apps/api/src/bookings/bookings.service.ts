@@ -40,6 +40,7 @@ type PaymentInfo = {
 type BookingWithCourtInfo = Booking & {
   courtName: string;
   venueName: string;
+  bookingCode: string;
 } & PaymentInfo;
 type BookingWithCustomerInfo = Booking & {
   customerName: string;
@@ -495,7 +496,12 @@ export class BookingsService {
         const court = await this.courtsService.findByIdOrThrow(booking.courtId);
         const venue = await this.venuesService.findByIdOrThrow(court.venueId);
         const withPayment = await this.attachPaymentInfo(booking);
-        return { ...withPayment, courtName: court.name, venueName: venue.name };
+        return {
+          ...withPayment,
+          courtName: court.name,
+          venueName: venue.name,
+          bookingCode: buildBookingCode(booking.id),
+        };
       }),
     );
   }
