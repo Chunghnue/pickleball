@@ -7,6 +7,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole, UserStatus } from './entities/user.entity';
+import { Booking } from '../bookings/entities/booking.entity';
+import {
+  CustomerTier,
+  classifyTier,
+} from '../customers/customer-classification';
 import { NotificationsService } from '../notifications/notifications.service';
 
 export interface CreateUserInput {
@@ -22,6 +27,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(Booking)
+    private readonly bookingsRepository: Repository<Booking>,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -148,5 +155,33 @@ export class UsersService {
     if (updates.avatarUrl !== undefined) user.avatarUrl = updates.avatarUrl;
     if (updates.address !== undefined) user.address = updates.address;
     return this.usersRepository.save(user);
+  }
+
+  async getStats(userId: string): Promise<{
+    totalBookings: number;
+    totalSpent: number;
+    tier: CustomerTier;
+  }> {
+    const row = await this.bookingsRepository
+      .createQueryBuilder('booking')
+      .leftJoin('payments', 'payment', 'payment.booking_id = booking.id::text')
+      .select(
+        "COUNT(*) FILTER (WHERE booking.status <> 'cancelled')",
+        'totalBookings',
+      )
+      .addSelect(
+        "COALESCE(SUM(booking.total_price) FILTER (WHERE payment.status = 'paid'), 0)",
+        'totalSpent',
+      )
+      .where('booking.customer_id = :userId', { userId })
+      .getRawOne<{ totalBookings: string; totalSpent: string }>();
+
+    const totalBookings = Number(row?.totalBookings ?? 0);
+    const totalSpent = Number(row?.totalSpent ?? 0);
+    return {
+      totalBookings,
+      totalSpent,
+      tier: classifyTier(totalBookings, totalSpent),
+    };
   }
 }

@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
 import { User, UserRole, UserStatus } from './entities/user.entity';
+import { Booking } from '../bookings/entities/booking.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const mockRepository = () => ({
@@ -10,6 +11,20 @@ const mockRepository = () => ({
   save: jest.fn(),
   findOne: jest.fn(),
   find: jest.fn(),
+});
+
+function buildMockRawQueryBuilder(result: Record<string, string> | null) {
+  const qb: Record<string, jest.Mock> = {};
+  qb.leftJoin = jest.fn().mockReturnValue(qb);
+  qb.select = jest.fn().mockReturnValue(qb);
+  qb.addSelect = jest.fn().mockReturnValue(qb);
+  qb.where = jest.fn().mockReturnValue(qb);
+  qb.getRawOne = jest.fn().mockResolvedValue(result);
+  return qb;
+}
+
+const mockBookingsRepository = () => ({
+  createQueryBuilder: jest.fn(),
 });
 
 const mockNotificationsService = () => ({
@@ -22,6 +37,10 @@ async function buildTestingModule() {
     providers: [
       UsersService,
       { provide: getRepositoryToken(User), useFactory: mockRepository },
+      {
+        provide: getRepositoryToken(Booking),
+        useFactory: mockBookingsRepository,
+      },
       { provide: NotificationsService, useFactory: mockNotificationsService },
     ],
   }).compile();
@@ -29,6 +48,7 @@ async function buildTestingModule() {
   return {
     service: module.get(UsersService),
     repo: module.get(getRepositoryToken(User)),
+    bookingsRepo: module.get(getRepositoryToken(Booking)),
     notificationsService: module.get(NotificationsService),
   };
 }
@@ -231,5 +251,47 @@ describe('UsersService.findActiveOwners', () => {
       where: { role: UserRole.OWNER, status: UserStatus.ACTIVE },
     });
     expect(result).toHaveLength(1);
+  });
+});
+
+describe('UsersService.getStats', () => {
+  it('returns zeroed stats and tier "new" when the customer has no bookings', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.createQueryBuilder.mockReturnValue(
+      buildMockRawQueryBuilder({ totalBookings: '0', totalSpent: '0' }),
+    );
+
+    const result = await service.getStats('user-1');
+
+    expect(result).toEqual({ totalBookings: 0, totalSpent: 0, tier: 'new' });
+  });
+
+  it('classifies as vip once total spent crosses the VIP threshold', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.createQueryBuilder.mockReturnValue(
+      buildMockRawQueryBuilder({
+        totalBookings: '12',
+        totalSpent: '6000000',
+      }),
+    );
+
+    const result = await service.getStats('user-1');
+
+    expect(result).toEqual({
+      totalBookings: 12,
+      totalSpent: 6000000,
+      tier: 'vip',
+    });
+  });
+
+  it('treats a missing raw row as zero (customer never queried before)', async () => {
+    const { service, bookingsRepo } = await buildTestingModule();
+    bookingsRepo.createQueryBuilder.mockReturnValue(
+      buildMockRawQueryBuilder(null),
+    );
+
+    const result = await service.getStats('user-1');
+
+    expect(result).toEqual({ totalBookings: 0, totalSpent: 0, tier: 'new' });
   });
 });
