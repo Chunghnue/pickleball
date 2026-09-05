@@ -153,7 +153,11 @@ export default function ProfilePage() {
             />
           </div>
         </div>
-        <Button type="submit" disabled={form.formState.isSubmitting}>
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting}
+          className="rounded-full bg-green-600 px-4 font-semibold text-white hover:bg-green-700"
+        >
           <Save className="size-4" />
           Lưu thay đổi
         </Button>
