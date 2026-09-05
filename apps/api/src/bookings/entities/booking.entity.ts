@@ -69,6 +69,15 @@ export class Booking {
   @Column({ nullable: true, type: 'varchar' })
   note: string | null;
 
+  @Column({ name: 'contact_name', nullable: true, type: 'varchar' })
+  contactName: string | null;
+
+  @Column({ name: 'contact_phone', nullable: true, type: 'varchar' })
+  contactPhone: string | null;
+
+  @Column({ name: 'contact_email', nullable: true, type: 'varchar' })
+  contactEmail: string | null;
+
   @Column({ name: 'cancelled_at', type: 'timestamp', nullable: true })
   cancelledAt: Date | null;
 
