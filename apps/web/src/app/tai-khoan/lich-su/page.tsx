@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 
@@ -113,7 +114,12 @@ export default function MyBookingsPage() {
       <h1 className="text-2xl font-bold">Booking của tôi</h1>
 
       {bookings.length === 0 && (
-        <p className="text-muted-foreground">Bạn chưa có booking nào.</p>
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-muted-foreground">Bạn chưa có lượt đặt sân nào.</p>
+          <Link href="/venues" className={buttonVariants({ variant: "outline" })}>
+            Tìm sân ngay
+          </Link>
+        </div>
       )}
 
       <div className="flex flex-col gap-4">
