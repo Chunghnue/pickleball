@@ -38,6 +38,8 @@ Bảo vệ route tiếp tục qua `apps/web/src/proxy.ts` đã có: `/me/*` đã
 
 ## 3. Luồng đặt sân trên `/venues/[id]`
 
+> **Đã đảo ngược:** luồng chọn slot + xác nhận mô tả dưới đây đã chuyển sang route riêng `/dat-san?venueId=...`, xem [2026-09-05-dat-san-online-design.md](./2026-09-05-dat-san-online-design.md). `/venues/[id]` chỉ còn hiển thị lịch trống dạng xem, không thao tác đặt sân trực tiếp nữa. Giữ nguyên nội dung gốc bên dưới để tham khảo lịch sử thiết kế.
+
 `CourtSlots` (component con hiện có trong trang venue detail) đổi nguồn dữ liệu từ `GET /api/courts/[id]/slots` sang **`GET /api/bookings/availability?courtId=&date=`** — mỗi slot giờ có thêm trường `isBooked`. Route handler `/api/courts/[id]/slots` cũ giữ nguyên, không sửa/xoá — chỉ đổi nguồn fetch ở component này.
 
 **Trạng thái chọn:** `selectedStart: string | null`, `durationSlots: number`.
