@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  Building2,
   ImageOff,
   MapPin,
   Search,
@@ -110,17 +109,26 @@ function VenuesSearchPageContent() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <section className="bg-gradient-to-br from-green-950 via-green-900 to-emerald-950 px-4 pt-12 pb-8 text-white">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-green-800/60 px-3 py-1 text-xs font-semibold text-green-300">
-            <Search className="size-3.5" />
-            TÌM SÂN PICKLEBALL
-          </span>
-          <h1 className="text-3xl font-extrabold sm:text-4xl">Tìm sân</h1>
-          <p className="max-w-xl text-white/70">
-            Duyệt toàn bộ cơ sở đang hoạt động trên nền tảng, lọc theo thành
-            phố và sắp xếp theo nhu cầu của bạn.
-          </p>
+      <section className="bg-gradient-to-br from-green-950 via-green-900 to-emerald-950 px-4 pt-10 pb-8 text-white">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-3">
+          <nav className="flex items-center gap-1.5 text-sm text-white/60">
+            <Link href="/" className="hover:text-white hover:underline">
+              Trang chủ
+            </Link>
+            <span>›</span>
+            <span className="text-white/80">Tìm sân</span>
+          </nav>
+          <h1 className="flex items-center gap-2 text-3xl font-extrabold sm:text-4xl">
+            <Search className="size-7 shrink-0 sm:size-8" />
+            Tìm sân thể thao
+          </h1>
+          {venues !== null && (
+            <p className="text-white/70">
+              Tìm thấy{" "}
+              <span className="font-bold text-green-400">{total}</span> cơ sở
+              phù hợp
+            </p>
+          )}
         </div>
       </section>
 
@@ -214,13 +222,6 @@ function VenuesSearchPageContent() {
       </div>
 
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-8">
-        {venues !== null && (
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Building2 className="size-4" />
-            {total} cơ sở phù hợp
-          </p>
-        )}
-
         {venues === null && (
           <p className="text-muted-foreground">Đang tải...</p>
         )}
