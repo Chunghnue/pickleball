@@ -18,14 +18,30 @@ interface Profile {
   fullName: string;
   phone: string | null;
   avatarUrl: string | null;
+  address: string | null;
 }
+
+type Tier = "new" | "regular" | "vip";
+
+interface Stats {
+  totalBookings: number;
+  totalSpent: number;
+  tier: Tier;
+}
+
+const TIER_LABELS: Record<Tier, string> = {
+  new: "Mới",
+  regular: "Thường xuyên",
+  vip: "VIP",
+};
 
 export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const form = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
-    defaultValues: { fullName: "", phone: "", avatarUrl: "" },
+    defaultValues: { fullName: "", phone: "", avatarUrl: "", address: "" },
   });
 
   useEffect(() => {
@@ -44,15 +60,23 @@ export default function ProfilePage() {
           fullName: data.fullName,
           phone: data.phone ?? "",
           avatarUrl: data.avatarUrl ?? "",
+          address: data.address ?? "",
         });
       });
   }, [form, router]);
+
+  useEffect(() => {
+    fetch("/api/users/me/stats")
+      .then((res) => (res.ok ? (res.json() as Promise<Stats>) : null))
+      .then((data) => setStats(data));
+  }, []);
 
   async function onSubmit(values: UpdateProfileInput) {
     const payload = {
       fullName: values.fullName,
       phone: values.phone,
       avatarUrl: values.avatarUrl === "" ? undefined : values.avatarUrl,
+      address: values.address,
     };
     const response = await fetch("/api/users/me", {
       method: "PATCH",
@@ -86,62 +110,94 @@ export default function ProfilePage() {
 
   return (
     <main className="flex flex-1 items-center justify-center p-8">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Hồ sơ của tôi</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4 text-sm text-muted-foreground">{profile.email}</p>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Họ tên</Label>
-              <Input
-                id="fullName"
-                aria-invalid={!!errors.fullName}
-                {...form.register("fullName")}
-              />
-              {errors.fullName && (
-                <p className="text-sm text-destructive">
-                  {errors.fullName.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Số điện thoại</Label>
-              <Input id="phone" {...form.register("phone")} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="avatarUrl">Ảnh đại diện (URL)</Label>
-              <Input
-                id="avatarUrl"
-                aria-invalid={!!errors.avatarUrl}
-                {...form.register("avatarUrl")}
-              />
-              {errors.avatarUrl && (
-                <p className="text-sm text-destructive">
-                  {errors.avatarUrl.message}
-                </p>
-              )}
-            </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={form.formState.isSubmitting}
+      <div className="w-full max-w-sm space-y-4">
+        <div className="grid grid-cols-3 gap-2">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold">
+                {stats ? stats.totalBookings : "—"}
+              </p>
+              <p className="text-xs text-muted-foreground">Lần đặt sân</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold">
+                {stats ? TIER_LABELS[stats.tier] : "—"}
+              </p>
+              <p className="text-xs text-muted-foreground">Hạng thành viên</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold">
+                {stats ? `${stats.totalSpent.toLocaleString("vi-VN")}đ` : "—"}
+              </p>
+              <p className="text-xs text-muted-foreground">Tổng chi tiêu</p>
+            </CardContent>
+          </Card>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Hồ sơ của tôi</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-sm text-muted-foreground">{profile.email}</p>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Họ tên</Label>
+                <Input
+                  id="fullName"
+                  aria-invalid={!!errors.fullName}
+                  {...form.register("fullName")}
+                />
+                {errors.fullName && (
+                  <p className="text-sm text-destructive">
+                    {errors.fullName.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Số điện thoại</Label>
+                <Input id="phone" {...form.register("phone")} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Địa chỉ</Label>
+                <Input id="address" {...form.register("address")} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="avatarUrl">Ảnh đại diện (URL)</Label>
+                <Input
+                  id="avatarUrl"
+                  aria-invalid={!!errors.avatarUrl}
+                  {...form.register("avatarUrl")}
+                />
+                {errors.avatarUrl && (
+                  <p className="text-sm text-destructive">
+                    {errors.avatarUrl.message}
+                  </p>
+                )}
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={form.formState.isSubmitting}
+              >
+                Lưu thay đổi
+              </Button>
+            </form>
+            <Link
+              href="/tai-khoan/lich-su"
+              className={`${buttonVariants({ variant: "outline" })} mt-4 w-full`}
             >
-              Lưu thay đổi
+              Booking của tôi
+            </Link>
+            <Button variant="outline" className="mt-2 w-full" onClick={handleLogout}>
+              Đăng xuất
             </Button>
-          </form>
-          <Link
-            href="/tai-khoan/lich-su"
-            className={`${buttonVariants({ variant: "outline" })} mt-4 w-full`}
-          >
-            Booking của tôi
-          </Link>
-          <Button variant="outline" className="mt-2 w-full" onClick={handleLogout}>
-            Đăng xuất
-          </Button>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }

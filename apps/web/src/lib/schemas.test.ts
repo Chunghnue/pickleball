@@ -125,6 +125,11 @@ describe('updateProfileSchema', () => {
   it('accepts an empty string avatarUrl (an untouched optional field)', () => {
     expect(updateProfileSchema.safeParse({ avatarUrl: '' }).success).toBe(true);
   });
+
+  it('keeps the address field in the parsed output', () => {
+    const result = updateProfileSchema.parse({ address: '123 Lê Lợi, Q1' });
+    expect(result.address).toBe('123 Lê Lợi, Q1');
+  });
 });
 
 describe('addVenueImageSchema', () => {

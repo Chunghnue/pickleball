@@ -33,6 +33,7 @@ export const updateProfileSchema = z.object({
     .url('URL không hợp lệ')
     .optional()
     .or(z.literal('')),
+  address: z.string().optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
