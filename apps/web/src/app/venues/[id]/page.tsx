@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
-import { toast } from "sonner";
 import {
   CheckCircle2,
   Clock,
@@ -18,14 +17,9 @@ import {
   Users,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
-import { getSubmitErrorMessage } from "@/lib/error-message";
-import {
-  computeMaxConsecutiveDuration,
-  type AvailabilitySlot,
-} from "@/lib/slot-selection";
+import type { AvailabilitySlot } from "@/lib/slot-selection";
 import { DAY_LABELS, orderForDisplay } from "@/app/owner/settings/operating-hours-format";
 
 const VenueLocationMap = dynamic(() => import("./venue-location-map"), {
@@ -340,13 +334,7 @@ function SidebarCard({ venue }: { venue: PublicVenueDetail }) {
   );
 }
 
-interface SelectedCell {
-  courtId: string;
-  index: number;
-}
-
 function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
-  const params = useParams<{ id: string }>();
   const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
@@ -355,9 +343,6 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
     AvailabilitySlot[]
   > | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<SelectedCell | null>(null);
-  const [durationSlots, setDurationSlots] = useState(1);
-  const [submitting, setSubmitting] = useState(false);
 
   async function loadSlots() {
     setError(null);
@@ -384,67 +369,17 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
   }
 
   useEffect(() => {
-    setSelected(null);
-    setDurationSlots(1);
     loadSlots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, venue.id]);
 
-  function handleCellClick(courtId: string, index: number) {
-    const slots = slotsByCourtId?.[courtId];
-    if (!slots || slots[index].isBooked) return;
-    if (selected?.courtId === courtId && selected.index === index) {
-      setSelected(null);
-      return;
-    }
-    setSelected({ courtId, index });
-    setDurationSlots(1);
+  function handleCellClick(courtId: string, slot: AvailabilitySlot) {
+    if (slot.isBooked) return;
+    router.push(
+      `/dat-san?venueId=${venue.id}&courtId=${courtId}&date=${date}&start=${slot.start}`,
+    );
   }
 
-  async function handleConfirmBooking() {
-    if (!slotsByCourtId || !selected) return;
-    const slots = slotsByCourtId[selected.courtId];
-    setSubmitting(true);
-    const startTime = slots[selected.index].start;
-    const endTime = slots[selected.index + durationSlots - 1].end;
-    const response = await fetch("/api/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        courtId: selected.courtId,
-        date,
-        startTime,
-        endTime,
-      }),
-    });
-    setSubmitting(false);
-
-    if (response.status === 401) {
-      router.push(
-        `/login?returnTo=${encodeURIComponent(`/venues/${params.id}`)}`,
-      );
-      return;
-    }
-
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      toast.error(getSubmitErrorMessage(response, data));
-      loadSlots();
-      setSelected(null);
-      return;
-    }
-
-    toast.success("Đặt sân thành công");
-    setSelected(null);
-    setDurationSlots(1);
-    loadSlots();
-  }
-
-  const selectedSlots = selected ? slotsByCourtId?.[selected.courtId] : null;
-  const maxDuration =
-    selectedSlots && selected
-      ? computeMaxConsecutiveDuration(selectedSlots, selected.index)
-      : 0;
   const hasAnySlots =
     slotsByCourtId != null &&
     Object.values(slotsByCourtId).some((slots) => slots.length > 0);
@@ -456,14 +391,22 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
           <Clock className="size-4 text-green-600" />
           Lịch trống hôm nay
         </h2>
-        <Input
-          id="venue-date"
-          type="date"
-          min={today}
-          value={date}
-          onChange={(event) => setDate(event.target.value)}
-          className="w-auto"
-        />
+        <div className="flex items-center gap-2">
+          <Input
+            id="venue-date"
+            type="date"
+            min={today}
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+            className="w-auto"
+          />
+          <Link
+            href={`/dat-san?venueId=${venue.id}`}
+            className="rounded-full bg-green-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-800"
+          >
+            Đặt sân
+          </Link>
+        </div>
       </div>
 
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
@@ -516,31 +459,23 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {slots.map((slot, index) => {
-                    const isSelected =
-                      selected?.courtId === court.id &&
-                      index >= selected.index &&
-                      index < selected.index + durationSlots;
-                    return (
-                      <button
-                        key={slot.start}
-                        type="button"
-                        disabled={slot.isBooked}
-                        onClick={() => handleCellClick(court.id, index)}
-                        className={`rounded-lg border px-3 py-2.5 text-sm transition-colors ${
-                          slot.isBooked
-                            ? "cursor-not-allowed border-gray-200 bg-gray-100 text-muted-foreground dark:border-neutral-800 dark:bg-neutral-800"
-                            : isSelected
-                              ? "border-green-700 bg-green-700 text-white"
-                              : vip
-                                ? "border-amber-200 bg-white hover:border-amber-500 hover:bg-amber-50 dark:border-amber-900 dark:bg-transparent dark:hover:bg-amber-950"
-                                : "border-gray-200 hover:border-green-600 hover:bg-green-50 dark:border-neutral-800 dark:hover:bg-green-950"
-                        }`}
-                      >
-                        {slot.start}
-                      </button>
-                    );
-                  })}
+                  {slots.map((slot) => (
+                    <button
+                      key={slot.start}
+                      type="button"
+                      disabled={slot.isBooked}
+                      onClick={() => handleCellClick(court.id, slot)}
+                      className={`rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                        slot.isBooked
+                          ? "cursor-not-allowed border-gray-200 bg-gray-100 text-muted-foreground dark:border-neutral-800 dark:bg-neutral-800"
+                          : vip
+                            ? "border-amber-200 bg-white hover:border-amber-500 hover:bg-amber-50 dark:border-amber-900 dark:bg-transparent dark:hover:bg-amber-950"
+                            : "border-gray-200 hover:border-green-600 hover:bg-green-50 dark:border-neutral-800 dark:hover:bg-green-950"
+                      }`}
+                    >
+                      {slot.start}
+                    </button>
+                  ))}
                 </div>
               </div>
             );
@@ -561,54 +496,6 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
         </div>
       )}
 
-      {selectedSlots && selected && maxDuration > 0 && (
-        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-neutral-800 dark:bg-neutral-800/50">
-          <p className="text-base font-semibold">
-            {venue.courts.find((c) => c.id === selected.courtId)?.name} ·{" "}
-            {selectedSlots[selected.index].start}–
-            {selectedSlots[selected.index + durationSlots - 1].end}
-          </p>
-          <div className="mt-3 flex items-center gap-3">
-            <Label htmlFor="duration" className="text-sm text-muted-foreground">
-              Số giờ chơi
-            </Label>
-            <select
-              id="duration"
-              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-              value={durationSlots}
-              onChange={(event) => setDurationSlots(Number(event.target.value))}
-            >
-              {Array.from({ length: maxDuration }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </div>
-          <p className="mt-3 text-lg font-bold">
-            Tổng:{" "}
-            {selectedSlots
-              .slice(selected.index, selected.index + durationSlots)
-              .reduce((sum, s) => sum + s.price, 0)
-              .toLocaleString("vi-VN")}
-            đ
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Hủy trước {venue.cancellationCutoffHours}h miễn phí
-          </p>
-        </div>
-      )}
-
-      {!error && slotsByCourtId && hasAnySlots && (
-        <button
-          type="button"
-          disabled={!selected || submitting}
-          onClick={handleConfirmBooking}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-green-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-muted-foreground dark:disabled:bg-neutral-800"
-        >
-          {selected ? "Xác nhận đặt sân" : "Chọn khung giờ để đặt sân"}
-        </button>
-      )}
     </div>
   );
 }
