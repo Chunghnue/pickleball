@@ -790,6 +790,47 @@ git commit -m "feat(api): allow POST /bookings without login, store a contact sn
 
 ---
 
+### Addendum found during execution: `CHK_bookings_customer_xor` blocks guest bookings
+
+Running the e2e suite for Task 5 surfaced a gap this plan missed: `bookings` has a check constraint `CHK_bookings_customer_xor` (added by `1787870000000-AddWalkInCustomersToBookings.ts`) requiring **exactly one** of `customer_id`/`customer_contact_id` to be non-null. A guest booking (both null, identified only by the new `contact_name` snapshot) violates it — `POST /bookings` returned 500.
+
+Fix applied: a new migration `apps/api/src/migrations/1788000000000-RelaxBookingsCustomerXorForGuestContact.ts`, run against both the dev DB (`npm run migration:run`) and the e2e test DB (`DB_NAME=pickleball_test npm run migration:run` — `.env.test` uses a separate `pickleball_test` database, `NODE_ENV=test` alone does **not** redirect `data-source.ts`, which calls plain `dotenv.config()` with no env-awareness; override `DB_NAME` directly instead). The new constraint keeps the original "not both set" rule and adds "or `contact_name` is set" as a third valid state:
+
+```ts
+import { MigrationInterface, QueryRunner } from 'typeorm';
+
+export class RelaxBookingsCustomerXorForGuestContact1788000000000
+  implements MigrationInterface
+{
+  name = 'RelaxBookingsCustomerXorForGuestContact1788000000000';
+
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "bookings" DROP CONSTRAINT "CHK_bookings_customer_xor"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "bookings" ADD CONSTRAINT "CHK_bookings_customer_xor" CHECK (
+        NOT ("customer_id" IS NOT NULL AND "customer_contact_id" IS NOT NULL)
+        AND ("customer_id" IS NOT NULL OR "customer_contact_id" IS NOT NULL OR "contact_name" IS NOT NULL)
+      )`,
+    );
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "bookings" DROP CONSTRAINT "CHK_bookings_customer_xor"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "bookings" ADD CONSTRAINT "CHK_bookings_customer_xor" CHECK (("customer_id" IS NOT NULL) <> ("customer_contact_id" IS NOT NULL))`,
+    );
+  }
+}
+```
+
+Also surfaced: the 3 new e2e tests in Task 5 initially used `createActiveUserAndLogin` (which calls `POST /auth/login`, throttled to 10 req/60s) for 4 more logins on top of the file's existing 10 — exactly the file's stated budget. Fixed by adding a `createActiveUserWithToken` helper that signs a JWT directly via `JwtService` (same precedent already used by the file's cashier test), avoiding `/auth/login` entirely for the 3 new tests.
+
+---
+
 ### Task 5: e2e coverage — guest checkout end-to-end
 
 **Files:**

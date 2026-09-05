@@ -35,6 +35,8 @@ Giữ nguyên toàn bộ phần còn lại của `trang-chi-tiet-co-so-design.md
 
 Bảng `bookings` thêm 3 cột nullable: `contact_name varchar`, `contact_phone varchar`, `contact_email varchar`. Áp dụng cho **mọi** booking tạo qua `POST /bookings` (khách vãng lai lẫn đã đăng nhập) — không đụng tới `customer_contact_id`/bảng `customer_contacts` (giữ nguyên, chỉ dùng cho công cụ đặt hộ của chủ sân).
 
+**Phát sinh lúc triển khai (không có trong bản thiết kế ban đầu):** constraint `CHK_bookings_customer_xor` (từ `1787870000000-AddWalkInCustomersToBookings.ts`) bắt buộc đúng 1 trong 2 cột `customer_id`/`customer_contact_id` phải khác null — khách vãng lai qua `/dat-san` có cả 2 cột null nên vi phạm constraint này. Migration `1788000000000-RelaxBookingsCustomerXorForGuestContact.ts` nới lỏng: vẫn cấm set đồng thời cả 2 cột, nhưng cho phép cả 2 null nếu `contact_name` có giá trị.
+
 ### 4.2 `POST /bookings` — chuyển sang optional-auth, mở rộng DTO
 
 `apps/api/src/bookings/bookings.controller.ts:27-35` — đổi từ bắt buộc `JwtAuthGuard`+`Roles(CUSTOMER)` sang guard mới `OptionalJwtAuthGuard` (extends `AuthGuard('jwt')`, override `handleRequest(err, user)` trả `user ?? null` thay vì throw khi thiếu/token không hợp lệ — không chặn request, chỉ gắn `request.user` nếu có). Role check cũ (`Roles(CUSTOMER)`) bỏ hẳn ở endpoint này — ai gọi cũng được, có JWT hợp lệ với role `CUSTOMER` thì gắn `customerId`, không có/role khác thì coi như khách vãng lai (không có JWT hợp lệ role `owner`/`staff` gọi endpoint này cũng rơi vào nhánh khách vãng lai — chấp nhận được, không phải luồng họ dùng).
