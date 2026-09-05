@@ -142,7 +142,7 @@ export default function ProfilePage() {
           </div>
           <div className="space-y-2">
             <Label>Email</Label>
-            <Input value={profile.email} disabled readOnly />
+            <Input value={profile.email} readOnly />
           </div>
           <div className="space-y-2">
             <Label htmlFor="address">Địa chỉ</Label>
