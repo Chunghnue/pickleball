@@ -102,16 +102,12 @@ export default function MyBookingsPage() {
   }
 
   if (!bookings) {
-    return (
-      <main className="flex flex-1 items-center justify-center p-8">
-        <p>Đang tải...</p>
-      </main>
-    );
+    return <p>Đang tải...</p>;
   }
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-1 flex-col gap-6 p-8">
-      <h1 className="text-2xl font-bold">Booking của tôi</h1>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-xl font-bold">Lịch sử đặt sân</h1>
 
       {bookings.length === 0 && (
         <div className="flex flex-col items-start gap-3">
@@ -184,6 +180,6 @@ export default function MyBookingsPage() {
           </Card>
         ))}
       </div>
-    </main>
+    </div>
   );
 }

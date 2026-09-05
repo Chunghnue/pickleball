@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Save, UserPen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { updateProfileSchema, type UpdateProfileInput } from "@/lib/schemas";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 
@@ -17,7 +16,6 @@ interface Profile {
   email: string;
   fullName: string;
   phone: string | null;
-  avatarUrl: string | null;
   address: string | null;
 }
 
@@ -30,8 +28,8 @@ interface Stats {
 }
 
 const TIER_LABELS: Record<Tier, string> = {
-  new: "Mới",
-  regular: "Thường xuyên",
+  new: "NEW",
+  regular: "THƯỜNG XUYÊN",
   vip: "VIP",
 };
 
@@ -41,7 +39,7 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const form = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
-    defaultValues: { fullName: "", phone: "", avatarUrl: "", address: "" },
+    defaultValues: { fullName: "", address: "" },
   });
 
   useEffect(() => {
@@ -58,8 +56,6 @@ export default function ProfilePage() {
         setProfile(data);
         form.reset({
           fullName: data.fullName,
-          phone: data.phone ?? "",
-          avatarUrl: data.avatarUrl ?? "",
           address: data.address ?? "",
         });
       });
@@ -74,8 +70,6 @@ export default function ProfilePage() {
   async function onSubmit(values: UpdateProfileInput) {
     const payload = {
       fullName: values.fullName,
-      phone: values.phone,
-      avatarUrl: values.avatarUrl === "" ? undefined : values.avatarUrl,
       address: values.address,
     };
     const response = await fetch("/api/users/me", {
@@ -93,111 +87,77 @@ export default function ProfilePage() {
     toast.success("Đã lưu thay đổi");
   }
 
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
-  }
-
   if (!profile) {
-    return (
-      <main className="flex flex-1 items-center justify-center p-8">
-        <p>Đang tải...</p>
-      </main>
-    );
+    return <p>Đang tải...</p>;
   }
 
   const { errors } = form.formState;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-8">
-      <div className="w-full max-w-sm space-y-4">
-        <div className="grid grid-cols-3 gap-2">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">
-                {stats ? stats.totalBookings : "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">Lần đặt sân</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">
-                {stats ? TIER_LABELS[stats.tier] : "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">Hạng thành viên</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">
-                {stats ? `${stats.totalSpent.toLocaleString("vi-VN")}đ` : "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">Tổng chi tiêu</p>
-            </CardContent>
-          </Card>
+    <div className="space-y-6">
+      <h1 className="flex items-center gap-2 text-xl font-bold">
+        <UserPen className="size-5 text-green-600 dark:text-green-400" />
+        Hồ sơ cá nhân
+      </h1>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-xl bg-green-50 p-4 text-center dark:bg-green-950/30">
+          <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+            {stats ? stats.totalBookings : "—"}
+          </p>
+          <p className="text-sm text-muted-foreground">Lần đặt sân</p>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Hồ sơ của tôi</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-muted-foreground">{profile.email}</p>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Họ tên</Label>
-                <Input
-                  id="fullName"
-                  aria-invalid={!!errors.fullName}
-                  {...form.register("fullName")}
-                />
-                {errors.fullName && (
-                  <p className="text-sm text-destructive">
-                    {errors.fullName.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Số điện thoại</Label>
-                <Input id="phone" {...form.register("phone")} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Địa chỉ</Label>
-                <Input id="address" {...form.register("address")} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="avatarUrl">Ảnh đại diện (URL)</Label>
-                <Input
-                  id="avatarUrl"
-                  aria-invalid={!!errors.avatarUrl}
-                  {...form.register("avatarUrl")}
-                />
-                {errors.avatarUrl && (
-                  <p className="text-sm text-destructive">
-                    {errors.avatarUrl.message}
-                  </p>
-                )}
-              </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={form.formState.isSubmitting}
-              >
-                Lưu thay đổi
-              </Button>
-            </form>
-            <Link
-              href="/tai-khoan/lich-su"
-              className={`${buttonVariants({ variant: "outline" })} mt-4 w-full`}
-            >
-              Booking của tôi
-            </Link>
-            <Button variant="outline" className="mt-2 w-full" onClick={handleLogout}>
-              Đăng xuất
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="rounded-xl bg-green-50 p-4 text-center dark:bg-green-950/30">
+          <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+            {stats ? TIER_LABELS[stats.tier] : "—"}
+          </p>
+          <p className="text-sm text-muted-foreground">Hạng thành viên</p>
+        </div>
+        <div className="rounded-xl bg-green-50 p-4 text-center dark:bg-green-950/30">
+          <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+            {stats ? stats.totalSpent.toLocaleString("vi-VN") : "—"}
+          </p>
+          <p className="text-sm text-muted-foreground">Tổng chi tiêu (VNĐ)</p>
+        </div>
       </div>
-    </main>
+
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Họ và tên</Label>
+            <Input
+              id="fullName"
+              aria-invalid={!!errors.fullName}
+              {...form.register("fullName")}
+            />
+            {errors.fullName && (
+              <p className="text-sm text-destructive">
+                {errors.fullName.message}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label>Số điện thoại</Label>
+            <p className="py-2 text-sm">{profile.phone ?? "—"}</p>
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input value={profile.email} disabled readOnly />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">Địa chỉ</Label>
+            <Input
+              id="address"
+              placeholder="Nhập địa chỉ"
+              {...form.register("address")}
+            />
+          </div>
+        </div>
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Save className="size-4" />
+          Lưu thay đổi
+        </Button>
+      </form>
+    </div>
   );
 }
