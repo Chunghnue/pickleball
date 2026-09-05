@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { notFound, useParams, useRouter } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import {
   CalendarCheck2,
   CheckCircle2,
@@ -17,7 +17,6 @@ import {
   Phone,
   Users,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import type { AvailabilitySlot } from "@/lib/slot-selection";
@@ -340,9 +339,7 @@ function SidebarCard({ venue }: { venue: PublicVenueDetail }) {
 }
 
 function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
-  const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
   const [slotsByCourtId, setSlotsByCourtId] = useState<Record<
     string,
     AvailabilitySlot[]
@@ -354,7 +351,7 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
     const results = await Promise.all(
       venue.courts.map(async (court) => {
         const res = await fetch(
-          `/api/bookings/availability?courtId=${court.id}&date=${date}`,
+          `/api/bookings/availability?courtId=${court.id}&date=${today}`,
         );
         const data = await res.json().catch(() => null);
         if (!res.ok) {
@@ -376,14 +373,7 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
   useEffect(() => {
     loadSlots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, venue.id]);
-
-  function handleCellClick(courtId: string, slot: AvailabilitySlot) {
-    if (slot.isBooked) return;
-    router.push(
-      `/dat-san?venueId=${venue.id}&courtId=${courtId}&date=${date}&start=${slot.start}`,
-    );
-  }
+  }, [venue.id]);
 
   const hasAnySlots =
     slotsByCourtId != null &&
@@ -391,20 +381,10 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
 
   return (
     <div className={CARD_CLASS}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-1.5 font-semibold">
-          <Clock className="size-4 text-green-600" />
-          Lịch trống hôm nay
-        </h2>
-        <Input
-          id="venue-date"
-          type="date"
-          min={today}
-          value={date}
-          onChange={(event) => setDate(event.target.value)}
-          className="w-auto"
-        />
-      </div>
+      <h2 className="flex items-center gap-1.5 font-semibold">
+        <Clock className="size-4 text-green-600" />
+        Lịch trống hôm nay
+      </h2>
 
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
@@ -457,21 +437,18 @@ function AvailabilityCard({ venue }: { venue: PublicVenueDetail }) {
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {slots.map((slot) => (
-                    <button
+                    <div
                       key={slot.start}
-                      type="button"
-                      disabled={slot.isBooked}
-                      onClick={() => handleCellClick(court.id, slot)}
-                      className={`rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                      className={`rounded-lg border px-3 py-2.5 text-center text-sm ${
                         slot.isBooked
-                          ? "cursor-not-allowed border-gray-200 bg-gray-100 text-muted-foreground dark:border-neutral-800 dark:bg-neutral-800"
+                          ? "border-gray-200 bg-gray-100 text-muted-foreground dark:border-neutral-800 dark:bg-neutral-800"
                           : vip
-                            ? "border-amber-200 bg-white hover:border-amber-500 hover:bg-amber-50 dark:border-amber-900 dark:bg-transparent dark:hover:bg-amber-950"
-                            : "border-gray-200 hover:border-green-600 hover:bg-green-50 dark:border-neutral-800 dark:hover:bg-green-950"
+                            ? "border-amber-200 bg-white dark:border-amber-900 dark:bg-transparent"
+                            : "border-gray-200 dark:border-neutral-800"
                       }`}
                     >
                       {slot.start}
-                    </button>
+                    </div>
                   ))}
                 </div>
               </div>
