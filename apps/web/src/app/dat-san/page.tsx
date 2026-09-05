@@ -358,7 +358,7 @@ function DatSanPageContent() {
                   </span>
                   <h2 className="font-bold">Cơ sở đã chọn</h2>
                 </div>
-                <div className="mt-3 flex items-center gap-3 rounded-xl bg-gray-50 p-3 dark:bg-neutral-800/50">
+                <div className="mt-3 flex items-center gap-3 rounded-xl border border-gray-200 p-3 dark:border-neutral-700">
                   <div className="size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
                     {venue.images[0] ? (
                       <img
@@ -374,15 +374,16 @@ function DatSanPageContent() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold">{venue.name}</p>
-                    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                       <MapPin className="size-3.5 shrink-0 text-green-600" />
                       <span className="truncate">
                         {venue.address}, {venue.city}
                       </span>
                     </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2 py-0.5 text-xs text-muted-foreground dark:bg-green-950/30">
+                      <span className="size-1.5 shrink-0 rounded-full bg-pink-500" />
                       {venue.courts.length} sân
-                    </p>
+                    </span>
                   </div>
                   <button
                     type="button"
