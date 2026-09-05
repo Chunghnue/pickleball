@@ -4,15 +4,17 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { Calendar, Clock, History, MapPin, Tag, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSubmitErrorMessage } from "@/lib/error-message";
+import { cn } from "@/lib/utils";
 
 type BookingStatus = "confirmed" | "cancelled" | "completed";
 type PaymentStatus = "unpaid" | "paid" | "refunded";
 
 interface Booking {
   id: string;
+  bookingCode: string;
   courtName: string;
   venueName: string;
   date: string;
@@ -23,10 +25,11 @@ interface Booking {
   paymentStatus: PaymentStatus;
 }
 
-const STATUS_LABEL: Record<BookingStatus, string> = {
-  confirmed: "Đã xác nhận",
-  cancelled: "Đã huỷ",
-  completed: "Hoàn thành",
+const STATUS_BADGE_CLASSES: Record<BookingStatus, string> = {
+  confirmed: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
+  completed:
+    "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-400",
+  cancelled: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400",
 };
 
 const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
@@ -106,8 +109,11 @@ export default function MyBookingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-bold">Lịch sử đặt sân</h1>
+    <div className="space-y-6">
+      <h1 className="flex items-center gap-2 text-xl font-bold">
+        <History className="size-5 text-green-600 dark:text-green-400" />
+        Lịch sử đặt sân
+      </h1>
 
       {bookings.length === 0 && (
         <div className="flex flex-col items-start gap-3">
@@ -120,64 +126,104 @@ export default function MyBookingsPage() {
 
       <div className="flex flex-col gap-4">
         {bookings.map((booking) => (
-          <Card key={booking.id}>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {booking.courtName} · {booking.venueName}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  {booking.date} · {booking.startTime}–{booking.endTime}
+          <div
+            key={booking.id}
+            className="rounded-xl border border-border p-4"
+          >
+            <div className="flex items-center justify-between">
+              <p className="font-bold">{booking.bookingCode}</p>
+              <span
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-semibold uppercase",
+                  STATUS_BADGE_CLASSES[booking.status],
+                )}
+              >
+                {booking.status}
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="size-3.5 text-pink-500" />
+                  Sân
                 </p>
-                <p>
-                  {booking.totalPrice.toLocaleString("vi-VN")}đ ·{" "}
-                  {STATUS_LABEL[booking.status]}
-                </p>
-                <p>{PAYMENT_STATUS_LABEL[booking.paymentStatus]}</p>
+                <p className="font-bold">{booking.courtName}</p>
               </div>
-              <div className="flex gap-2">
-                {booking.status === "confirmed" &&
-                  (confirmingId === booking.id ? (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleCancel(booking.id)}
-                      >
-                        Xác nhận huỷ?
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setConfirmingId(null)}
-                      >
-                        Thôi
-                      </Button>
-                    </>
-                  ) : (
+              <div>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Calendar className="size-3.5" />
+                  Ngày
+                </p>
+                <p className="font-bold">{booking.date}</p>
+              </div>
+              <div>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="size-3.5" />
+                  Giờ
+                </p>
+                <p className="font-bold">
+                  {booking.startTime} - {booking.endTime}
+                </p>
+              </div>
+              <div>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Tag className="size-3.5" />
+                  Thành tiền
+                </p>
+                <p className="font-bold">
+                  {booking.totalPrice.toLocaleString("vi-VN")}đ
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {PAYMENT_STATUS_LABEL[booking.paymentStatus]}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              {booking.status === "confirmed" &&
+                (confirmingId === booking.id ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="rounded-full"
+                      onClick={() => handleCancel(booking.id)}
+                    >
+                      Xác nhận huỷ?
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setConfirmingId(booking.id)}
+                      className="rounded-full"
+                      onClick={() => setConfirmingId(null)}
                     >
-                      Huỷ
+                      Thôi
                     </Button>
-                  ))}
-                {booking.paymentStatus === "paid" &&
-                  !disputedIds.has(booking.id) && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleReportIssue(booking.id)}
-                    >
-                      Báo cáo vấn đề
-                    </Button>
-                  )}
-              </div>
-            </CardContent>
-          </Card>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingId(booking.id)}
+                    className="flex items-center gap-1 rounded-full border border-red-200 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
+                  >
+                    <X className="size-3.5" />
+                    Hủy đặt sân
+                  </button>
+                ))}
+              {booking.paymentStatus === "paid" &&
+                !disputedIds.has(booking.id) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={() => handleReportIssue(booking.id)}
+                  >
+                    Báo cáo vấn đề
+                  </Button>
+                )}
+            </div>
+          </div>
         ))}
       </div>
     </div>
