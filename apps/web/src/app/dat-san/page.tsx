@@ -20,6 +20,7 @@ import {
   Timer,
   User,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PublicHeader } from "@/components/public-header";
@@ -63,6 +64,7 @@ interface ConfirmedBooking {
   startTime: string;
   endTime: string;
   totalPrice: number;
+  bookingCode: string;
 }
 
 function isVipCourt(name: string): boolean {
@@ -236,6 +238,7 @@ function DatSanPageContent() {
       startTime,
       endTime,
       totalPrice: data.totalPrice,
+      bookingCode: data.bookingCode,
     });
   }
 
@@ -281,35 +284,52 @@ function DatSanPageContent() {
 
   if (confirmed) {
     return (
-      <PageShell>
-        <div className={CARD_CLASS}>
-          <h1 className="text-xl font-bold text-green-700 dark:text-green-400">
-            Đặt sân thành công
-          </h1>
-          <p className="mt-2 text-sm">
-            {venue.name} · {confirmed.courtName} · {confirmed.date} ·{" "}
-            {confirmed.startTime}–{confirmed.endTime}
-          </p>
-          <p className="mt-1 font-semibold">
-            Tổng: {confirmed.totalPrice.toLocaleString("vi-VN")}đ
-          </p>
-          {user ? (
-            <Link
-              href="/me/bookings"
-              className="mt-4 inline-block text-green-600 hover:underline dark:text-green-400"
-            >
-              Xem trong Lịch sử đặt sân
-            </Link>
-          ) : (
-            <Link
-              href="/venues"
-              className="mt-4 inline-block text-green-600 hover:underline dark:text-green-400"
-            >
-              Quay lại tìm sân
-            </Link>
-          )}
-        </div>
-      </PageShell>
+      <>
+        <PublicHeader />
+        <div className="flex-1 bg-gray-50 dark:bg-neutral-950" />
+        <PublicFooter />
+        <Dialog open onOpenChange={() => {}}>
+          <DialogContent className="max-w-sm p-6 text-center">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-green-600">
+              <Check className="size-8 text-white" />
+            </div>
+            <DialogTitle className="mt-4 text-xl font-bold">
+              Đặt sân thành công!
+            </DialogTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Chủ sân sẽ liên hệ xác nhận qua số điện thoại bạn đã cung cấp.
+            </p>
+            <div className="mt-4 rounded-xl bg-green-50 py-3 dark:bg-green-950/30">
+              <span className="text-lg font-bold tracking-wide text-green-700 dark:text-green-400">
+                {confirmed.bookingCode}
+              </span>
+            </div>
+            <div className="mt-5 flex justify-center gap-3">
+              <Link
+                href="/"
+                className="rounded-full border border-green-600 px-5 py-2 text-sm font-semibold text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
+              >
+                Về trang chủ
+              </Link>
+              {user ? (
+                <Link
+                  href="/me/bookings"
+                  className="rounded-full bg-green-700 px-5 py-2 text-sm font-semibold text-white hover:bg-green-800"
+                >
+                  Xem lịch sử
+                </Link>
+              ) : (
+                <Link
+                  href="/venues"
+                  className="rounded-full bg-green-700 px-5 py-2 text-sm font-semibold text-white hover:bg-green-800"
+                >
+                  Tìm sân khác
+                </Link>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
