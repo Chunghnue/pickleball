@@ -211,6 +211,7 @@ describe('BookingsService.create', () => {
 
     expect(result.totalPrice).toBe(200000);
     expect(result.status).toBe(BookingStatus.CONFIRMED);
+    expect(result.bookingCode).toBe(buildBookingCode('booking-1'));
     expect(paymentsService.createForBooking).toHaveBeenCalledWith(
       'booking-1',
       manager,

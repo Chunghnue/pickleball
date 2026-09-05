@@ -17,6 +17,7 @@ import {
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../src/courts/entities/court.entity';
 import { Booking } from '../src/bookings/entities/booking.entity';
+import { buildBookingCode } from '../src/bookings/booking-code.util';
 
 describe('Bookings (e2e)', () => {
   let app: INestApplication;
@@ -148,6 +149,7 @@ describe('Bookings (e2e)', () => {
       courtId,
       status: 'confirmed',
       totalPrice: 100000,
+      bookingCode: buildBookingCode(createResponse.body.id),
     });
     expect(mockMailService.send).toHaveBeenCalledWith(
       'customer1@test.com',

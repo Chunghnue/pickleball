@@ -70,7 +70,7 @@ export class BookingsService {
   async create(
     customerId: string | null,
     dto: CreateBookingDto,
-  ): Promise<Booking> {
+  ): Promise<Booking & { bookingCode: string }> {
     const { booking, court, venue } = await this.createBookingRecord({
       courtId: dto.courtId,
       date: dto.date,
@@ -128,7 +128,7 @@ export class BookingsService {
       });
     }
 
-    return booking;
+    return { ...booking, bookingCode: buildBookingCode(booking.id) };
   }
 
   async createBookingRecord(params: {
