@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -128,7 +132,12 @@ export class UsersService {
 
   async updateProfile(
     userId: string,
-    updates: { fullName?: string; phone?: string; avatarUrl?: string },
+    updates: {
+      fullName?: string;
+      phone?: string;
+      avatarUrl?: string;
+      address?: string;
+    },
   ): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {
@@ -137,6 +146,7 @@ export class UsersService {
     if (updates.fullName !== undefined) user.fullName = updates.fullName;
     if (updates.phone !== undefined) user.phone = updates.phone;
     if (updates.avatarUrl !== undefined) user.avatarUrl = updates.avatarUrl;
+    if (updates.address !== undefined) user.address = updates.address;
     return this.usersRepository.save(user);
   }
 }

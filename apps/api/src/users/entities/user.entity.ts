@@ -49,6 +49,9 @@ export class User {
   @Column({ name: 'avatar_url', nullable: true, type: 'varchar' })
   avatarUrl: string | null;
 
+  @Column({ nullable: true, type: 'varchar' })
+  address: string | null;
+
   @Column({ name: 'owner_id', nullable: true, type: 'uuid' })
   ownerId: string | null;
 

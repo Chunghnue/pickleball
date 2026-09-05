@@ -28,12 +28,8 @@ async function buildTestingModule() {
 
   return {
     service: module.get(UsersService),
-    repo: module.get(getRepositoryToken(User)) as ReturnType<
-      typeof mockRepository
-    >,
-    notificationsService: module.get(NotificationsService) as ReturnType<
-      typeof mockNotificationsService
-    >,
+    repo: module.get(getRepositoryToken(User)),
+    notificationsService: module.get(NotificationsService),
   };
 }
 
@@ -182,6 +178,24 @@ describe('UsersService.updateProfile', () => {
     expect(result.fullName).toBe('New Name');
     expect(result.phone).toBe('0900000000');
   });
+
+  it('updates the address field when provided', async () => {
+    const { service, repo } = await buildTestingModule();
+    repo.findOne.mockResolvedValue({
+      id: 'user-1',
+      fullName: 'A B',
+      phone: null,
+      avatarUrl: null,
+      address: null,
+    });
+    repo.save.mockImplementation((data) => Promise.resolve(data));
+
+    const result = await service.updateProfile('user-1', {
+      address: '123 Lê Lợi, Q1',
+    });
+
+    expect(result.address).toBe('123 Lê Lợi, Q1');
+  });
 });
 
 describe('UsersService.findByIds', () => {
@@ -207,7 +221,9 @@ describe('UsersService.findByIds', () => {
 describe('UsersService.findActiveOwners', () => {
   it('queries for active owners', async () => {
     const { service, repo } = await buildTestingModule();
-    repo.find.mockResolvedValue([{ id: 'owner-1', role: UserRole.OWNER, status: UserStatus.ACTIVE }]);
+    repo.find.mockResolvedValue([
+      { id: 'owner-1', role: UserRole.OWNER, status: UserStatus.ACTIVE },
+    ]);
 
     const result = await service.findActiveOwners();
 
