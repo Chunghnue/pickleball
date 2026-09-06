@@ -7,6 +7,7 @@ import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import { cn } from "@/lib/utils";
 import { SupportTab } from "./support-tab";
+import { PartnerTab } from "./partner-tab";
 
 type TabKey = "ho-tro" | "dang-ky-chu-san";
 
@@ -71,11 +72,7 @@ function LienHeContent() {
       </div>
 
       <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
-        {tab === "ho-tro" ? (
-          <SupportTab />
-        ) : (
-          <p className="text-muted-foreground">Đang tải...</p>
-        )}
+        {tab === "ho-tro" ? <SupportTab /> : <PartnerTab />}
       </div>
     </main>
   );
