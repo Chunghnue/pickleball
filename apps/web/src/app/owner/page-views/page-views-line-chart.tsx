@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download } from "lucide-react";
+import { Download, LineChart as LineChartIcon } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -37,7 +37,10 @@ export function PageViewsLineChart({ viewsByDay, exportHref }: PageViewsLineChar
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Diễn biến theo ngày</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <LineChartIcon className="size-4" />
+          Diễn biến theo ngày
+        </CardTitle>
         <CardAction className="flex items-center gap-3">
           <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <input
@@ -62,16 +65,23 @@ export function PageViewsLineChart({ viewsByDay, exportHref }: PageViewsLineChar
       </CardHeader>
       <CardContent>
         {!hasViews && (
-          <p className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-            Chưa có dữ liệu
-          </p>
+          <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
+            <LineChartIcon className="size-10 opacity-40" />
+            <p className="text-sm">Chưa có dữ liệu lượt xem trong khoảng này.</p>
+          </div>
         )}
         {hasViews && (
           <div style={{ height: 256 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={viewsByDay}>
+              <LineChart data={viewsByDay} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tickFormatter={shortDate} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={shortDate}
+                  interval={0}
+                  tick={{ fontSize: 11 }}
+                  padding={{ left: 8, right: 8 }}
+                />
                 <YAxis tickFormatter={formatCompact} width={40} />
                 <Tooltip
                   labelFormatter={(label) => shortDate(String(label))}

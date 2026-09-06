@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { Grid3x3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { DAY_LABELS, DISPLAY_ORDER } from "@/app/owner/settings/operating-hours-format";
@@ -27,13 +28,17 @@ export function PageViewsHeatmap({ heatmap }: PageViewsHeatmapProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Giờ cao điểm</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Grid3x3 className="size-4" />
+          Giờ cao điểm – Heatmap theo thứ × giờ
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {!hasViews && (
-          <p className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-            Chưa có dữ liệu
-          </p>
+          <div className="flex h-40 flex-col items-center justify-center gap-2 text-muted-foreground">
+            <Grid3x3 className="size-10 opacity-40" />
+            <p className="text-sm">Chưa đủ data để dựng heatmap.</p>
+          </div>
         )}
         {hasViews && (
           <div className="overflow-x-auto">

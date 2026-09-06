@@ -20,11 +20,14 @@ export function PageViewsTopSources({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top nguồn truy cập</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Link2 className="size-4" />
+          Top nguồn truy cập
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {topSources.length === 0 && (
-          <p className="text-sm text-muted-foreground">Chưa có dữ liệu.</p>
+          <p className="py-2 text-center text-sm text-muted-foreground">Chưa có dữ liệu nguồn.</p>
         )}
         {topSources.map((row) => {
           const meta = SOURCE_META[row.source] ?? { label: row.source, icon: Globe };

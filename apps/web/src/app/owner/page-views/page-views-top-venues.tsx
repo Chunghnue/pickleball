@@ -1,3 +1,4 @@
+import { BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNumber } from "./page-views-format";
 import type { PageViewsSummary } from "./types";
@@ -12,11 +13,14 @@ export function PageViewsTopVenues({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top cơ sở xem nhiều</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <BarChart3 className="size-4" />
+          Top cơ sở xem nhiều
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {topVenues.length === 0 && (
-          <p className="text-sm text-muted-foreground">Chưa có dữ liệu.</p>
+          <p className="py-2 text-center text-sm text-muted-foreground">Chưa có dữ liệu.</p>
         )}
         {topVenues.map((row, index) => (
           <div key={row.venueId} className="flex items-center gap-3">

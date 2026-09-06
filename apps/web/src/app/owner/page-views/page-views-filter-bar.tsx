@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { ALL_BRANCHES_ID, useBranch } from "@/lib/branch-context";
 import { getPresetRange, type PresetKey } from "./page-views-format";
 import type { DateRange } from "./types";
+
+interface Venue {
+  id: string;
+  name: string;
+}
 
 const PRESETS: { key: PresetKey; label: string }[] = [
   { key: "7d", label: "7 ngày" },
@@ -27,6 +33,14 @@ export function PageViewsFilterBar({
   const [draftFrom, setDraftFrom] = useState(appliedRange.from);
   const [draftTo, setDraftTo] = useState(appliedRange.to);
   const [activePreset, setActivePreset] = useState<PresetKey | null>("30d");
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const { selectedVenueId, setSelectedVenueId } = useBranch();
+
+  useEffect(() => {
+    fetch("/api/venues/mine")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setVenues(Array.isArray(data) ? data : []));
+  }, []);
 
   const isInvalid = !draftFrom || !draftTo || draftFrom > draftTo;
 
@@ -46,6 +60,22 @@ export function PageViewsFilterBar({
   return (
     <Card>
       <CardContent className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="page-views-venue">Cơ sở</Label>
+          <select
+            id="page-views-venue"
+            value={selectedVenueId}
+            onChange={(e) => setSelectedVenueId(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <option value={ALL_BRANCHES_ID}>Tất cả cơ sở ({venues.length})</option>
+            {venues.map((venue) => (
+              <option key={venue.id} value={venue.id}>
+                {venue.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex flex-wrap gap-2">
           {PRESETS.map((preset) => (
             <Button

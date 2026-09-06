@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Eye } from "lucide-react";
 import { ALL_BRANCHES_ID, useBranch } from "@/lib/branch-context";
 import { PageViewsFilterBar } from "./page-views-filter-bar";
 import { PageViewsMetrics } from "./page-views-metrics";
@@ -58,11 +59,16 @@ export default function OwnerPageViewsPage() {
 
   return (
     <main className="flex w-full flex-1 flex-col gap-6 bg-muted/30 p-8">
-      <div>
-        <h1 className="text-2xl font-bold">Lượt xem trang</h1>
-        <p className="text-sm text-muted-foreground">
-          Phân tích lưu lượng truy cập trang đặt sân công khai
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
+          <Eye className="size-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Lượt xem trang</h1>
+          <p className="text-sm text-muted-foreground">
+            Phân tích lưu lượng truy cập trang đặt sân công khai
+          </p>
+        </div>
       </div>
 
       <PageViewsFilterBar appliedRange={appliedRange} onApply={setAppliedRange} />
