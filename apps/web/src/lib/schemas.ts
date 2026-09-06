@@ -189,3 +189,11 @@ export const changePasswordSchema = z
     path: ['confirmPassword'],
   });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+export const supportMessageSchema = z.object({
+  fullName: z.string().min(1, 'Vui lòng nhập họ và tên'),
+  phone: z.string().min(1, 'Vui lòng nhập số điện thoại'),
+  email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
+  message: z.string().min(1, 'Vui lòng nhập nội dung'),
+});
+export type SupportMessageInput = z.infer<typeof supportMessageSchema>;
