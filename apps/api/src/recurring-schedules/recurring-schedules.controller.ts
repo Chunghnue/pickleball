@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OwnerScopeGuard } from '../auth/guards/owner-scope.guard';
 import { OwnerScope } from '../auth/decorators/owner-scope.decorator';
@@ -9,7 +17,9 @@ import { UpdateRecurringScheduleDto } from './dto/update-recurring-schedule.dto'
 
 @Controller()
 export class RecurringSchedulesController {
-  constructor(private readonly recurringSchedulesService: RecurringSchedulesService) {}
+  constructor(
+    private readonly recurringSchedulesService: RecurringSchedulesService,
+  ) {}
 
   @Post('venues/mine/:venueId/recurring-schedules')
   @UseGuards(JwtAuthGuard, OwnerScopeGuard)
@@ -19,7 +29,11 @@ export class RecurringSchedulesController {
     @Param('venueId') venueId: string,
     @Body() dto: CreateRecurringScheduleDto,
   ) {
-    return this.recurringSchedulesService.create(effectiveOwnerId, venueId, dto);
+    return this.recurringSchedulesService.create(
+      effectiveOwnerId,
+      venueId,
+      dto,
+    );
   }
 
   @Get('venues/mine/:venueId/recurring-schedules')
@@ -29,7 +43,10 @@ export class RecurringSchedulesController {
     @EffectiveOwnerId() effectiveOwnerId: string,
     @Param('venueId') venueId: string,
   ) {
-    return this.recurringSchedulesService.findByVenueForOwner(effectiveOwnerId, venueId);
+    return this.recurringSchedulesService.findByVenueForOwner(
+      effectiveOwnerId,
+      venueId,
+    );
   }
 
   @Get('venues/mine/:venueId/recurring-schedules/:id')
@@ -40,7 +57,11 @@ export class RecurringSchedulesController {
     @Param('venueId') venueId: string,
     @Param('id') id: string,
   ) {
-    return this.recurringSchedulesService.findByIdForOwner(effectiveOwnerId, venueId, id);
+    return this.recurringSchedulesService.findByIdForOwner(
+      effectiveOwnerId,
+      venueId,
+      id,
+    );
   }
 
   @Post('venues/mine/:venueId/recurring-schedules/:id/cancel')
@@ -85,6 +106,11 @@ export class RecurringSchedulesController {
     @Param('id') id: string,
     @Body() dto: UpdateRecurringScheduleDto,
   ) {
-    return this.recurringSchedulesService.update(effectiveOwnerId, venueId, id, dto);
+    return this.recurringSchedulesService.update(
+      effectiveOwnerId,
+      venueId,
+      id,
+      dto,
+    );
   }
 }

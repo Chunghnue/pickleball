@@ -4,7 +4,9 @@ const GRID = { openTime: '08:00', closeTime: '20:00', slotDurationMinutes: 60 };
 
 describe('generateBookingSlotStarts', () => {
   it('returns one slot start for a single-slot booking', () => {
-    expect(generateBookingSlotStarts('08:00', '09:00', GRID)).toEqual(['08:00']);
+    expect(generateBookingSlotStarts('08:00', '09:00', GRID)).toEqual([
+      '08:00',
+    ]);
   });
 
   it('returns multiple consecutive slot starts for a multi-slot booking', () => {

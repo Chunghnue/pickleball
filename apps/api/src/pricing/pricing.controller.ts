@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OwnerScopeGuard } from '../auth/guards/owner-scope.guard';
 import { OwnerScope } from '../auth/decorators/owner-scope.decorator';
@@ -55,7 +65,13 @@ export class PricingController {
     @Param('id') id: string,
     @Body() dto: UpdatePricingRuleDto,
   ) {
-    return this.pricingService.update(effectiveOwnerId, venueId, courtId, id, dto);
+    return this.pricingService.update(
+      effectiveOwnerId,
+      venueId,
+      courtId,
+      id,
+      dto,
+    );
   }
 
   @Delete('venues/mine/:venueId/courts/:courtId/pricing-rules/:id')
@@ -70,7 +86,9 @@ export class PricingController {
     return this.pricingService.remove(effectiveOwnerId, venueId, courtId, id);
   }
 
-  @Post('venues/mine/:venueId/courts/:courtId/pricing-rules/copy-from/:sourceCourtId')
+  @Post(
+    'venues/mine/:venueId/courts/:courtId/pricing-rules/copy-from/:sourceCourtId',
+  )
   @UseGuards(JwtAuthGuard, OwnerScopeGuard)
   @OwnerScope('full')
   copyFrom(
@@ -79,7 +97,12 @@ export class PricingController {
     @Param('courtId') courtId: string,
     @Param('sourceCourtId') sourceCourtId: string,
   ) {
-    return this.pricingService.copyFrom(effectiveOwnerId, venueId, courtId, sourceCourtId);
+    return this.pricingService.copyFrom(
+      effectiveOwnerId,
+      venueId,
+      courtId,
+      sourceCourtId,
+    );
   }
 
   @Post('venues/mine/:venueId/pricing-rules/copy-from-venue/:sourceVenueId')
@@ -90,6 +113,10 @@ export class PricingController {
     @Param('venueId') venueId: string,
     @Param('sourceVenueId') sourceVenueId: string,
   ) {
-    return this.pricingService.copyFromVenue(effectiveOwnerId, venueId, sourceVenueId);
+    return this.pricingService.copyFromVenue(
+      effectiveOwnerId,
+      venueId,
+      sourceVenueId,
+    );
   }
 }

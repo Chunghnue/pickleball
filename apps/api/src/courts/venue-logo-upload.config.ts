@@ -25,7 +25,10 @@ export const venueLogoUploadOptions: MulterOptions = {
   limits: { fileSize: MAX_FILE_SIZE_BYTES },
   fileFilter: (_req, file, callback) => {
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      callback(new BadRequestException('Chỉ chấp nhận ảnh JPG/PNG/WEBP'), false);
+      callback(
+        new BadRequestException('Chỉ chấp nhận ảnh JPG/PNG/WEBP'),
+        false,
+      );
       return;
     }
     callback(null, true);

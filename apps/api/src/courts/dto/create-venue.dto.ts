@@ -1,4 +1,14 @@
-import { IsEmail, IsNumber, IsOptional, IsString, Matches, Max, Min, MinLength, ValidateIf } from 'class-validator';
+import {
+  IsEmail,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  Min,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 import { SLUG_PATTERN } from '../slug.util';
 
 export class CreateVenueDto {

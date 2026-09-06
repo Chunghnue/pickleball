@@ -13,12 +13,18 @@ export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   @Get('summary')
-  getSummary(@EffectiveOwnerId() effectiveOwnerId: string, @Query('venueId') venueId?: string) {
+  getSummary(
+    @EffectiveOwnerId() effectiveOwnerId: string,
+    @Query('venueId') venueId?: string,
+  ) {
     return this.customersService.getSummary(effectiveOwnerId, venueId);
   }
 
   @Get()
-  list(@EffectiveOwnerId() effectiveOwnerId: string, @Query() query: ListCustomersDto) {
+  list(
+    @EffectiveOwnerId() effectiveOwnerId: string,
+    @Query() query: ListCustomersDto,
+  ) {
     return this.customersService.listCustomers(effectiveOwnerId, query);
   }
 

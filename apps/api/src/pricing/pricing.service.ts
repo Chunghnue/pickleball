@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { PricingRule } from './entities/pricing-rule.entity';
@@ -7,7 +12,10 @@ import { Venue } from '../courts/entities/venue.entity';
 import { CreatePricingRuleDto } from './dto/create-pricing-rule.dto';
 import { UpdatePricingRuleDto } from './dto/update-pricing-rule.dto';
 import { timeToMinutes } from '../courts/time.util';
-import { RecurringSchedule, RecurringScheduleStatus } from '../recurring-schedules/entities/recurring-schedule.entity';
+import {
+  RecurringSchedule,
+  RecurringScheduleStatus,
+} from '../recurring-schedules/entities/recurring-schedule.entity';
 
 @Injectable()
 export class PricingService {
@@ -22,9 +30,15 @@ export class PricingService {
     private readonly recurringSchedulesRepository: Repository<RecurringSchedule>,
   ) {}
 
-  async resolvePrice(courtId: string, date: string, slotStart: string): Promise<number> {
+  async resolvePrice(
+    courtId: string,
+    date: string,
+    slotStart: string,
+  ): Promise<number> {
     const dayOfWeek = this.getDayOfWeek(date);
-    const rules = await this.pricingRulesRepository.find({ where: { courtId } });
+    const rules = await this.pricingRulesRepository.find({
+      where: { courtId },
+    });
     const matching = rules.filter(
       (rule) =>
         rule.daysOfWeek.includes(dayOfWeek) &&
@@ -35,7 +49,9 @@ export class PricingService {
     );
 
     if (matching.length === 0) {
-      const court = await this.courtsRepository.findOne({ where: { id: courtId } });
+      const court = await this.courtsRepository.findOne({
+        where: { id: courtId },
+      });
       if (!court) {
         throw new NotFoundException(`Court ${courtId} không tồn tại`);
       }
@@ -53,7 +69,10 @@ export class PricingService {
     if (selected.advanceBookingHours !== null) {
       const slotStartMs = new Date(`${date}T${slotStart}:00Z`).getTime();
       const hoursUntilSlot = (slotStartMs - Date.now()) / (60 * 60 * 1000);
-      if (hoursUntilSlot >= selected.advanceBookingHours && selected.advancePrice !== null) {
+      if (
+        hoursUntilSlot >= selected.advanceBookingHours &&
+        selected.advancePrice !== null
+      ) {
         return selected.advancePrice;
       }
     }
@@ -73,7 +92,12 @@ export class PricingService {
     dto: CreatePricingRuleDto,
   ): Promise<PricingRule> {
     await this.getOwnedCourtOrThrow(ownerId, venueId, courtId);
-    this.assertValid(dto.startTime, dto.endTime, dto.validFrom ?? null, dto.validTo ?? null);
+    this.assertValid(
+      dto.startTime,
+      dto.endTime,
+      dto.validFrom ?? null,
+      dto.validTo ?? null,
+    );
 
     const created = this.pricingRulesRepository.create({
       courtId,
@@ -91,7 +115,11 @@ export class PricingService {
     return this.pricingRulesRepository.save(created);
   }
 
-  async findByCourt(ownerId: string, venueId: string, courtId: string): Promise<PricingRule[]> {
+  async findByCourt(
+    ownerId: string,
+    venueId: string,
+    courtId: string,
+  ): Promise<PricingRule[]> {
     await this.getOwnedCourtOrThrow(ownerId, venueId, courtId);
     return this.pricingRulesRepository.find({
       where: { courtId },
@@ -107,14 +135,17 @@ export class PricingService {
     dto: UpdatePricingRuleDto,
   ): Promise<PricingRule> {
     await this.getOwnedCourtOrThrow(ownerId, venueId, courtId);
-    const rule = await this.pricingRulesRepository.findOne({ where: { id, courtId } });
+    const rule = await this.pricingRulesRepository.findOne({
+      where: { id, courtId },
+    });
     if (!rule) {
       throw new NotFoundException(`Pricing rule ${id} không tồn tại`);
     }
 
     const nextStartTime = dto.startTime ?? rule.startTime;
     const nextEndTime = dto.endTime ?? rule.endTime;
-    const nextValidFrom = dto.validFrom !== undefined ? dto.validFrom : rule.validFrom;
+    const nextValidFrom =
+      dto.validFrom !== undefined ? dto.validFrom : rule.validFrom;
     const nextValidTo = dto.validTo !== undefined ? dto.validTo : rule.validTo;
     this.assertValid(nextStartTime, nextEndTime, nextValidFrom, nextValidTo);
 
@@ -124,7 +155,8 @@ export class PricingService {
     rule.endTime = nextEndTime;
     if (dto.price !== undefined) rule.price = dto.price;
     if (dto.priority !== undefined) rule.priority = dto.priority;
-    if (dto.advanceBookingHours !== undefined) rule.advanceBookingHours = dto.advanceBookingHours;
+    if (dto.advanceBookingHours !== undefined)
+      rule.advanceBookingHours = dto.advanceBookingHours;
     if (dto.advancePrice !== undefined) rule.advancePrice = dto.advancePrice;
     rule.validFrom = nextValidFrom;
     rule.validTo = nextValidTo;
@@ -132,9 +164,16 @@ export class PricingService {
     return this.pricingRulesRepository.save(rule);
   }
 
-  async remove(ownerId: string, venueId: string, courtId: string, id: string): Promise<void> {
+  async remove(
+    ownerId: string,
+    venueId: string,
+    courtId: string,
+    id: string,
+  ): Promise<void> {
     await this.getOwnedCourtOrThrow(ownerId, venueId, courtId);
-    const rule = await this.pricingRulesRepository.findOne({ where: { id, courtId } });
+    const rule = await this.pricingRulesRepository.findOne({
+      where: { id, courtId },
+    });
     if (!rule) {
       throw new NotFoundException(`Pricing rule ${id} không tồn tại`);
     }
@@ -149,16 +188,23 @@ export class PricingService {
   ): Promise<PricingRule[]> {
     await this.getOwnedCourtOrThrow(ownerId, venueId, courtId);
 
-    const ownedVenues = await this.venuesRepository.find({ where: { ownerId } });
+    const ownedVenues = await this.venuesRepository.find({
+      where: { ownerId },
+    });
     const ownedVenueIds = ownedVenues.map((venue) => venue.id);
     const sourceCourt = await this.courtsRepository.findOne({
-      where: { id: sourceCourtId, venueId: In(ownedVenueIds.length > 0 ? ownedVenueIds : ['__none__']) },
+      where: {
+        id: sourceCourtId,
+        venueId: In(ownedVenueIds.length > 0 ? ownedVenueIds : ['__none__']),
+      },
     });
     if (!sourceCourt) {
       throw new NotFoundException(`Court ${sourceCourtId} không tồn tại`);
     }
 
-    const sourceRules = await this.pricingRulesRepository.find({ where: { courtId: sourceCourtId } });
+    const sourceRules = await this.pricingRulesRepository.find({
+      where: { courtId: sourceCourtId },
+    });
     const copies = sourceRules.map((rule) =>
       this.pricingRulesRepository.create({
         courtId,
@@ -183,19 +229,29 @@ export class PricingService {
     sourceVenueId: string,
   ): Promise<PricingRule[]> {
     if (sourceVenueId === venueId) {
-      throw new BadRequestException('Không thể sao chép từ chính chi nhánh hiện tại');
+      throw new BadRequestException(
+        'Không thể sao chép từ chính chi nhánh hiện tại',
+      );
     }
     await this.getOwnedVenue(ownerId, venueId);
-    const sourceVenue = await this.venuesRepository.findOne({ where: { id: sourceVenueId } });
+    const sourceVenue = await this.venuesRepository.findOne({
+      where: { id: sourceVenueId },
+    });
     if (!sourceVenue || sourceVenue.ownerId !== ownerId) {
       throw new NotFoundException(`Venue ${sourceVenueId} không tồn tại`);
     }
 
-    const targetCourts = await this.courtsRepository.find({ where: { venueId } });
-    const sourceCourts = await this.courtsRepository.find({ where: { venueId: sourceVenueId } });
+    const targetCourts = await this.courtsRepository.find({
+      where: { venueId },
+    });
+    const sourceCourts = await this.courtsRepository.find({
+      where: { venueId: sourceVenueId },
+    });
     const sourceCourtIds = sourceCourts.map((court) => court.id);
     const sourceRules = await this.pricingRulesRepository.find({
-      where: { courtId: In(sourceCourtIds.length > 0 ? sourceCourtIds : ['__none__']) },
+      where: {
+        courtId: In(sourceCourtIds.length > 0 ? sourceCourtIds : ['__none__']),
+      },
     });
 
     const copies = targetCourts.flatMap((court) =>
@@ -234,7 +290,9 @@ export class PricingService {
 
     let courtIds: string[];
     if (courtId) {
-      const court = await this.courtsRepository.findOne({ where: { id: courtId, venueId } });
+      const court = await this.courtsRepository.findOne({
+        where: { id: courtId, venueId },
+      });
       if (!court) {
         throw new NotFoundException(`Court ${courtId} không tồn tại`);
       }
@@ -250,14 +308,19 @@ export class PricingService {
     });
 
     const activeSchedules = await this.recurringSchedulesRepository.find({
-      where: { courtId: In(scopedCourtIds), status: RecurringScheduleStatus.ACTIVE },
+      where: {
+        courtId: In(scopedCourtIds),
+        status: RecurringScheduleStatus.ACTIVE,
+      },
     });
     const estimatedMonthlyRecurringRevenue =
       Math.round(
         activeSchedules.reduce(
           (sum, schedule) =>
             sum +
-            schedule.pricePerSession * (1 - (schedule.discountPercent ?? 0) / 100) * (52 / 12),
+            schedule.pricePerSession *
+              (1 - (schedule.discountPercent ?? 0) / 100) *
+              (52 / 12),
           0,
         ) * 100,
       ) / 100;
@@ -275,15 +338,22 @@ export class PricingService {
     courtId: string,
   ): Promise<Court> {
     await this.getOwnedVenue(ownerId, venueId);
-    const court = await this.courtsRepository.findOne({ where: { id: courtId, venueId } });
+    const court = await this.courtsRepository.findOne({
+      where: { id: courtId, venueId },
+    });
     if (!court) {
       throw new NotFoundException(`Court ${courtId} không tồn tại`);
     }
     return court;
   }
 
-  private async getOwnedVenue(ownerId: string, venueId: string): Promise<Venue> {
-    const venue = await this.venuesRepository.findOne({ where: { id: venueId } });
+  private async getOwnedVenue(
+    ownerId: string,
+    venueId: string,
+  ): Promise<Venue> {
+    const venue = await this.venuesRepository.findOne({
+      where: { id: venueId },
+    });
     if (!venue) {
       throw new NotFoundException(`Venue ${venueId} không tồn tại`);
     }

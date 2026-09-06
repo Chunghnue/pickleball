@@ -152,7 +152,11 @@ export class AuthService {
     const ttlDays = Number(this.config.get('REFRESH_TOKEN_TTL_DAYS', 30));
     const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
     await this.refreshTokenRepository.save(
-      this.refreshTokenRepository.create({ userId, tokenHash: hash, expiresAt }),
+      this.refreshTokenRepository.create({
+        userId,
+        tokenHash: hash,
+        expiresAt,
+      }),
     );
     return raw;
   }

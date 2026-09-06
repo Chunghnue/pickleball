@@ -2,7 +2,11 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
+import {
+  createTestApp,
+  clearDatabase,
+  mockMailService,
+} from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 
 describe('Admin owner approval (e2e)', () => {
@@ -131,9 +135,7 @@ describe('Admin owner approval (e2e)', () => {
   });
 
   it('rejects unauthenticated access with 401', async () => {
-    await request(app.getHttpServer())
-      .get('/admin/owners/pending')
-      .expect(401);
+    await request(app.getHttpServer()).get('/admin/owners/pending').expect(401);
   });
 
   it('sends an approval email when approving an owner', async () => {

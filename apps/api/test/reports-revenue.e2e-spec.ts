@@ -6,8 +6,14 @@ import { createTestApp, clearDatabase } from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../src/courts/entities/court.entity';
-import { Booking, BookingStatus } from '../src/bookings/entities/booking.entity';
-import { Payment, PaymentStatus } from '../src/payments/entities/payment.entity';
+import {
+  Booking,
+  BookingStatus,
+} from '../src/bookings/entities/booking.entity';
+import {
+  Payment,
+  PaymentStatus,
+} from '../src/payments/entities/payment.entity';
 import { CustomerContact } from '../src/customer-contacts/entities/customer-contact.entity';
 
 describe('Owner revenue report (e2e)', () => {
@@ -169,7 +175,9 @@ describe('Owner revenue report (e2e)', () => {
       .expect(404);
 
     await request(app.getHttpServer())
-      .get(`/reports/revenue?from=2026-08-01&to=2026-08-10&venueId=${otherVenue.id}`)
+      .get(
+        `/reports/revenue?from=2026-08-01&to=2026-08-10&venueId=${otherVenue.id}`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .expect(403);
   });
@@ -192,15 +200,20 @@ describe('Owner revenue report (e2e)', () => {
     expect(response.body.changeAmount).toBe(0);
     expect(response.body.changePercent).toBeNull();
     expect(response.body.revenueByDay).toHaveLength(10);
-    expect(response.body.revenueByDay.every((d: { revenue: number }) => d.revenue === 0)).toBe(
-      true,
-    );
+    expect(
+      response.body.revenueByDay.every(
+        (d: { revenue: number }) => d.revenue === 0,
+      ),
+    ).toBe(true);
     expect(response.body.transactions).toEqual([]);
   });
 
   it('aggregates current vs previous period, excludes refunded/unpaid/other-owner, and lists transactions in descending paidAt order', async () => {
     const owner = await createUser('owner1@test.com', UserRole.OWNER);
-    const registeredCustomer = await createUser('customer@test.com', UserRole.CUSTOMER);
+    const registeredCustomer = await createUser(
+      'customer@test.com',
+      UserRole.CUSTOMER,
+    );
     const otherOwner = await createUser('owner2@test.com', UserRole.OWNER);
 
     const venue = await createVenue(owner.id, 'My Venue');
@@ -219,12 +232,18 @@ describe('Owner revenue report (e2e)', () => {
     const bookingB = await createBooking(court.id, 200000, '2026-08-01', {
       customerContactId: contact.id,
     });
-    const paymentB = await payBooking(bookingB.id, new Date(2026, 7, 1, 0, 0, 1));
+    const paymentB = await payBooking(
+      bookingB.id,
+      new Date(2026, 7, 1, 0, 0, 1),
+    );
 
     const bookingI = await createBooking(court.id, 100000, '2026-08-10', {
       customerId: registeredCustomer.id,
     });
-    const paymentI = await payBooking(bookingI.id, new Date(2026, 7, 10, 23, 30));
+    const paymentI = await payBooking(
+      bookingI.id,
+      new Date(2026, 7, 10, 23, 30),
+    );
 
     // Just after the period — excluded
     const bookingH = await createBooking(court.id, 500000, '2026-08-11', {
@@ -233,13 +252,19 @@ describe('Owner revenue report (e2e)', () => {
     await payBooking(bookingH.id, new Date(2026, 7, 11, 0, 0, 0));
 
     // Unpaid — excluded
-    await createBooking(court.id, 400000, '2026-08-06', { customerId: registeredCustomer.id });
+    await createBooking(court.id, 400000, '2026-08-06', {
+      customerId: registeredCustomer.id,
+    });
 
     // Refunded — excluded even though paidAt falls inside the period
     const bookingF = await createBooking(court.id, 700000, '2026-08-07', {
       customerId: registeredCustomer.id,
     });
-    await payBooking(bookingF.id, new Date(2026, 7, 7, 12, 0), PaymentStatus.REFUNDED);
+    await payBooking(
+      bookingF.id,
+      new Date(2026, 7, 7, 12, 0),
+      PaymentStatus.REFUNDED,
+    );
 
     // Other owner entirely — excluded by venue scoping
     const bookingG = await createBooking(otherCourt.id, 999999, '2026-08-05', {
@@ -289,11 +314,9 @@ describe('Owner revenue report (e2e)', () => {
     expect(response.body.transactionsPage).toBe(1);
     expect(response.body.transactionsPageSize).toBe(20);
     expect(response.body.transactionsTotal).toBe(3);
-    expect(response.body.transactions.map((t: { id: string }) => t.id)).toEqual([
-      paymentI.id,
-      paymentA.id,
-      paymentB.id,
-    ]);
+    expect(response.body.transactions.map((t: { id: string }) => t.id)).toEqual(
+      [paymentI.id, paymentA.id, paymentB.id],
+    );
     expect(response.body.transactions[2]).toMatchObject({
       transactionCode: `GD-${paymentB.id.slice(0, 8).toUpperCase()}`,
       customerName: 'Trần Thị B',
@@ -335,7 +358,9 @@ describe('Owner revenue report (e2e)', () => {
     expect(allResponse.body.currentPeriod.revenue).toBe(700000);
 
     const scopedResponse = await request(app.getHttpServer())
-      .get(`/reports/revenue?from=2026-08-01&to=2026-08-10&venueId=${venueA.id}`)
+      .get(
+        `/reports/revenue?from=2026-08-01&to=2026-08-10&venueId=${venueA.id}`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(scopedResponse.body.currentPeriod.revenue).toBe(200000);
@@ -351,7 +376,10 @@ describe('Owner revenue report (e2e)', () => {
       const booking = await createBooking(court.id, 250000, '2026-08-05', {
         customerId: customer.id,
       });
-      const payment = await payBooking(booking.id, new Date(2026, 7, 5, 10, 30));
+      const payment = await payBooking(
+        booking.id,
+        new Date(2026, 7, 5, 10, 30),
+      );
 
       const token = await loginAs('owner1@test.com');
       const response = await request(app.getHttpServer())
@@ -366,9 +394,9 @@ describe('Owner revenue report (e2e)', () => {
       );
 
       const body = response.text;
-      expect(body.startsWith('﻿Mã GD,Khách hàng,SĐT,Thời gian,Số tiền,Trạng thái')).toBe(
-        true,
-      );
+      expect(
+        body.startsWith('﻿Mã GD,Khách hàng,SĐT,Thời gian,Số tiền,Trạng thái'),
+      ).toBe(true);
       expect(body).toContain(`GD-${payment.id.slice(0, 8).toUpperCase()}`);
       expect(body).toContain('05/08/2026 10:30');
       expect(body).toContain('250000');
@@ -389,9 +417,14 @@ describe('Owner revenue report (e2e)', () => {
       count: number,
     ): Promise<void> {
       for (let i = 0; i < count; i++) {
-        const booking = await createBooking(courtId, 100000 + i * 1000, '2026-08-05', {
-          customerContactId: contactId,
-        });
+        const booking = await createBooking(
+          courtId,
+          100000 + i * 1000,
+          '2026-08-05',
+          {
+            customerContactId: contactId,
+          },
+        );
         await payBooking(booking.id, new Date(2026, 7, 5, 8, i, 0));
       }
     }
@@ -412,7 +445,9 @@ describe('Owner revenue report (e2e)', () => {
       expect(response.body.transactionsPage).toBe(1);
       expect(response.body.transactionsPageSize).toBe(20);
       expect(response.body.transactionsTotal).toBe(25);
-      expect(response.body.transactionsTotal).toBe(response.body.currentPeriod.transactionCount);
+      expect(response.body.transactionsTotal).toBe(
+        response.body.currentPeriod.transactionCount,
+      );
       expect(response.body.transactions).toHaveLength(20);
     });
 
@@ -425,11 +460,15 @@ describe('Owner revenue report (e2e)', () => {
 
       const token = await loginAs('owner1@test.com');
       const page1 = await request(app.getHttpServer())
-        .get('/reports/revenue?from=2026-08-01&to=2026-08-10&page=1&pageSize=20')
+        .get(
+          '/reports/revenue?from=2026-08-01&to=2026-08-10&page=1&pageSize=20',
+        )
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
       const page2 = await request(app.getHttpServer())
-        .get('/reports/revenue?from=2026-08-01&to=2026-08-10&page=2&pageSize=20')
+        .get(
+          '/reports/revenue?from=2026-08-01&to=2026-08-10&page=2&pageSize=20',
+        )
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
@@ -437,13 +476,19 @@ describe('Owner revenue report (e2e)', () => {
       expect(page2.body.transactions).toHaveLength(5);
       expect(page2.body.transactionsTotal).toBe(25);
 
-      const page1Ids = new Set(page1.body.transactions.map((t: { id: string }) => t.id));
-      const page2Ids = new Set(page2.body.transactions.map((t: { id: string }) => t.id));
+      const page1Ids = new Set(
+        page1.body.transactions.map((t: { id: string }) => t.id),
+      );
+      const page2Ids = new Set(
+        page2.body.transactions.map((t: { id: string }) => t.id),
+      );
       expect([...page1Ids].some((id) => page2Ids.has(id))).toBe(false);
 
       const lastOfPage1 = page1.body.transactions[19].paidAt;
       const firstOfPage2 = page2.body.transactions[0].paidAt;
-      expect(new Date(firstOfPage2).getTime()).toBeLessThanOrEqual(new Date(lastOfPage1).getTime());
+      expect(new Date(firstOfPage2).getTime()).toBeLessThanOrEqual(
+        new Date(lastOfPage1).getTime(),
+      );
     });
 
     it('clamps an out-of-range pageSize to 100 and an invalid page to 1', async () => {
@@ -455,7 +500,9 @@ describe('Owner revenue report (e2e)', () => {
 
       const token = await loginAs('owner1@test.com');
       const response = await request(app.getHttpServer())
-        .get('/reports/revenue?from=2026-08-01&to=2026-08-10&page=0&pageSize=99999')
+        .get(
+          '/reports/revenue?from=2026-08-01&to=2026-08-10&page=0&pageSize=99999',
+        )
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 

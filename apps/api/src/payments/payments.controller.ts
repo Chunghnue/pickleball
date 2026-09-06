@@ -19,7 +19,12 @@ export class PaymentsController {
     @Param('id') id: string,
     @Body() dto: MarkPaymentDto,
   ) {
-    return this.paymentsService.markPaid(effectiveOwnerId, venueId, id, dto.note);
+    return this.paymentsService.markPaid(
+      effectiveOwnerId,
+      venueId,
+      id,
+      dto.note,
+    );
   }
 
   @Post('venues/mine/:venueId/bookings/:id/payment/mark-refunded')

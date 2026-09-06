@@ -7,7 +7,11 @@ import { CustomerContact } from '../customer-contacts/entities/customer-contact.
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
 import { UsersService } from '../users/users.service';
 import { VenuesService } from '../courts/venues.service';
-import { CustomerTier, buildCustomerCode, classifyTier } from './customer-classification';
+import {
+  CustomerTier,
+  buildCustomerCode,
+  classifyTier,
+} from './customer-classification';
 import { ListCustomersDto } from './dto/list-customers.dto';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -76,12 +80,17 @@ export class CustomersService {
     private readonly usersService: UsersService,
   ) {}
 
-  private async resolveCourtIds(ownerId: string, venueId?: string): Promise<string[]> {
+  private async resolveCourtIds(
+    ownerId: string,
+    venueId?: string,
+  ): Promise<string[]> {
     const venueIds = venueId
       ? [(await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId)).id]
       : (await this.venuesService.findMineByOwner(ownerId)).map((v) => v.id);
     if (venueIds.length === 0) return [];
-    const courts = await this.courtsRepository.find({ where: { venueId: In(venueIds) } });
+    const courts = await this.courtsRepository.find({
+      where: { venueId: In(venueIds) },
+    });
     return courts.map((c) => c.id);
   }
 
@@ -101,7 +110,10 @@ export class CustomersService {
     };
   }
 
-  async aggregateCustomers(ownerId: string, venueId?: string): Promise<CustomerListItem[]> {
+  async aggregateCustomers(
+    ownerId: string,
+    venueId?: string,
+  ): Promise<CustomerListItem[]> {
     const courtIds = await this.resolveCourtIds(ownerId, venueId);
 
     const registeredRows =
@@ -109,12 +121,23 @@ export class CustomersService {
         ? []
         : await this.bookingsRepository
             .createQueryBuilder('booking')
-            .innerJoin('users', 'customer', 'customer.id::text = booking.customer_id')
-            .leftJoin('payments', 'payment', 'payment.booking_id = booking.id::text')
+            .innerJoin(
+              'users',
+              'customer',
+              'customer.id::text = booking.customer_id',
+            )
+            .leftJoin(
+              'payments',
+              'payment',
+              'payment.booking_id = booking.id::text',
+            )
             .select('booking.customer_id', 'id')
             .addSelect('customer.full_name', 'fullName')
             .addSelect('customer.phone', 'phone')
-            .addSelect("COUNT(*) FILTER (WHERE booking.status <> 'cancelled')", 'totalBookings')
+            .addSelect(
+              "COUNT(*) FILTER (WHERE booking.status <> 'cancelled')",
+              'totalBookings',
+            )
             .addSelect(
               "COALESCE(SUM(booking.total_price) FILTER (WHERE payment.status = 'paid'), 0)",
               'totalSpent',
@@ -135,12 +158,20 @@ export class CustomersService {
       : 'booking.customer_contact_id = contact.id AND 1 = 0';
     const walkinRows = await this.contactsRepository
       .createQueryBuilder('contact')
-      .leftJoin('bookings', 'booking', walkinJoin, courtIds.length ? { courtIds } : {})
+      .leftJoin(
+        'bookings',
+        'booking',
+        walkinJoin,
+        courtIds.length ? { courtIds } : {},
+      )
       .leftJoin('payments', 'payment', 'payment.booking_id = booking.id::text')
       .select('contact.id', 'id')
       .addSelect('contact.full_name', 'fullName')
       .addSelect('contact.phone', 'phone')
-      .addSelect("COUNT(booking.id) FILTER (WHERE booking.status <> 'cancelled')", 'totalBookings')
+      .addSelect(
+        "COUNT(booking.id) FILTER (WHERE booking.status <> 'cancelled')",
+        'totalBookings',
+      )
       .addSelect(
         "COALESCE(SUM(booking.total_price) FILTER (WHERE payment.status = 'paid'), 0)",
         'totalSpent',
@@ -164,7 +195,12 @@ export class CustomersService {
   async listCustomers(
     ownerId: string,
     dto: ListCustomersDto,
-  ): Promise<{ items: CustomerListItem[]; total: number; page: number; pageSize: number }> {
+  ): Promise<{
+    items: CustomerListItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
     const all = await this.aggregateCustomers(ownerId, dto.venueId);
 
     const tier = dto.tier && dto.tier !== 'all' ? dto.tier : null;
@@ -206,7 +242,10 @@ export class CustomersService {
     };
   }
 
-  async getSummary(ownerId: string, venueId?: string): Promise<CustomerSummary> {
+  async getSummary(
+    ownerId: string,
+    venueId?: string,
+  ): Promise<CustomerSummary> {
     const customers = await this.aggregateCustomers(ownerId, venueId);
     return {
       totalCustomers: customers.length,
@@ -216,7 +255,11 @@ export class CustomersService {
     };
   }
 
-  async getCustomerDetail(ownerId: string, kind: string, id: string): Promise<CustomerDetail> {
+  async getCustomerDetail(
+    ownerId: string,
+    kind: string,
+    id: string,
+  ): Promise<CustomerDetail> {
     if (kind !== 'registered' && kind !== 'walkin') {
       throw new NotFoundException('Khách hàng không tồn tại');
     }
@@ -228,7 +271,10 @@ export class CustomersService {
     }
 
     if (kind === 'walkin') {
-      const contact = await this.customerContactsService.findByIdForOwner(ownerId, id);
+      const contact = await this.customerContactsService.findByIdForOwner(
+        ownerId,
+        id,
+      );
       return {
         ...row,
         email: contact.email ?? undefined,

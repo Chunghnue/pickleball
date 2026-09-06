@@ -2,7 +2,12 @@ import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { StaffService } from './staff.service';
-import { StaffRole, User, UserRole, UserStatus } from '../users/entities/user.entity';
+import {
+  StaffRole,
+  User,
+  UserRole,
+  UserStatus,
+} from '../users/entities/user.entity';
 
 const mockUsersRepository = () => ({
   create: jest.fn(),
@@ -21,7 +26,7 @@ async function buildTestingModule() {
 
   return {
     service: module.get(StaffService),
-    usersRepo: module.get(getRepositoryToken(User)) as ReturnType<typeof mockUsersRepository>,
+    usersRepo: module.get(getRepositoryToken(User)),
   };
 }
 
@@ -30,7 +35,9 @@ describe('StaffService.create', () => {
     const { service, usersRepo } = await buildTestingModule();
     usersRepo.findOne.mockResolvedValue(null); // no phone/email conflict
     usersRepo.create.mockImplementation((data) => data);
-    usersRepo.save.mockImplementation((data) => Promise.resolve({ id: 'staff-1', ...data }));
+    usersRepo.save.mockImplementation((data) =>
+      Promise.resolve({ id: 'staff-1', ...data }),
+    );
 
     const result = await service.create('owner-1', {
       fullName: 'Nguyễn Văn A',
@@ -121,7 +128,9 @@ describe('StaffService.list', () => {
       },
     ]);
 
-    const result = await service.list('owner-1', { staffRole: StaffRole.CASHIER });
+    const result = await service.list('owner-1', {
+      staffRole: StaffRole.CASHIER,
+    });
 
     expect(result.map((r) => r.id)).toEqual(['staff-1']);
   });
@@ -154,7 +163,9 @@ describe('StaffService.update', () => {
       .mockResolvedValueOnce(null); // phone availability check
     usersRepo.save.mockImplementation((data) => Promise.resolve(data));
 
-    const result = await service.update('owner-1', 'staff-1', { fullName: 'New Name' });
+    const result = await service.update('owner-1', 'staff-1', {
+      fullName: 'New Name',
+    });
 
     expect(result.fullName).toBe('New Name');
   });

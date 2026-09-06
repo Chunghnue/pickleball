@@ -1,6 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
+import {
+  createTestApp,
+  clearDatabase,
+  mockMailService,
+} from './utils/test-app';
 
 describe('POST /auth/register/owner (e2e)', () => {
   let app: INestApplication;

@@ -24,7 +24,10 @@ describe('Pricing rules (e2e)', () => {
     await app.close();
   });
 
-  async function createOwnerAndLogin(): Promise<{ ownerId: string; token: string }> {
+  async function createOwnerAndLogin(): Promise<{
+    ownerId: string;
+    token: string;
+  }> {
     const passwordHash = await bcrypt.hash('password123', 10);
     const usersRepo = dataSource.getRepository(User);
     const owner = await usersRepo.save(
@@ -40,7 +43,10 @@ describe('Pricing rules (e2e)', () => {
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ identifier: 'owner@test.com', password: 'password123' });
-    return { ownerId: owner.id, token: loginResponse.body.accessToken as string };
+    return {
+      ownerId: owner.id,
+      token: loginResponse.body.accessToken as string,
+    };
   }
 
   async function createVenueAndCourt(
@@ -95,18 +101,24 @@ describe('Pricing rules (e2e)', () => {
     expect(listResponse.body).toHaveLength(1);
 
     await request(app.getHttpServer())
-      .patch(`/venues/mine/${venueId}/courts/${courtId}/pricing-rules/${ruleId}`)
+      .patch(
+        `/venues/mine/${venueId}/courts/${courtId}/pricing-rules/${ruleId}`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .send({ price: 180000 })
       .expect(200)
       .expect((res) => {
         if (res.body.price !== 180000) {
-          throw new Error(`Expected updated price 180000, got ${res.body.price}`);
+          throw new Error(
+            `Expected updated price 180000, got ${res.body.price}`,
+          );
         }
       });
 
     await request(app.getHttpServer())
-      .delete(`/venues/mine/${venueId}/courts/${courtId}/pricing-rules/${ruleId}`)
+      .delete(
+        `/venues/mine/${venueId}/courts/${courtId}/pricing-rules/${ruleId}`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
@@ -119,11 +131,15 @@ describe('Pricing rules (e2e)', () => {
 
   it('copies rules from a court the owner owns in a different venue', async () => {
     const { ownerId, token } = await createOwnerAndLogin();
-    const { venueId: sourceVenueId, courtId: sourceCourtId } = await createVenueAndCourt(ownerId);
-    const { venueId: targetVenueId, courtId: targetCourtId } = await createVenueAndCourt(ownerId);
+    const { venueId: sourceVenueId, courtId: sourceCourtId } =
+      await createVenueAndCourt(ownerId);
+    const { venueId: targetVenueId, courtId: targetCourtId } =
+      await createVenueAndCourt(ownerId);
 
     await request(app.getHttpServer())
-      .post(`/venues/mine/${sourceVenueId}/courts/${sourceCourtId}/pricing-rules`)
+      .post(
+        `/venues/mine/${sourceVenueId}/courts/${sourceCourtId}/pricing-rules`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Buổi tối',
@@ -145,7 +161,9 @@ describe('Pricing rules (e2e)', () => {
     expect(copyResponse.body[0].name).toBe('Buổi tối');
 
     const targetCourtRules = await request(app.getHttpServer())
-      .get(`/venues/mine/${targetVenueId}/courts/${targetCourtId}/pricing-rules`)
+      .get(
+        `/venues/mine/${targetVenueId}/courts/${targetCourtId}/pricing-rules`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(targetCourtRules.body).toHaveLength(1);
@@ -153,8 +171,10 @@ describe('Pricing rules (e2e)', () => {
 
   it('copies every source-venue rule onto every court of the target venue', async () => {
     const { ownerId, token } = await createOwnerAndLogin();
-    const { venueId: sourceVenueId, courtId: sourceCourtId } = await createVenueAndCourt(ownerId);
-    const { venueId: targetVenueId, courtId: targetCourtId1 } = await createVenueAndCourt(ownerId);
+    const { venueId: sourceVenueId, courtId: sourceCourtId } =
+      await createVenueAndCourt(ownerId);
+    const { venueId: targetVenueId, courtId: targetCourtId1 } =
+      await createVenueAndCourt(ownerId);
     const courtsRepo = dataSource.getRepository(Court);
     const targetCourt2 = await courtsRepo.save(
       courtsRepo.create({
@@ -169,7 +189,9 @@ describe('Pricing rules (e2e)', () => {
     );
 
     await request(app.getHttpServer())
-      .post(`/venues/mine/${sourceVenueId}/courts/${sourceCourtId}/pricing-rules`)
+      .post(
+        `/venues/mine/${sourceVenueId}/courts/${sourceCourtId}/pricing-rules`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Buổi tối',
@@ -181,25 +203,31 @@ describe('Pricing rules (e2e)', () => {
       .expect(201);
 
     const copyResponse = await request(app.getHttpServer())
-      .post(`/venues/mine/${targetVenueId}/pricing-rules/copy-from-venue/${sourceVenueId}`)
+      .post(
+        `/venues/mine/${targetVenueId}/pricing-rules/copy-from-venue/${sourceVenueId}`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .expect(201);
 
     // 1 source rule x 2 target courts
     expect(copyResponse.body).toHaveLength(2);
-    expect(copyResponse.body.map((r: { courtId: string }) => r.courtId).sort()).toEqual(
-      [targetCourtId1, targetCourt2.id].sort(),
-    );
+    expect(
+      copyResponse.body.map((r: { courtId: string }) => r.courtId).sort(),
+    ).toEqual([targetCourtId1, targetCourt2.id].sort());
 
     const court1Rules = await request(app.getHttpServer())
-      .get(`/venues/mine/${targetVenueId}/courts/${targetCourtId1}/pricing-rules`)
+      .get(
+        `/venues/mine/${targetVenueId}/courts/${targetCourtId1}/pricing-rules`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(court1Rules.body).toHaveLength(1);
     expect(court1Rules.body[0].name).toBe('Buổi tối');
 
     const court2Rules = await request(app.getHttpServer())
-      .get(`/venues/mine/${targetVenueId}/courts/${targetCourt2.id}/pricing-rules`)
+      .get(
+        `/venues/mine/${targetVenueId}/courts/${targetCourt2.id}/pricing-rules`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(court2Rules.body).toHaveLength(1);
@@ -216,7 +244,10 @@ describe('Pricing rules (e2e)', () => {
       .expect(403);
   });
 
-  async function createOwnerAndLoginAsSecondOwner(): Promise<{ ownerId: string; token: string }> {
+  async function createOwnerAndLoginAsSecondOwner(): Promise<{
+    ownerId: string;
+    token: string;
+  }> {
     const passwordHash = await bcrypt.hash('password123', 10);
     const usersRepo = dataSource.getRepository(User);
     const owner = await usersRepo.save(
@@ -232,6 +263,9 @@ describe('Pricing rules (e2e)', () => {
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ identifier: 'owner2@test.com', password: 'password123' });
-    return { ownerId: owner.id, token: loginResponse.body.accessToken as string };
+    return {
+      ownerId: owner.id,
+      token: loginResponse.body.accessToken as string,
+    };
   }
 });

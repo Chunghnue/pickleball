@@ -2,7 +2,11 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
+import {
+  createTestApp,
+  clearDatabase,
+  mockMailService,
+} from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 
@@ -100,8 +104,12 @@ describe('Admin approvals - merged queue (e2e)', () => {
       .expect(200);
 
     expect(response.body).toHaveLength(2);
-    const venueRow = response.body.find((row: { type: string }) => row.type === 'venue');
-    const ownerRow = response.body.find((row: { type: string }) => row.type === 'owner');
+    const venueRow = response.body.find(
+      (row: { type: string }) => row.type === 'venue',
+    );
+    const ownerRow = response.body.find(
+      (row: { type: string }) => row.type === 'owner',
+    );
     expect(venueRow).toMatchObject({
       name: 'Venue Of Active Owner',
       owner: { status: 'active' },

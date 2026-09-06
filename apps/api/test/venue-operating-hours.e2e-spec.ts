@@ -23,7 +23,11 @@ describe('Venue operating hours (e2e)', () => {
   });
 
   async function ownerVenueAndToken() {
-    const owner = await createUser(dataSource, 'oh-owner@test.com', UserRole.OWNER);
+    const owner = await createUser(
+      dataSource,
+      'oh-owner@test.com',
+      UserRole.OWNER,
+    );
     const venue = await createVenue(dataSource, owner.id, 'Sân giờ hoạt động');
     const token = await loginAs(app, 'oh-owner@test.com');
     return { ownerId: owner.id, venueId: venue.id, token };
@@ -47,7 +51,11 @@ describe('Venue operating hours (e2e)', () => {
       .expect(200);
 
     expect(response.body).toHaveLength(7);
-    expect(response.body[0]).toMatchObject({ isOpen: true, openTime: '06:00', closeTime: '22:00' });
+    expect(response.body[0]).toMatchObject({
+      isOpen: true,
+      openTime: '06:00',
+      closeTime: '22:00',
+    });
   });
 
   it('PUT saves the 7-day schedule and GET reflects it', async () => {
@@ -64,10 +72,22 @@ describe('Venue operating hours (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    const sunday = response.body.find((d: { dayOfWeek: number }) => d.dayOfWeek === 0);
-    expect(sunday).toMatchObject({ isOpen: false, openTime: null, closeTime: null });
-    const monday = response.body.find((d: { dayOfWeek: number }) => d.dayOfWeek === 1);
-    expect(monday).toMatchObject({ isOpen: true, openTime: '07:00', closeTime: '21:00' });
+    const sunday = response.body.find(
+      (d: { dayOfWeek: number }) => d.dayOfWeek === 0,
+    );
+    expect(sunday).toMatchObject({
+      isOpen: false,
+      openTime: null,
+      closeTime: null,
+    });
+    const monday = response.body.find(
+      (d: { dayOfWeek: number }) => d.dayOfWeek === 1,
+    );
+    expect(monday).toMatchObject({
+      isOpen: true,
+      openTime: '07:00',
+      closeTime: '21:00',
+    });
   });
 
   it('PUT rejects a payload with fewer than 7 days', async () => {
@@ -82,7 +102,11 @@ describe('Venue operating hours (e2e)', () => {
 
   it('rejects a venue that does not belong to the caller', async () => {
     const { venueId } = await ownerVenueAndToken();
-    const otherOwner = await createUser(dataSource, 'oh-other@test.com', UserRole.OWNER);
+    const otherOwner = await createUser(
+      dataSource,
+      'oh-other@test.com',
+      UserRole.OWNER,
+    );
     const otherToken = await loginAs(app, 'oh-other@test.com');
 
     await request(app.getHttpServer())

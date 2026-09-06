@@ -54,7 +54,12 @@ export class PricingRule {
   })
   endTime: string;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2, transformer: moneyTransformer })
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+    transformer: moneyTransformer,
+  })
   price: number;
 
   @Column({ type: 'int', default: 0 })

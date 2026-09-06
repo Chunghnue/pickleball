@@ -1,7 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import request from 'supertest';
-import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
+import {
+  createTestApp,
+  clearDatabase,
+  mockMailService,
+} from './utils/test-app';
 import { User } from '../src/users/entities/user.entity';
 
 describe('POST /auth/login (e2e)', () => {

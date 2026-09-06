@@ -8,7 +8,9 @@ import { UpdateNotificationSettingsDto } from './dto/update-notification-setting
 
 @Controller('notification-settings')
 export class NotificationSettingsController {
-  constructor(private readonly notificationSettingsService: NotificationSettingsService) {}
+  constructor(
+    private readonly notificationSettingsService: NotificationSettingsService,
+  ) {}
 
   @Get('mine')
   @UseGuards(JwtAuthGuard, OwnerScopeGuard)

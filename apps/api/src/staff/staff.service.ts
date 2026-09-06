@@ -1,8 +1,17 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { StaffRole, User, UserRole, UserStatus } from '../users/entities/user.entity';
+import {
+  StaffRole,
+  User,
+  UserRole,
+  UserStatus,
+} from '../users/entities/user.entity';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { ListStaffDto } from './dto/list-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
@@ -47,7 +56,9 @@ export class StaffService {
   }
 
   async list(ownerId: string, query: ListStaffDto): Promise<StaffListItem[]> {
-    const owner = await this.usersRepository.findOne({ where: { id: ownerId } });
+    const owner = await this.usersRepository.findOne({
+      where: { id: ownerId },
+    });
     const staff = await this.usersRepository.find({
       where: { ownerId },
       order: { createdAt: 'ASC' },
@@ -70,7 +81,11 @@ export class StaffService {
     return items.map((u) => this.toListItem(u));
   }
 
-  async update(ownerId: string, staffId: string, dto: UpdateStaffDto): Promise<StaffListItem> {
+  async update(
+    ownerId: string,
+    staffId: string,
+    dto: UpdateStaffDto,
+  ): Promise<StaffListItem> {
     const staff = await this.getOwnedStaffOrThrow(ownerId, staffId);
 
     if (dto.phone !== undefined) {
@@ -95,7 +110,11 @@ export class StaffService {
     return this.toListItem(saved);
   }
 
-  async resetPassword(ownerId: string, staffId: string, newPassword: string): Promise<void> {
+  async resetPassword(
+    ownerId: string,
+    staffId: string,
+    newPassword: string,
+  ): Promise<void> {
     const staff = await this.getOwnedStaffOrThrow(ownerId, staffId);
     staff.passwordHash = await bcrypt.hash(newPassword, 10);
     await this.usersRepository.save(staff);
@@ -111,14 +130,20 @@ export class StaffService {
     return staff;
   }
 
-  private async assertPhoneAvailable(phone: string, excludeId?: string): Promise<void> {
+  private async assertPhoneAvailable(
+    phone: string,
+    excludeId?: string,
+  ): Promise<void> {
     const existing = await this.usersRepository.findOne({ where: { phone } });
     if (existing && existing.id !== excludeId) {
       throw new ConflictException('Số điện thoại đã được sử dụng');
     }
   }
 
-  private async assertEmailAvailable(email: string, excludeId?: string): Promise<void> {
+  private async assertEmailAvailable(
+    email: string,
+    excludeId?: string,
+  ): Promise<void> {
     const existing = await this.usersRepository.findOne({ where: { email } });
     if (existing && existing.id !== excludeId) {
       throw new ConflictException('Email đã được sử dụng');

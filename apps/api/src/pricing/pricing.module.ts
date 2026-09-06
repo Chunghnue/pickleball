@@ -8,7 +8,9 @@ import { PricingService } from './pricing.service';
 import { PricingController } from './pricing.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PricingRule, Court, Venue, RecurringSchedule])],
+  imports: [
+    TypeOrmModule.forFeature([PricingRule, Court, Venue, RecurringSchedule]),
+  ],
   controllers: [PricingController],
   providers: [PricingService],
   exports: [PricingService],

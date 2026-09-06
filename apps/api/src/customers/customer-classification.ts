@@ -4,8 +4,14 @@ export const NEW_MAX_TOTAL_BOOKINGS = 1;
 
 export type CustomerTier = 'new' | 'regular' | 'vip';
 
-export function classifyTier(totalBookings: number, totalSpent: number): CustomerTier {
-  if (totalSpent >= VIP_MIN_TOTAL_SPENT || totalBookings >= VIP_MIN_TOTAL_BOOKINGS) {
+export function classifyTier(
+  totalBookings: number,
+  totalSpent: number,
+): CustomerTier {
+  if (
+    totalSpent >= VIP_MIN_TOTAL_SPENT ||
+    totalBookings >= VIP_MIN_TOTAL_BOOKINGS
+  ) {
     return 'vip';
   }
   if (totalBookings <= NEW_MAX_TOTAL_BOOKINGS) {

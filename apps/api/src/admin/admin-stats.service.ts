@@ -74,7 +74,9 @@ export class AdminStatsService {
       this.courtsRepository.count(),
       this.courtsRepository.count({ where: { status: CourtStatus.ACTIVE } }),
       this.bookingsRepository.count({
-        where: { createdAt: And(MoreThanOrEqual(todayStart), LessThan(todayEnd)) },
+        where: {
+          createdAt: And(MoreThanOrEqual(todayStart), LessThan(todayEnd)),
+        },
       }),
       this.paymentsRepository
         .createQueryBuilder('payment')
@@ -104,8 +106,16 @@ export class AdminStatsService {
     const todayRevenue = revenueByDay[revenueByDay.length - 1].revenue;
 
     return {
-      owners: { total: ownersTotal, active: ownersActive, pendingApproval: ownersPending },
-      venues: { total: venuesTotal, active: venuesActive, pendingApproval: venuesPending },
+      owners: {
+        total: ownersTotal,
+        active: ownersActive,
+        pendingApproval: ownersPending,
+      },
+      venues: {
+        total: venuesTotal,
+        active: venuesActive,
+        pendingApproval: venuesPending,
+      },
       courts: { total: courtsTotal, active: courtsActive },
       todayBookingsCount,
       todayRevenue,

@@ -2,7 +2,12 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import request from 'supertest';
 import { createTestApp, clearDatabase } from './utils/test-app';
-import { createUser, createStaff, loginAs, loginByPhone } from './utils/owner-fixtures';
+import {
+  createUser,
+  createStaff,
+  loginAs,
+  loginByPhone,
+} from './utils/owner-fixtures';
 import { UserRole, StaffRole } from '../src/users/entities/user.entity';
 
 describe('Staff (e2e)', () => {
@@ -23,7 +28,11 @@ describe('Staff (e2e)', () => {
   });
 
   it('lets an owner create a staff account, list it, and log in as that staff', async () => {
-    const owner = await createUser(dataSource, 'staffowner1@test.com', UserRole.OWNER);
+    const owner = await createUser(
+      dataSource,
+      'staffowner1@test.com',
+      UserRole.OWNER,
+    );
     const ownerToken = await loginAs(app, 'staffowner1@test.com');
 
     const createResponse = await request(app.getHttpServer())
@@ -58,9 +67,19 @@ describe('Staff (e2e)', () => {
   });
 
   it('rejects duplicate phone across owners', async () => {
-    const owner1 = await createUser(dataSource, 'staffowner2@test.com', UserRole.OWNER);
+    const owner1 = await createUser(
+      dataSource,
+      'staffowner2@test.com',
+      UserRole.OWNER,
+    );
     const owner1Token = await loginAs(app, 'staffowner2@test.com');
-    await createStaff(dataSource, owner1.id, 'Existing', '0911000077', StaffRole.STAFF);
+    await createStaff(
+      dataSource,
+      owner1.id,
+      'Existing',
+      '0911000077',
+      StaffRole.STAFF,
+    );
 
     await request(app.getHttpServer())
       .post('/staff')
@@ -75,22 +94,47 @@ describe('Staff (e2e)', () => {
   });
 
   it('rejects a cashier calling POST /staff (operational tier has no access)', async () => {
-    const owner = await createUser(dataSource, 'staffowner3@test.com', UserRole.OWNER);
-    const cashier = await createStaff(dataSource, owner.id, 'Cashier', '0911000066', StaffRole.CASHIER);
+    const owner = await createUser(
+      dataSource,
+      'staffowner3@test.com',
+      UserRole.OWNER,
+    );
+    const cashier = await createStaff(
+      dataSource,
+      owner.id,
+      'Cashier',
+      '0911000066',
+      StaffRole.CASHIER,
+    );
     const cashierToken = await loginByPhone(app, '0911000066');
     void cashier;
 
     await request(app.getHttpServer())
       .post('/staff')
       .set('Authorization', `Bearer ${cashierToken}`)
-      .send({ fullName: 'X', phone: '0911000055', staffRole: 'staff', password: 'password1' })
+      .send({
+        fullName: 'X',
+        phone: '0911000055',
+        staffRole: 'staff',
+        password: 'password1',
+      })
       .expect(403);
   });
 
   it('updates, deactivates, and resets the password of an owned staff account', async () => {
-    const owner = await createUser(dataSource, 'staffowner4@test.com', UserRole.OWNER);
+    const owner = await createUser(
+      dataSource,
+      'staffowner4@test.com',
+      UserRole.OWNER,
+    );
     const ownerToken = await loginAs(app, 'staffowner4@test.com');
-    const staff = await createStaff(dataSource, owner.id, 'Old Name', '0911000044', StaffRole.STAFF);
+    const staff = await createStaff(
+      dataSource,
+      owner.id,
+      'Old Name',
+      '0911000044',
+      StaffRole.STAFF,
+    );
 
     await request(app.getHttpServer())
       .patch(`/staff/${staff.id}`)
@@ -121,10 +165,20 @@ describe('Staff (e2e)', () => {
   });
 
   it("404s when acting on another owner's staff", async () => {
-    const owner1 = await createUser(dataSource, 'staffowner5@test.com', UserRole.OWNER);
+    const owner1 = await createUser(
+      dataSource,
+      'staffowner5@test.com',
+      UserRole.OWNER,
+    );
     await createUser(dataSource, 'staffowner6@test.com', UserRole.OWNER);
     const owner2Token = await loginAs(app, 'staffowner6@test.com');
-    const staffOfOwner1 = await createStaff(dataSource, owner1.id, 'A', '0911000033', StaffRole.STAFF);
+    const staffOfOwner1 = await createStaff(
+      dataSource,
+      owner1.id,
+      'A',
+      '0911000033',
+      StaffRole.STAFF,
+    );
 
     await request(app.getHttpServer())
       .patch(`/staff/${staffOfOwner1.id}`)
@@ -134,8 +188,18 @@ describe('Staff (e2e)', () => {
   });
 
   it('rejects a manager from staff endpoints (owner-only tier, not full)', async () => {
-    const owner = await createUser(dataSource, 'staffowner7@test.com', UserRole.OWNER);
-    await createStaff(dataSource, owner.id, 'Manager', '0911000022', StaffRole.MANAGER);
+    const owner = await createUser(
+      dataSource,
+      'staffowner7@test.com',
+      UserRole.OWNER,
+    );
+    await createStaff(
+      dataSource,
+      owner.id,
+      'Manager',
+      '0911000022',
+      StaffRole.MANAGER,
+    );
     const managerToken = await loginByPhone(app, '0911000022');
 
     await request(app.getHttpServer())

@@ -13,7 +13,9 @@ export class CreateVenueOperatingHours1787970000000 implements MigrationInterfac
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "public"."venue_operating_hours_venue_day_unique_idx"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."venue_operating_hours_venue_day_unique_idx"`,
+    );
     await queryRunner.query(`DROP TABLE "venue_operating_hours"`);
   }
 }

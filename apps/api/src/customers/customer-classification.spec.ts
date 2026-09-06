@@ -22,6 +22,8 @@ describe('classifyTier', () => {
 
 describe('buildCustomerCode', () => {
   it('prefixes KH- and uppercases the first 8 chars of the id', () => {
-    expect(buildCustomerCode('550e8400-e29b-41d4-a716-446655440000')).toBe('KH-550E8400');
+    expect(buildCustomerCode('550e8400-e29b-41d4-a716-446655440000')).toBe(
+      'KH-550E8400',
+    );
   });
 });

@@ -82,7 +82,8 @@ export class PaymentsService {
       });
     }
 
-    const notificationSettings = await this.notificationSettingsService.getForOwner(ownerId);
+    const notificationSettings =
+      await this.notificationSettingsService.getForOwner(ownerId);
     if (notificationSettings.payment) {
       const [court, owner] = await Promise.all([
         this.courtsService.findByIdOrThrow(booking.courtId),

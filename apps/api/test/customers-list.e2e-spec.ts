@@ -3,7 +3,12 @@ import { DataSource } from 'typeorm';
 import request from 'supertest';
 import { createTestApp, clearDatabase } from './utils/test-app';
 import {
-  createUser, loginAs, createVenue, createCourt, createBooking, createContact,
+  createUser,
+  loginAs,
+  createVenue,
+  createCourt,
+  createBooking,
+  createContact,
 } from './utils/owner-fixtures';
 import { UserRole } from '../src/users/entities/user.entity';
 
@@ -11,9 +16,16 @@ describe('GET /customers (e2e)', () => {
   let app: INestApplication;
   let ds: DataSource;
 
-  beforeAll(async () => { app = await createTestApp(); ds = app.get(DataSource); });
-  beforeEach(async () => { await clearDatabase(app); });
-  afterAll(async () => { await app.close(); });
+  beforeAll(async () => {
+    app = await createTestApp();
+    ds = app.get(DataSource);
+  });
+  beforeEach(async () => {
+    await clearDatabase(app);
+  });
+  afterAll(async () => {
+    await app.close();
+  });
 
   async function seedOwnerWithThreeWalkins() {
     const owner = await createUser(ds, 'owner@test.com', UserRole.OWNER);
@@ -23,8 +35,14 @@ describe('GET /customers (e2e)', () => {
     const c1 = await createContact(ds, owner.id, 'Alpha', '0911111111');
     const c2 = await createContact(ds, owner.id, 'Bravo', '0922222222');
     await createContact(ds, owner.id, 'Charlie', '0933333333');
-    await createBooking(ds, court.id, { customerContactId: c1.id, date: '2026-08-20' });
-    await createBooking(ds, court.id, { customerContactId: c2.id, date: '2026-08-25' });
+    await createBooking(ds, court.id, {
+      customerContactId: c1.id,
+      date: '2026-08-20',
+    });
+    await createBooking(ds, court.id, {
+      customerContactId: c2.id,
+      date: '2026-08-25',
+    });
     return { court };
   }
 
@@ -45,9 +63,9 @@ describe('GET /customers (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(res.body.total).toBe(3);
-    expect(res.body.items.map((c: { fullName: string }) => c.fullName)).toEqual([
-      'Bravo', 'Alpha', 'Charlie',
-    ]);
+    expect(res.body.items.map((c: { fullName: string }) => c.fullName)).toEqual(
+      ['Bravo', 'Alpha', 'Charlie'],
+    );
     expect(res.body.items[0].customerCode).toMatch(/^KH-[0-9A-F]{8}$/);
   });
 

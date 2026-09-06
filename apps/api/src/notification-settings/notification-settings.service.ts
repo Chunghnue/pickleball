@@ -44,7 +44,10 @@ export class NotificationSettingsService {
   ): Promise<NotificationSettingsView> {
     let row = await this.repository.findOne({ where: { ownerId } });
     if (!row) {
-      row = this.repository.create({ ownerId, ...DEFAULT_NOTIFICATION_SETTINGS });
+      row = this.repository.create({
+        ownerId,
+        ...DEFAULT_NOTIFICATION_SETTINGS,
+      });
     }
     if (dto.newBooking !== undefined) row.newBooking = dto.newBooking;
     if (dto.cancellation !== undefined) row.cancellation = dto.cancellation;

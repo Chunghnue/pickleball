@@ -83,8 +83,12 @@ describe('GET /courts/:id/slots reflects pricing rules (e2e)', () => {
       .get(`/courts/${court.id}/slots?date=2099-01-01`)
       .expect(200);
 
-    const morningSlot = response.body.find((slot: { start: string }) => slot.start === '08:00');
-    const eveningSlot = response.body.find((slot: { start: string }) => slot.start === '18:00');
+    const morningSlot = response.body.find(
+      (slot: { start: string }) => slot.start === '08:00',
+    );
+    const eveningSlot = response.body.find(
+      (slot: { start: string }) => slot.start === '18:00',
+    );
     expect(morningSlot.price).toBe(100000);
     expect(eveningSlot.price).toBe(200000);
   });

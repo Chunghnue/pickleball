@@ -45,11 +45,15 @@ const mockNotificationSettingsService = () => ({
 });
 
 const mockVenuesService = () => ({
-  findByIdOrThrow: jest.fn().mockResolvedValue({ id: 'venue-1', name: 'Venue A', email: null }),
+  findByIdOrThrow: jest
+    .fn()
+    .mockResolvedValue({ id: 'venue-1', name: 'Venue A', email: null }),
 });
 
 const mockCourtsService = () => ({
-  findByIdOrThrow: jest.fn().mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' }),
+  findByIdOrThrow: jest
+    .fn()
+    .mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' }),
 });
 
 async function buildTestingModule() {
@@ -63,7 +67,10 @@ async function buildTestingModule() {
       { provide: BookingsService, useFactory: mockBookingsService },
       { provide: UsersService, useFactory: mockUsersService },
       { provide: NotificationsService, useFactory: mockNotificationsService },
-      { provide: NotificationSettingsService, useFactory: mockNotificationSettingsService },
+      {
+        provide: NotificationSettingsService,
+        useFactory: mockNotificationSettingsService,
+      },
       { provide: VenuesService, useFactory: mockVenuesService },
       { provide: CourtsService, useFactory: mockCourtsService },
     ],
@@ -71,23 +78,13 @@ async function buildTestingModule() {
 
   return {
     service: module.get(PaymentsService),
-    paymentsRepo: module.get(getRepositoryToken(Payment)) as ReturnType<
-      typeof mockPaymentsRepository
-    >,
-    bookingsService: module.get(BookingsService) as ReturnType<
-      typeof mockBookingsService
-    >,
-    usersService: module.get(UsersService) as ReturnType<
-      typeof mockUsersService
-    >,
-    notificationsService: module.get(NotificationsService) as ReturnType<
-      typeof mockNotificationsService
-    >,
-    notificationSettingsService: module.get(NotificationSettingsService) as ReturnType<
-      typeof mockNotificationSettingsService
-    >,
-    venuesService: module.get(VenuesService) as ReturnType<typeof mockVenuesService>,
-    courtsService: module.get(CourtsService) as ReturnType<typeof mockCourtsService>,
+    paymentsRepo: module.get(getRepositoryToken(Payment)),
+    bookingsService: module.get(BookingsService),
+    usersService: module.get(UsersService),
+    notificationsService: module.get(NotificationsService),
+    notificationSettingsService: module.get(NotificationSettingsService),
+    venuesService: module.get(VenuesService),
+    courtsService: module.get(CourtsService),
   };
 }
 
@@ -160,7 +157,7 @@ describe('PaymentsService.markPaid', () => {
       startTime: '08:00',
       endTime: '09:00',
       totalPrice: 100000,
-    } as Booking);
+    });
     paymentsRepo.findOne.mockResolvedValue({
       id: 'payment-1',
       bookingId: 'booking-1',
@@ -198,10 +195,11 @@ describe('PaymentsService.markPaid', () => {
   });
 
   it('throws BadRequestException when payment is not unpaid', async () => {
-    const { service, paymentsRepo, bookingsService } = await buildTestingModule();
+    const { service, paymentsRepo, bookingsService } =
+      await buildTestingModule();
     bookingsService.findByIdForOwnerOrThrow.mockResolvedValue({
       id: 'booking-1',
-    } as Booking);
+    });
     paymentsRepo.findOne.mockResolvedValue({
       id: 'payment-1',
       bookingId: 'booking-1',
@@ -227,10 +225,11 @@ describe('PaymentsService.markPaid', () => {
   });
 
   it('throws NotFoundException when no payment row exists for the booking', async () => {
-    const { service, paymentsRepo, bookingsService } = await buildTestingModule();
+    const { service, paymentsRepo, bookingsService } =
+      await buildTestingModule();
     bookingsService.findByIdForOwnerOrThrow.mockResolvedValue({
       id: 'booking-1',
-    } as Booking);
+    });
     paymentsRepo.findOne.mockResolvedValue(null);
 
     await expect(
@@ -261,13 +260,21 @@ describe('PaymentsService.markPaid — owner notification', () => {
       totalPrice: 100000,
     };
     bookingsService.findByIdForOwnerOrThrow.mockResolvedValue(booking);
-    paymentsRepo.findOne.mockResolvedValue({ id: 'payment-1', bookingId: 'booking-1', status: 'unpaid' });
+    paymentsRepo.findOne.mockResolvedValue({
+      id: 'payment-1',
+      bookingId: 'booking-1',
+      status: 'unpaid',
+    });
     usersService.findById.mockImplementation((id: string) =>
       id === 'owner-1'
         ? Promise.resolve({ id: 'owner-1', email: 'owner@test.com' })
         : Promise.resolve({ id, email: 'customer@test.com' }),
     );
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      name: 'Sân 1',
+      venueId: 'venue-1',
+    });
     venuesService.findByIdOrThrow.mockResolvedValue({
       id: 'venue-1',
       ownerId: 'owner-1',
@@ -277,8 +284,12 @@ describe('PaymentsService.markPaid — owner notification', () => {
 
     await service.markPaid('owner-1', 'venue-1', 'booking-1', 'note');
 
-    expect(notificationSettingsService.getForOwner).toHaveBeenCalledWith('owner-1');
-    expect(notificationsService.notifyPaymentConfirmedForOwner).toHaveBeenCalledWith(
+    expect(notificationSettingsService.getForOwner).toHaveBeenCalledWith(
+      'owner-1',
+    );
+    expect(
+      notificationsService.notifyPaymentConfirmedForOwner,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({ to: 'owner@test.com', totalPrice: 100000 }),
     );
   });
@@ -310,9 +321,20 @@ describe('PaymentsService.markPaid — owner notification', () => {
       totalPrice: 100000,
     };
     bookingsService.findByIdForOwnerOrThrow.mockResolvedValue(booking);
-    paymentsRepo.findOne.mockResolvedValue({ id: 'payment-1', bookingId: 'booking-1', status: 'unpaid' });
-    usersService.findById.mockResolvedValue({ id: 'customer-1', email: 'customer@test.com' });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', name: 'Sân 1', venueId: 'venue-1' });
+    paymentsRepo.findOne.mockResolvedValue({
+      id: 'payment-1',
+      bookingId: 'booking-1',
+      status: 'unpaid',
+    });
+    usersService.findById.mockResolvedValue({
+      id: 'customer-1',
+      email: 'customer@test.com',
+    });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      name: 'Sân 1',
+      venueId: 'venue-1',
+    });
     venuesService.findByIdOrThrow.mockResolvedValue({
       id: 'venue-1',
       ownerId: 'owner-1',
@@ -322,7 +344,9 @@ describe('PaymentsService.markPaid — owner notification', () => {
 
     await service.markPaid('owner-1', 'venue-1', 'booking-1', 'note');
 
-    expect(notificationsService.notifyPaymentConfirmedForOwner).not.toHaveBeenCalled();
+    expect(
+      notificationsService.notifyPaymentConfirmedForOwner,
+    ).not.toHaveBeenCalled();
   });
 });
 
@@ -342,7 +366,7 @@ describe('PaymentsService.markRefunded', () => {
       startTime: '08:00',
       endTime: '09:00',
       totalPrice: 100000,
-    } as Booking);
+    });
     paymentsRepo.findOne.mockResolvedValue({
       id: 'payment-1',
       bookingId: 'booking-1',
@@ -375,10 +399,11 @@ describe('PaymentsService.markRefunded', () => {
   });
 
   it('throws BadRequestException when payment is not paid', async () => {
-    const { service, paymentsRepo, bookingsService } = await buildTestingModule();
+    const { service, paymentsRepo, bookingsService } =
+      await buildTestingModule();
     bookingsService.findByIdForOwnerOrThrow.mockResolvedValue({
       id: 'booking-1',
-    } as Booking);
+    });
     paymentsRepo.findOne.mockResolvedValue({
       id: 'payment-1',
       bookingId: 'booking-1',
@@ -409,7 +434,7 @@ describe('PaymentsService.adminRefund', () => {
       startTime: '08:00',
       endTime: '09:00',
       totalPrice: 100000,
-    } as Booking);
+    });
     paymentsRepo.findOne.mockResolvedValue({
       id: 'payment-1',
       bookingId: 'booking-1',
@@ -421,7 +446,11 @@ describe('PaymentsService.adminRefund', () => {
       email: 'customer@test.com',
     });
 
-    const result = await service.adminRefund('booking-1', 'admin-1', 'Đã xác minh khiếu nại');
+    const result = await service.adminRefund(
+      'booking-1',
+      'admin-1',
+      'Đã xác minh khiếu nại',
+    );
 
     expect(bookingsService.findByIdOrThrow).toHaveBeenCalledWith('booking-1');
     expect(result.status).toBe(PaymentStatus.REFUNDED);
@@ -438,8 +467,11 @@ describe('PaymentsService.adminRefund', () => {
   });
 
   it('throws BadRequestException when payment is not paid', async () => {
-    const { service, paymentsRepo, bookingsService } = await buildTestingModule();
-    bookingsService.findByIdOrThrow.mockResolvedValue({ id: 'booking-1' } as Booking);
+    const { service, paymentsRepo, bookingsService } =
+      await buildTestingModule();
+    bookingsService.findByIdOrThrow.mockResolvedValue({
+      id: 'booking-1',
+    });
     paymentsRepo.findOne.mockResolvedValue({
       id: 'payment-1',
       bookingId: 'booking-1',

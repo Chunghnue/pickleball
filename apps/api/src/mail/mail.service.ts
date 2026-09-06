@@ -14,7 +14,10 @@ export class MailService {
       port: this.config.get<number>('MAIL_PORT', 1025),
       secure: false,
     });
-    this.from = this.config.get<string>('MAIL_FROM', 'no-reply@pickleball.local');
+    this.from = this.config.get<string>(
+      'MAIL_FROM',
+      'no-reply@pickleball.local',
+    );
     this.appUrl = this.config.get<string>('APP_URL', 'http://localhost:3000');
   }
 

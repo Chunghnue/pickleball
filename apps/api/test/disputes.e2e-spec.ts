@@ -2,12 +2,22 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
+import {
+  createTestApp,
+  clearDatabase,
+  mockMailService,
+} from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../src/courts/entities/court.entity';
-import { Booking, BookingStatus } from '../src/bookings/entities/booking.entity';
-import { Payment, PaymentStatus } from '../src/payments/entities/payment.entity';
+import {
+  Booking,
+  BookingStatus,
+} from '../src/bookings/entities/booking.entity';
+import {
+  Payment,
+  PaymentStatus,
+} from '../src/payments/entities/payment.entity';
 
 describe('Disputes (e2e)', () => {
   let app: INestApplication;

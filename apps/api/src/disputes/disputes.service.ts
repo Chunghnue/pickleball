@@ -55,7 +55,9 @@ export class DisputesService {
       bookingId,
     );
     if (booking.paymentStatus !== PaymentStatus.PAID) {
-      throw new BadRequestException('Chỉ có thể khiếu nại booking đã thanh toán');
+      throw new BadRequestException(
+        'Chỉ có thể khiếu nại booking đã thanh toán',
+      );
     }
     const existing = await this.disputesRepository.findOne({
       where: { bookingId },

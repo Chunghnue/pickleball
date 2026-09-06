@@ -24,12 +24,8 @@ async function buildTestingModule() {
 
   return {
     service: module.get(AdminApprovalsService),
-    usersService: module.get(UsersService) as ReturnType<
-      typeof mockUsersService
-    >,
-    venuesService: module.get(VenuesService) as ReturnType<
-      typeof mockVenuesService
-    >,
+    usersService: module.get(UsersService),
+    venuesService: module.get(VenuesService),
   };
 }
 

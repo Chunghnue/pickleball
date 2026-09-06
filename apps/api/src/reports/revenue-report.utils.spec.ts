@@ -32,7 +32,9 @@ describe('getPreviousPeriodRange', () => {
 
 describe('buildTransactionCode', () => {
   it('prefixes GD- and uppercases the first 8 chars of the payment id', () => {
-    expect(buildTransactionCode('3f9a2b1c-e29b-41d4-a716-446655440000')).toBe('GD-3F9A2B1C');
+    expect(buildTransactionCode('3f9a2b1c-e29b-41d4-a716-446655440000')).toBe(
+      'GD-3F9A2B1C',
+    );
   });
 });
 
@@ -62,14 +64,18 @@ describe('computeChangePercent', () => {
 
 describe('formatDateTimeVN', () => {
   it('formats a Date as dd/MM/yyyy HH:mm', () => {
-    expect(formatDateTimeVN(new Date(2026, 7, 5, 9, 5))).toBe('05/08/2026 09:05');
+    expect(formatDateTimeVN(new Date(2026, 7, 5, 9, 5))).toBe(
+      '05/08/2026 09:05',
+    );
   });
 });
 
 describe('toRevenueCsv', () => {
   it('starts with a UTF-8 BOM and a Vietnamese header row', () => {
     const csv = toRevenueCsv([]);
-    expect(csv.startsWith('﻿Mã GD,Khách hàng,SĐT,Thời gian,Số tiền,Trạng thái')).toBe(true);
+    expect(
+      csv.startsWith('﻿Mã GD,Khách hàng,SĐT,Thời gian,Số tiền,Trạng thái'),
+    ).toBe(true);
   });
 
   it('renders one data row per transaction, "Đã thanh toán" as the status', () => {
@@ -83,7 +89,9 @@ describe('toRevenueCsv', () => {
       },
     ]);
     const lines = csv.split('\r\n');
-    expect(lines[1]).toBe('GD-3F9A2B1C,Nguyễn Văn A,0900000000,15/08/2026 10:30,250000,Đã thanh toán');
+    expect(lines[1]).toBe(
+      'GD-3F9A2B1C,Nguyễn Văn A,0900000000,15/08/2026 10:30,250000,Đã thanh toán',
+    );
   });
 
   it('quotes a customer name that contains a comma', () => {

@@ -64,7 +64,8 @@ export class RecurringSchedule {
     nullable: true,
     transformer: {
       to: (value: number | null) => value,
-      from: (value: string | null) => (value === null ? null : parseFloat(value)),
+      from: (value: string | null) =>
+        value === null ? null : parseFloat(value),
     },
   })
   discountPercent: number | null;

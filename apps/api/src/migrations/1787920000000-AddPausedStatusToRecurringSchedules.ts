@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddPausedStatusToRecurringSchedules1787920000000
-  implements MigrationInterface
-{
+export class AddPausedStatusToRecurringSchedules1787920000000 implements MigrationInterface {
   name = 'AddPausedStatusToRecurringSchedules1787920000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

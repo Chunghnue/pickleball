@@ -40,7 +40,9 @@ export class CreateRecurringScheduleDto extends CustomerSelectorDto {
   @Max(100)
   discountPercent?: number;
 
-  @Matches(DATE_PATTERN, { message: 'validFrom phải theo định dạng YYYY-MM-DD' })
+  @Matches(DATE_PATTERN, {
+    message: 'validFrom phải theo định dạng YYYY-MM-DD',
+  })
   validFrom: string;
 
   @Matches(DATE_PATTERN, { message: 'validTo phải theo định dạng YYYY-MM-DD' })

@@ -16,7 +16,7 @@ async function buildTestingModule() {
 
   return {
     service: module.get(NotificationsService),
-    mailService: module.get(MailService) as ReturnType<typeof mockMailService>,
+    mailService: module.get(MailService),
   };
 }
 

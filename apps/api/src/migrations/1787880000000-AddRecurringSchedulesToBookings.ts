@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddRecurringSchedulesToBookings1787880000000
-  implements MigrationInterface
-{
+export class AddRecurringSchedulesToBookings1787880000000 implements MigrationInterface {
   name = 'AddRecurringSchedulesToBookings1787880000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

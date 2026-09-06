@@ -1,4 +1,12 @@
-import { Body, Controller, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -58,8 +66,7 @@ export class AuthController {
   ): Promise<{ message: string }> {
     await this.authService.forgotPassword(dto.email);
     return {
-      message:
-        'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu',
+      message: 'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu',
     };
   }
 
@@ -79,7 +86,11 @@ export class AuthController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: ChangePasswordDto,
   ): Promise<{ message: string }> {
-    await this.authService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
+    await this.authService.changePassword(
+      user.userId,
+      dto.currentPassword,
+      dto.newPassword,
+    );
     return { message: 'Đổi mật khẩu thành công' };
   }
 }

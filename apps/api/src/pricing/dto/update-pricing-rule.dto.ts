@@ -56,7 +56,9 @@ export class UpdatePricingRuleDto {
   advancePrice?: number;
 
   @IsOptional()
-  @Matches(DATE_PATTERN, { message: 'validFrom phải theo định dạng YYYY-MM-DD' })
+  @Matches(DATE_PATTERN, {
+    message: 'validFrom phải theo định dạng YYYY-MM-DD',
+  })
   validFrom?: string;
 
   @IsOptional()

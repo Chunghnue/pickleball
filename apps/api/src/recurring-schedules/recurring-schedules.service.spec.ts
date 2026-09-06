@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConflictException } from '@nestjs/common';
 import { RecurringSchedulesService } from './recurring-schedules.service';
-import { RecurringSchedule, RecurringScheduleStatus } from './entities/recurring-schedule.entity';
+import {
+  RecurringSchedule,
+  RecurringScheduleStatus,
+} from './entities/recurring-schedule.entity';
 import { CourtsService } from '../courts/courts.service';
 import { VenuesService } from '../courts/venues.service';
 import { CustomerContactsService } from '../customer-contacts/customer-contacts.service';
@@ -12,7 +15,9 @@ import { CustomerContact } from '../customer-contacts/entities/customer-contact.
 
 const mockRepository = () => ({
   create: jest.fn((data: unknown) => data),
-  save: jest.fn((data: unknown) => Promise.resolve({ id: 'schedule-1', ...(data as object) })),
+  save: jest.fn((data: unknown) =>
+    Promise.resolve({ id: 'schedule-1', ...(data as object) }),
+  ),
   findOne: jest.fn(),
   find: jest.fn(),
 });
@@ -36,29 +41,34 @@ async function buildTestingModule() {
   const module: TestingModule = await Test.createTestingModule({
     providers: [
       RecurringSchedulesService,
-      { provide: getRepositoryToken(RecurringSchedule), useFactory: mockRepository },
+      {
+        provide: getRepositoryToken(RecurringSchedule),
+        useFactory: mockRepository,
+      },
       { provide: getRepositoryToken(User), useFactory: mockLookupRepository },
-      { provide: getRepositoryToken(CustomerContact), useFactory: mockLookupRepository },
+      {
+        provide: getRepositoryToken(CustomerContact),
+        useFactory: mockLookupRepository,
+      },
       { provide: CourtsService, useFactory: mockCourtsService },
       { provide: VenuesService, useFactory: mockVenuesService },
-      { provide: CustomerContactsService, useFactory: mockCustomerContactsService },
+      {
+        provide: CustomerContactsService,
+        useFactory: mockCustomerContactsService,
+      },
       { provide: BookingsService, useFactory: mockBookingsService },
     ],
   }).compile();
 
   return {
     service: module.get(RecurringSchedulesService),
-    repo: module.get(getRepositoryToken(RecurringSchedule)) as ReturnType<typeof mockRepository>,
-    usersRepo: module.get(getRepositoryToken(User)) as ReturnType<typeof mockLookupRepository>,
-    customerContactsRepo: module.get(getRepositoryToken(CustomerContact)) as ReturnType<
-      typeof mockLookupRepository
-    >,
-    courtsService: module.get(CourtsService) as ReturnType<typeof mockCourtsService>,
-    venuesService: module.get(VenuesService) as ReturnType<typeof mockVenuesService>,
-    customerContactsService: module.get(CustomerContactsService) as ReturnType<
-      typeof mockCustomerContactsService
-    >,
-    bookingsService: module.get(BookingsService) as ReturnType<typeof mockBookingsService>,
+    repo: module.get(getRepositoryToken(RecurringSchedule)),
+    usersRepo: module.get(getRepositoryToken(User)),
+    customerContactsRepo: module.get(getRepositoryToken(CustomerContact)),
+    courtsService: module.get(CourtsService),
+    venuesService: module.get(VenuesService),
+    customerContactsService: module.get(CustomerContactsService),
+    bookingsService: module.get(BookingsService),
   };
 }
 
@@ -66,11 +76,18 @@ describe('RecurringSchedulesService.create', () => {
   const ACTIVE_COURT = { id: 'court-1', venueId: 'venue-1' };
 
   it('creates the schedule and one booking occurrence per matching day, applying the discount', async () => {
-    const { service, courtsService, venuesService, customerContactsService, bookingsService } =
-      await buildTestingModule();
+    const {
+      service,
+      courtsService,
+      venuesService,
+      customerContactsService,
+      bookingsService,
+    } = await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
-    customerContactsService.resolveSelector.mockResolvedValue({ customerContactId: 'contact-1' });
+    customerContactsService.resolveSelector.mockResolvedValue({
+      customerContactId: 'contact-1',
+    });
     bookingsService.createBookingRecord.mockResolvedValue({});
 
     const result = await service.create('owner-1', 'venue-1', {
@@ -105,13 +122,22 @@ describe('RecurringSchedulesService.create', () => {
   });
 
   it('collects conflicting dates instead of aborting the whole batch', async () => {
-    const { service, courtsService, venuesService, customerContactsService, bookingsService } =
-      await buildTestingModule();
+    const {
+      service,
+      courtsService,
+      venuesService,
+      customerContactsService,
+      bookingsService,
+    } = await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
-    customerContactsService.resolveSelector.mockResolvedValue({ customerContactId: 'contact-1' });
+    customerContactsService.resolveSelector.mockResolvedValue({
+      customerContactId: 'contact-1',
+    });
     bookingsService.createBookingRecord
-      .mockRejectedValueOnce(new ConflictException('Một hoặc nhiều khung giờ đã được đặt'))
+      .mockRejectedValueOnce(
+        new ConflictException('Một hoặc nhiều khung giờ đã được đặt'),
+      )
       .mockResolvedValueOnce({});
 
     const result = await service.create('owner-1', 'venue-1', {
@@ -130,7 +156,8 @@ describe('RecurringSchedulesService.create', () => {
   });
 
   it('throws BadRequestException when the range exceeds 12 months', async () => {
-    const { service, courtsService, venuesService } = await buildTestingModule();
+    const { service, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
 
@@ -149,9 +176,13 @@ describe('RecurringSchedulesService.create', () => {
   });
 
   it('throws NotFoundException when the court does not belong to the venue', async () => {
-    const { service, courtsService, venuesService } = await buildTestingModule();
+    const { service, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'other-venue' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'other-venue',
+    });
 
     await expect(
       service.create('owner-1', 'venue-1', {
@@ -172,11 +203,18 @@ describe('RecurringSchedulesService.create autoRenew', () => {
   const ACTIVE_COURT = { id: 'court-1', venueId: 'venue-1' };
 
   it('defaults autoRenew to false, and persists true when provided', async () => {
-    const { service, courtsService, venuesService, customerContactsService, bookingsService } =
-      await buildTestingModule();
+    const {
+      service,
+      courtsService,
+      venuesService,
+      customerContactsService,
+      bookingsService,
+    } = await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     courtsService.findByIdOrThrow.mockResolvedValue(ACTIVE_COURT);
-    customerContactsService.resolveSelector.mockResolvedValue({ customerContactId: 'contact-1' });
+    customerContactsService.resolveSelector.mockResolvedValue({
+      customerContactId: 'contact-1',
+    });
     bookingsService.createBookingRecord.mockResolvedValue({});
 
     const defaultResult = await service.create('owner-1', 'venue-1', {
@@ -216,40 +254,54 @@ describe('RecurringSchedulesService.cancel', () => {
       courtId: 'court-1',
       status: RecurringScheduleStatus.ACTIVE,
     });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
 
     const result = await service.cancel('owner-1', 'venue-1', 'schedule-1');
 
     expect(result.status).toBe(RecurringScheduleStatus.CANCELLED);
-    expect(bookingsService.cancelFutureOccurrences).toHaveBeenCalledWith('schedule-1', 'owner-1');
+    expect(bookingsService.cancelFutureOccurrences).toHaveBeenCalledWith(
+      'schedule-1',
+      'owner-1',
+    );
   });
 
   it('throws BadRequestException when the schedule is already cancelled', async () => {
-    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    const { service, repo, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     repo.findOne.mockResolvedValue({
       id: 'schedule-1',
       courtId: 'court-1',
       status: RecurringScheduleStatus.CANCELLED,
     });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
 
-    await expect(service.cancel('owner-1', 'venue-1', 'schedule-1')).rejects.toThrow(
-      'Lịch cố định đã bị huỷ',
-    );
+    await expect(
+      service.cancel('owner-1', 'venue-1', 'schedule-1'),
+    ).rejects.toThrow('Lịch cố định đã bị huỷ');
   });
 });
 
 describe('RecurringSchedulesService.pause', () => {
   it('moves an active schedule to paused', async () => {
-    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    const { service, repo, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     repo.findOne.mockResolvedValue({
       id: 'schedule-1',
       courtId: 'court-1',
       status: RecurringScheduleStatus.ACTIVE,
     });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
 
     const result = await service.pause('owner-1', 'venue-1', 'schedule-1');
 
@@ -257,31 +309,39 @@ describe('RecurringSchedulesService.pause', () => {
   });
 
   it('throws BadRequestException when the schedule is not active', async () => {
-    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    const { service, repo, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     repo.findOne.mockResolvedValue({
       id: 'schedule-1',
       courtId: 'court-1',
       status: RecurringScheduleStatus.CANCELLED,
     });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
 
-    await expect(service.pause('owner-1', 'venue-1', 'schedule-1')).rejects.toThrow(
-      'Chỉ có thể tạm dừng lịch đang hoạt động',
-    );
+    await expect(
+      service.pause('owner-1', 'venue-1', 'schedule-1'),
+    ).rejects.toThrow('Chỉ có thể tạm dừng lịch đang hoạt động');
   });
 });
 
 describe('RecurringSchedulesService.resume', () => {
   it('moves a paused schedule back to active', async () => {
-    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    const { service, repo, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     repo.findOne.mockResolvedValue({
       id: 'schedule-1',
       courtId: 'court-1',
       status: RecurringScheduleStatus.PAUSED,
     });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
 
     const result = await service.resume('owner-1', 'venue-1', 'schedule-1');
 
@@ -289,24 +349,29 @@ describe('RecurringSchedulesService.resume', () => {
   });
 
   it('throws BadRequestException when the schedule is not paused', async () => {
-    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    const { service, repo, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     repo.findOne.mockResolvedValue({
       id: 'schedule-1',
       courtId: 'court-1',
       status: RecurringScheduleStatus.ACTIVE,
     });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
 
-    await expect(service.resume('owner-1', 'venue-1', 'schedule-1')).rejects.toThrow(
-      'Chỉ có thể tiếp tục lịch đang tạm dừng',
-    );
+    await expect(
+      service.resume('owner-1', 'venue-1', 'schedule-1'),
+    ).rejects.toThrow('Chỉ có thể tiếp tục lịch đang tạm dừng');
   });
 });
 
 describe('RecurringSchedulesService.update', () => {
   it('applies only the provided fields', async () => {
-    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    const { service, repo, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     repo.findOne.mockResolvedValue({
       id: 'schedule-1',
@@ -319,7 +384,10 @@ describe('RecurringSchedulesService.update', () => {
       note: null,
       autoRenew: false,
     });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
 
     const result = await service.update('owner-1', 'venue-1', 'schedule-1', {
       pricePerSession: 150000,
@@ -335,7 +403,8 @@ describe('RecurringSchedulesService.update', () => {
   });
 
   it('throws BadRequestException when validTo is before validFrom', async () => {
-    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    const { service, repo, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     repo.findOne.mockResolvedValue({
       id: 'schedule-1',
@@ -344,22 +413,31 @@ describe('RecurringSchedulesService.update', () => {
       validFrom: '2024-01-10',
       validTo: '2024-01-14',
     });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
 
     await expect(
-      service.update('owner-1', 'venue-1', 'schedule-1', { validTo: '2024-01-01' }),
+      service.update('owner-1', 'venue-1', 'schedule-1', {
+        validTo: '2024-01-01',
+      }),
     ).rejects.toThrow('validTo phải sau hoặc bằng validFrom');
   });
 
   it('throws BadRequestException when the schedule is cancelled', async () => {
-    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    const { service, repo, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     repo.findOne.mockResolvedValue({
       id: 'schedule-1',
       courtId: 'court-1',
       status: RecurringScheduleStatus.CANCELLED,
     });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
 
     await expect(
       service.update('owner-1', 'venue-1', 'schedule-1', { note: 'x' }),
@@ -369,24 +447,41 @@ describe('RecurringSchedulesService.update', () => {
 
 describe('RecurringSchedulesService.findByVenueForOwner', () => {
   it('lists schedules for the venue courts with their occurrence count', async () => {
-    const { service, repo, courtsService, bookingsService } = await buildTestingModule();
-    courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }, { id: 'court-2' }]);
+    const { service, repo, courtsService, bookingsService } =
+      await buildTestingModule();
+    courtsService.findByVenueForOwner.mockResolvedValue([
+      { id: 'court-1' },
+      { id: 'court-2' },
+    ]);
     repo.find.mockResolvedValue([
-      { id: 'schedule-1', courtId: 'court-1', status: RecurringScheduleStatus.ACTIVE },
+      {
+        id: 'schedule-1',
+        courtId: 'court-1',
+        status: RecurringScheduleStatus.ACTIVE,
+      },
     ]);
     bookingsService.countByRecurringScheduleId.mockResolvedValue(5);
 
     const result = await service.findByVenueForOwner('owner-1', 'venue-1');
 
-    expect(courtsService.findByVenueForOwner).toHaveBeenCalledWith('owner-1', 'venue-1');
+    expect(courtsService.findByVenueForOwner).toHaveBeenCalledWith(
+      'owner-1',
+      'venue-1',
+    );
     expect(result).toEqual([
       expect.objectContaining({ id: 'schedule-1', occurrenceCount: 5 }),
     ]);
   });
 
   it('resolves customerName from the registered user or the customer contact', async () => {
-    const { service, repo, courtsService, bookingsService, usersRepo, customerContactsRepo } =
-      await buildTestingModule();
+    const {
+      service,
+      repo,
+      courtsService,
+      bookingsService,
+      usersRepo,
+      customerContactsRepo,
+    } = await buildTestingModule();
     courtsService.findByVenueForOwner.mockResolvedValue([{ id: 'court-1' }]);
     repo.find.mockResolvedValue([
       {
@@ -445,10 +540,19 @@ describe('RecurringSchedulesService.findByIdForOwner', () => {
       await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     repo.findOne.mockResolvedValue({ id: 'schedule-1', courtId: 'court-1' });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
-    bookingsService.findByRecurringScheduleId.mockResolvedValue([{ id: 'booking-1' }]);
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
+    bookingsService.findByRecurringScheduleId.mockResolvedValue([
+      { id: 'booking-1' },
+    ]);
 
-    const result = await service.findByIdForOwner('owner-1', 'venue-1', 'schedule-1');
+    const result = await service.findByIdForOwner(
+      'owner-1',
+      'venue-1',
+      'schedule-1',
+    );
 
     expect(result).toEqual({
       schedule: { id: 'schedule-1', courtId: 'court-1' },
@@ -457,14 +561,18 @@ describe('RecurringSchedulesService.findByIdForOwner', () => {
   });
 
   it('throws NotFoundException when the schedule does not belong to the venue', async () => {
-    const { service, repo, courtsService, venuesService } = await buildTestingModule();
+    const { service, repo, courtsService, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     repo.findOne.mockResolvedValue({ id: 'schedule-1', courtId: 'court-1' });
-    courtsService.findByIdOrThrow.mockResolvedValue({ id: 'court-1', venueId: 'other-venue' });
+    courtsService.findByIdOrThrow.mockResolvedValue({
+      id: 'court-1',
+      venueId: 'other-venue',
+    });
 
-    await expect(service.findByIdForOwner('owner-1', 'venue-1', 'schedule-1')).rejects.toThrow(
-      'Lịch cố định schedule-1 không tồn tại',
-    );
+    await expect(
+      service.findByIdForOwner('owner-1', 'venue-1', 'schedule-1'),
+    ).rejects.toThrow('Lịch cố định schedule-1 không tồn tại');
   });
 });
 
@@ -515,7 +623,9 @@ describe('RecurringSchedulesService.renewSchedule', () => {
   it('collects conflicting dates instead of aborting', async () => {
     const { service, repo, bookingsService } = await buildTestingModule();
     bookingsService.createBookingRecord
-      .mockRejectedValueOnce(new ConflictException('Một hoặc nhiều khung giờ đã được đặt'))
+      .mockRejectedValueOnce(
+        new ConflictException('Một hoặc nhiều khung giờ đã được đặt'),
+      )
       .mockResolvedValue({});
     repo.save.mockImplementation((data) => Promise.resolve(data));
 
@@ -558,6 +668,8 @@ describe('RecurringSchedulesService.renewExpiringSchedules', () => {
       },
     });
     expect(bookingsService.createBookingRecord).toHaveBeenCalled();
-    expect(repo.save).toHaveBeenCalledWith(expect.objectContaining({ validTo: '2099-02-04' }));
+    expect(repo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ validTo: '2099-02-04' }),
+    );
   });
 });

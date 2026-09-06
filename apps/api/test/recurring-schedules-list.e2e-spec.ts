@@ -87,7 +87,10 @@ describe('Recurring schedules list/detail (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(listResponse.body).toHaveLength(1);
-    expect(listResponse.body[0]).toMatchObject({ id: scheduleId, occurrenceCount: 3 });
+    expect(listResponse.body[0]).toMatchObject({
+      id: scheduleId,
+      occurrenceCount: 3,
+    });
 
     const detailResponse = await request(app.getHttpServer())
       .get(`/venues/mine/${venue.id}/recurring-schedules/${scheduleId}`)
@@ -176,6 +179,9 @@ describe('Recurring schedules list/detail (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ pricePerSession: 120000, note: 'Đổi giá' })
       .expect(200);
-    expect(updateResponse.body).toMatchObject({ pricePerSession: 120000, note: 'Đổi giá' });
+    expect(updateResponse.body).toMatchObject({
+      pricePerSession: 120000,
+      note: 'Đổi giá',
+    });
   });
 });

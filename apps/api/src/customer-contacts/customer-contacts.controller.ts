@@ -10,10 +10,15 @@ import { NewCustomerDto } from './dto/customer-selector.dto';
 @UseGuards(JwtAuthGuard, OwnerScopeGuard)
 @OwnerScope('operational')
 export class CustomerContactsController {
-  constructor(private readonly customerContactsService: CustomerContactsService) {}
+  constructor(
+    private readonly customerContactsService: CustomerContactsService,
+  ) {}
 
   @Post()
-  create(@EffectiveOwnerId() effectiveOwnerId: string, @Body() dto: NewCustomerDto) {
+  create(
+    @EffectiveOwnerId() effectiveOwnerId: string,
+    @Body() dto: NewCustomerDto,
+  ) {
     return this.customerContactsService.create(effectiveOwnerId, dto);
   }
 }

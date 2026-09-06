@@ -63,33 +63,20 @@ async function buildTestingModule() {
 
   return {
     service: module.get(DisputesService),
-    disputesRepo: module.get(getRepositoryToken(Dispute)) as ReturnType<
-      typeof mockDisputesRepository
-    >,
-    bookingsService: module.get(BookingsService) as ReturnType<
-      typeof mockBookingsService
-    >,
-    paymentsService: module.get(PaymentsService) as ReturnType<
-      typeof mockPaymentsService
-    >,
-    courtsService: module.get(CourtsService) as ReturnType<
-      typeof mockCourtsService
-    >,
-    venuesService: module.get(VenuesService) as ReturnType<
-      typeof mockVenuesService
-    >,
-    usersService: module.get(UsersService) as ReturnType<
-      typeof mockUsersService
-    >,
-    notificationsService: module.get(NotificationsService) as ReturnType<
-      typeof mockNotificationsService
-    >,
+    disputesRepo: module.get(getRepositoryToken(Dispute)),
+    bookingsService: module.get(BookingsService),
+    paymentsService: module.get(PaymentsService),
+    courtsService: module.get(CourtsService),
+    venuesService: module.get(VenuesService),
+    usersService: module.get(UsersService),
+    notificationsService: module.get(NotificationsService),
   };
 }
 
 describe('DisputesService.createDispute', () => {
   it('creates a pending dispute for a paid booking', async () => {
-    const { service, disputesRepo, bookingsService } = await buildTestingModule();
+    const { service, disputesRepo, bookingsService } =
+      await buildTestingModule();
     bookingsService.findMineById.mockResolvedValue({
       id: 'booking-1',
       paymentStatus: PaymentStatus.PAID,
@@ -128,7 +115,8 @@ describe('DisputesService.createDispute', () => {
   });
 
   it('throws ConflictException when a dispute already exists for the booking', async () => {
-    const { service, disputesRepo, bookingsService } = await buildTestingModule();
+    const { service, disputesRepo, bookingsService } =
+      await buildTestingModule();
     bookingsService.findMineById.mockResolvedValue({
       id: 'booking-1',
       paymentStatus: PaymentStatus.PAID,
@@ -244,7 +232,8 @@ describe('DisputesService.findAllForAdmin', () => {
 
 describe('DisputesService.resolve', () => {
   it('resolves as refund by calling PaymentsService.adminRefund', async () => {
-    const { service, disputesRepo, paymentsService } = await buildTestingModule();
+    const { service, disputesRepo, paymentsService } =
+      await buildTestingModule();
     disputesRepo.findOne.mockResolvedValue({
       id: 'dispute-1',
       bookingId: 'booking-1',

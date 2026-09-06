@@ -13,13 +13,16 @@ async function buildTestingModule() {
   const module: TestingModule = await Test.createTestingModule({
     providers: [
       NotificationSettingsService,
-      { provide: getRepositoryToken(NotificationSettings), useFactory: mockRepository },
+      {
+        provide: getRepositoryToken(NotificationSettings),
+        useFactory: mockRepository,
+      },
     ],
   }).compile();
 
   return {
     service: module.get(NotificationSettingsService),
-    repo: module.get(getRepositoryToken(NotificationSettings)) as ReturnType<typeof mockRepository>,
+    repo: module.get(getRepositoryToken(NotificationSettings)),
   };
 }
 

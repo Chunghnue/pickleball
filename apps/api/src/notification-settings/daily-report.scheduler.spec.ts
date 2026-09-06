@@ -11,13 +11,18 @@ const mockNotificationSettingsService = () => ({ getForOwner: jest.fn() });
 const mockUsersService = () => ({ findActiveOwners: jest.fn() });
 const mockVenuesService = () => ({ findMineByOwner: jest.fn() });
 const mockDashboardService = () => ({ getSummary: jest.fn() });
-const mockNotificationsService = () => ({ notifyDailyReport: jest.fn().mockResolvedValue(undefined) });
+const mockNotificationsService = () => ({
+  notifyDailyReport: jest.fn().mockResolvedValue(undefined),
+});
 
 async function buildTestingModule() {
   const module: TestingModule = await Test.createTestingModule({
     providers: [
       DailyReportScheduler,
-      { provide: NotificationSettingsService, useFactory: mockNotificationSettingsService },
+      {
+        provide: NotificationSettingsService,
+        useFactory: mockNotificationSettingsService,
+      },
       { provide: UsersService, useFactory: mockUsersService },
       { provide: VenuesService, useFactory: mockVenuesService },
       { provide: DashboardService, useFactory: mockDashboardService },
@@ -27,13 +32,11 @@ async function buildTestingModule() {
 
   return {
     scheduler: module.get(DailyReportScheduler),
-    notificationSettingsService: module.get(NotificationSettingsService) as ReturnType<
-      typeof mockNotificationSettingsService
-    >,
-    usersService: module.get(UsersService) as ReturnType<typeof mockUsersService>,
-    venuesService: module.get(VenuesService) as ReturnType<typeof mockVenuesService>,
-    dashboardService: module.get(DashboardService) as ReturnType<typeof mockDashboardService>,
-    notificationsService: module.get(NotificationsService) as ReturnType<typeof mockNotificationsService>,
+    notificationSettingsService: module.get(NotificationSettingsService),
+    usersService: module.get(UsersService),
+    venuesService: module.get(VenuesService),
+    dashboardService: module.get(DashboardService),
+    notificationsService: module.get(NotificationsService),
   };
 }
 
@@ -48,7 +51,12 @@ describe('DailyReportScheduler.sendDailyReports', () => {
       notificationsService,
     } = await buildTestingModule();
     usersService.findActiveOwners.mockResolvedValue([
-      { id: 'owner-1', email: 'owner1@test.com', role: UserRole.OWNER, status: UserStatus.ACTIVE },
+      {
+        id: 'owner-1',
+        email: 'owner1@test.com',
+        role: UserRole.OWNER,
+        status: UserStatus.ACTIVE,
+      },
     ]);
     notificationSettingsService.getForOwner.mockResolvedValue({
       newBooking: true,
@@ -72,10 +80,20 @@ describe('DailyReportScheduler.sendDailyReports', () => {
   });
 
   it('skips owners with dailyReport off', async () => {
-    const { scheduler, notificationSettingsService, usersService, venuesService, notificationsService } =
-      await buildTestingModule();
+    const {
+      scheduler,
+      notificationSettingsService,
+      usersService,
+      venuesService,
+      notificationsService,
+    } = await buildTestingModule();
     usersService.findActiveOwners.mockResolvedValue([
-      { id: 'owner-1', email: 'owner1@test.com', role: UserRole.OWNER, status: UserStatus.ACTIVE },
+      {
+        id: 'owner-1',
+        email: 'owner1@test.com',
+        role: UserRole.OWNER,
+        status: UserStatus.ACTIVE,
+      },
     ]);
     notificationSettingsService.getForOwner.mockResolvedValue({
       newBooking: true,
@@ -100,7 +118,12 @@ describe('DailyReportScheduler.sendDailyReports', () => {
       notificationsService,
     } = await buildTestingModule();
     usersService.findActiveOwners.mockResolvedValue([
-      { id: 'owner-1', email: 'owner1@test.com', role: UserRole.OWNER, status: UserStatus.ACTIVE },
+      {
+        id: 'owner-1',
+        email: 'owner1@test.com',
+        role: UserRole.OWNER,
+        status: UserStatus.ACTIVE,
+      },
     ]);
     notificationSettingsService.getForOwner.mockResolvedValue({
       newBooking: true,

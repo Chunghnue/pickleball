@@ -8,7 +8,9 @@ import { UsersService } from '../users/users.service';
 const mockRepository = () => ({
   findOne: jest.fn(),
   create: jest.fn((data: unknown) => data),
-  save: jest.fn((data: unknown) => Promise.resolve({ id: 'contact-1', ...(data as object) })),
+  save: jest.fn((data: unknown) =>
+    Promise.resolve({ id: 'contact-1', ...(data as object) }),
+  ),
 });
 
 const mockUsersService = () => ({
@@ -19,15 +21,18 @@ async function buildTestingModule() {
   const module: TestingModule = await Test.createTestingModule({
     providers: [
       CustomerContactsService,
-      { provide: getRepositoryToken(CustomerContact), useFactory: mockRepository },
+      {
+        provide: getRepositoryToken(CustomerContact),
+        useFactory: mockRepository,
+      },
       { provide: UsersService, useFactory: mockUsersService },
     ],
   }).compile();
 
   return {
     service: module.get(CustomerContactsService),
-    repo: module.get(getRepositoryToken(CustomerContact)) as ReturnType<typeof mockRepository>,
-    usersService: module.get(UsersService) as ReturnType<typeof mockUsersService>,
+    repo: module.get(getRepositoryToken(CustomerContact)),
+    usersService: module.get(UsersService),
   };
 }
 
@@ -42,15 +47,22 @@ describe('CustomerContactsService.resolveSelector', () => {
   it('throws BadRequestException when more than one selector field is provided', async () => {
     const { service } = await buildTestingModule();
     await expect(
-      service.resolveSelector('owner-1', { customerId: 'u1', customerContactId: 'c1' }),
-    ).rejects.toThrow('Phải cung cấp đúng một trong customerId, customerContactId hoặc newCustomer');
+      service.resolveSelector('owner-1', {
+        customerId: 'u1',
+        customerContactId: 'c1',
+      }),
+    ).rejects.toThrow(
+      'Phải cung cấp đúng một trong customerId, customerContactId hoặc newCustomer',
+    );
   });
 
   it('resolves an existing customerId after checking it exists', async () => {
     const { service, usersService } = await buildTestingModule();
     usersService.findById.mockResolvedValue({ id: 'u1' });
 
-    const result = await service.resolveSelector('owner-1', { customerId: 'u1' });
+    const result = await service.resolveSelector('owner-1', {
+      customerId: 'u1',
+    });
 
     expect(result).toEqual({ customerId: 'u1' });
   });
@@ -68,9 +80,13 @@ describe('CustomerContactsService.resolveSelector', () => {
     const { service, repo } = await buildTestingModule();
     repo.findOne.mockResolvedValue({ id: 'contact-1', ownerId: 'owner-1' });
 
-    const result = await service.resolveSelector('owner-1', { customerContactId: 'contact-1' });
+    const result = await service.resolveSelector('owner-1', {
+      customerContactId: 'contact-1',
+    });
 
-    expect(repo.findOne).toHaveBeenCalledWith({ where: { id: 'contact-1', ownerId: 'owner-1' } });
+    expect(repo.findOne).toHaveBeenCalledWith({
+      where: { id: 'contact-1', ownerId: 'owner-1' },
+    });
     expect(result).toEqual({ customerContactId: 'contact-1' });
   });
 
@@ -83,14 +99,23 @@ describe('CustomerContactsService.resolveSelector', () => {
     });
 
     expect(repo.save).toHaveBeenCalledWith(
-      expect.objectContaining({ ownerId: 'owner-1', fullName: 'Nguyễn Văn A', phone: '0900000000' }),
+      expect.objectContaining({
+        ownerId: 'owner-1',
+        fullName: 'Nguyễn Văn A',
+        phone: '0900000000',
+      }),
     );
     expect(result).toEqual({ customerContactId: 'contact-1' });
   });
 
   it('reuses an existing contact with the same phone instead of creating a duplicate', async () => {
     const { service, repo } = await buildTestingModule();
-    repo.findOne.mockResolvedValue({ id: 'contact-9', ownerId: 'owner-1', fullName: 'Old Name', phone: '0900000000' });
+    repo.findOne.mockResolvedValue({
+      id: 'contact-9',
+      ownerId: 'owner-1',
+      fullName: 'Old Name',
+      phone: '0900000000',
+    });
 
     const result = await service.resolveSelector('owner-1', {
       newCustomer: { fullName: 'New Name', phone: '0900000000' },
@@ -107,9 +132,12 @@ describe('CustomerContactsService.resolveSelector', () => {
     repo.findOne
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 'contact-race', ownerId: 'owner-1' });
-    const uniqueViolation = Object.assign(new QueryFailedError('INSERT', [], new Error('dup')), {
-      code: '23505',
-    });
+    const uniqueViolation = Object.assign(
+      new QueryFailedError('INSERT', [], new Error('dup')),
+      {
+        code: '23505',
+      },
+    );
     repo.save.mockRejectedValueOnce(uniqueViolation);
 
     const result = await service.resolveSelector('owner-1', {

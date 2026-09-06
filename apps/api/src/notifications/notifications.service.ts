@@ -169,14 +169,18 @@ Tổng tiền: ${currencyFormatter.format(params.totalPrice)} đ</p>`;
     return this.sendSafely(params.to, 'Khiếu nại của bạn đã bị từ chối', html);
   }
 
-  notifyBookingCancelledForOwner(params: BookingCancelledForOwnerParams): Promise<void> {
+  notifyBookingCancelledForOwner(
+    params: BookingCancelledForOwnerParams,
+  ): Promise<void> {
     const html = `<p>Booking sau đã bị khách hàng huỷ:<br/>
 Sân: ${params.courtName} - ${params.venueName}<br/>
 Ngày: ${params.date}, ${params.startTime} - ${params.endTime}</p>`;
     return this.sendSafely(params.to, 'Khách hàng đã huỷ booking', html);
   }
 
-  notifyPaymentConfirmedForOwner(params: PaymentConfirmedForOwnerParams): Promise<void> {
+  notifyPaymentConfirmedForOwner(
+    params: PaymentConfirmedForOwnerParams,
+  ): Promise<void> {
     const html = `<p>Bạn vừa nhận thanh toán cho booking:<br/>
 Sân: ${params.courtName} - ${params.venueName}<br/>
 Ngày: ${params.date}, ${params.startTime} - ${params.endTime}<br/>

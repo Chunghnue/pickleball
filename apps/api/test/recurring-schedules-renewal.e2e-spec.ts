@@ -87,14 +87,18 @@ describe('Recurring schedule auto-renewal (e2e)', () => {
     const scheduleId = createResponse.body.schedule.id as string;
 
     const scheduleRepo = dataSource.getRepository(RecurringSchedule);
-    const schedule = await scheduleRepo.findOneOrFail({ where: { id: scheduleId } });
+    const schedule = await scheduleRepo.findOneOrFail({
+      where: { id: scheduleId },
+    });
 
     const result = await recurringSchedulesService.renewSchedule(schedule);
 
     expect(result.generatedCount).toBeGreaterThan(0);
     expect(result.conflictingDates).toEqual([]);
 
-    const updated = await scheduleRepo.findOneOrFail({ where: { id: scheduleId } });
+    const updated = await scheduleRepo.findOneOrFail({
+      where: { id: scheduleId },
+    });
     expect(updated.validTo).toBe('2099-02-04');
 
     const detailResponse = await request(app.getHttpServer())

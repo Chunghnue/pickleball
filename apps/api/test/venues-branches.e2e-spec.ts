@@ -4,7 +4,14 @@ import { rm } from 'fs/promises';
 import { join } from 'path';
 import request from 'supertest';
 import { createTestApp, clearDatabase } from './utils/test-app';
-import { createUser, loginAs, createVenue, createCourt, createBooking, createContact } from './utils/owner-fixtures';
+import {
+  createUser,
+  loginAs,
+  createVenue,
+  createCourt,
+  createBooking,
+  createContact,
+} from './utils/owner-fixtures';
 import { UserRole } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { VenueSlugHistory } from '../src/courts/entities/venue-slug-history.entity';
@@ -28,7 +35,11 @@ describe('Branches (venues) e2e', () => {
   });
 
   async function ownerAndToken() {
-    const owner = await createUser(dataSource, 'owner@test.com', UserRole.OWNER);
+    const owner = await createUser(
+      dataSource,
+      'owner@test.com',
+      UserRole.OWNER,
+    );
     const token = await loginAs(app, 'owner@test.com');
     return { ownerId: owner.id, token };
   }
@@ -39,7 +50,11 @@ describe('Branches (venues) e2e', () => {
     const response = await request(app.getHttpServer())
       .post('/venues')
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Sân Đình Văn Chung', address: '1 Le Loi', city: 'Ho Chi Minh' })
+      .send({
+        name: 'Sân Đình Văn Chung',
+        address: '1 Le Loi',
+        city: 'Ho Chi Minh',
+      })
       .expect(201);
 
     expect(response.body.slug).toBe('san-dinh-van-chung');
@@ -66,7 +81,9 @@ describe('Branches (venues) e2e', () => {
       .send({ slug: 'new-slug' })
       .expect(200);
 
-    await request(app.getHttpServer()).get('/venues/by-slug/old-slug').expect(404);
+    await request(app.getHttpServer())
+      .get('/venues/by-slug/old-slug')
+      .expect(404);
     const bySlug = await request(app.getHttpServer())
       .get('/venues/by-slug/new-slug')
       .expect(200);
@@ -116,7 +133,11 @@ describe('Branches (venues) e2e', () => {
       const changedAt = new Date(now);
       changedAt.setDate(changedAt.getDate() - daysAgo[i]);
       await historyRepo.save(
-        historyRepo.create({ venueId: venue.id, oldSlug: `slug-${i}`, changedAt }),
+        historyRepo.create({
+          venueId: venue.id,
+          oldSlug: `slug-${i}`,
+          changedAt,
+        }),
       );
     }
 
@@ -131,11 +152,26 @@ describe('Branches (venues) e2e', () => {
 
   it('blocks deletion with 409 when the venue has booking history, allows it otherwise', async () => {
     const { ownerId, token } = await ownerAndToken();
-    const venueWithBooking = await createVenue(dataSource, ownerId, 'Có booking');
+    const venueWithBooking = await createVenue(
+      dataSource,
+      ownerId,
+      'Có booking',
+    );
     const court = await createCourt(dataSource, venueWithBooking.id, 'San 1');
-    const contact = await createContact(dataSource, ownerId, 'Khach A', '0900000001');
-    await createBooking(dataSource, court.id, { customerContactId: contact.id });
-    const venueWithoutBooking = await createVenue(dataSource, ownerId, 'Khong booking');
+    const contact = await createContact(
+      dataSource,
+      ownerId,
+      'Khach A',
+      '0900000001',
+    );
+    await createBooking(dataSource, court.id, {
+      customerContactId: contact.id,
+    });
+    const venueWithoutBooking = await createVenue(
+      dataSource,
+      ownerId,
+      'Khong booking',
+    );
 
     await request(app.getHttpServer())
       .delete(`/venues/mine/${venueWithBooking.id}`)
@@ -169,7 +205,12 @@ describe('Branches (venues) e2e', () => {
       .get('/venues/mine')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    const byId = new Map(list.body.map((v: { id: string; isDefault: boolean }) => [v.id, v.isDefault]));
+    const byId = new Map(
+      list.body.map((v: { id: string; isDefault: boolean }) => [
+        v.id,
+        v.isDefault,
+      ]),
+    );
     expect(byId.get(first.id)).toBe(false);
     expect(byId.get(second.id)).toBe(true);
   });
@@ -196,9 +237,14 @@ describe('Branches (venues) e2e', () => {
       .attach('file', Buffer.from('fake-png-bytes'), 'logo.png')
       .expect(201);
 
-    expect(response.body.logoUrl).toMatch(new RegExp(`^/uploads/venues/${venue.id}/.+\\.png$`));
+    expect(response.body.logoUrl).toMatch(
+      new RegExp(`^/uploads/venues/${venue.id}/.+\\.png$`),
+    );
 
-    await rm(join(getUploadsDir(), 'venues', venue.id), { recursive: true, force: true });
+    await rm(join(getUploadsDir(), 'venues', venue.id), {
+      recursive: true,
+      force: true,
+    });
   });
 
   it('POST /venues/mine/:id/logo rejects a non-image file with 400', async () => {

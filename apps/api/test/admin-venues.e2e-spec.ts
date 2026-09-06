@@ -2,7 +2,11 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { createTestApp, clearDatabase, mockMailService } from './utils/test-app';
+import {
+  createTestApp,
+  clearDatabase,
+  mockMailService,
+} from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 
@@ -103,9 +107,7 @@ describe('Admin venue approval (e2e)', () => {
     );
     expect(call).toBeDefined();
 
-    await request(app.getHttpServer())
-      .get(`/venues/${venueId}`)
-      .expect(200);
+    await request(app.getHttpServer()).get(`/venues/${venueId}`).expect(200);
   });
 
   it('rejects a venue with a reason and sends a rejection email containing it', async () => {
@@ -151,8 +153,6 @@ describe('Admin venue approval (e2e)', () => {
   });
 
   it('rejects unauthenticated access with 401', async () => {
-    await request(app.getHttpServer())
-      .get('/admin/venues/pending')
-      .expect(401);
+    await request(app.getHttpServer()).get('/admin/venues/pending').expect(401);
   });
 });

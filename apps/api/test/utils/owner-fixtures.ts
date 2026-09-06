@@ -2,11 +2,22 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { StaffRole, User, UserRole, UserStatus } from '../../src/users/entities/user.entity';
+import {
+  StaffRole,
+  User,
+  UserRole,
+  UserStatus,
+} from '../../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../../src/courts/entities/court.entity';
-import { Booking, BookingStatus } from '../../src/bookings/entities/booking.entity';
-import { Payment, PaymentStatus } from '../../src/payments/entities/payment.entity';
+import {
+  Booking,
+  BookingStatus,
+} from '../../src/bookings/entities/booking.entity';
+import {
+  Payment,
+  PaymentStatus,
+} from '../../src/payments/entities/payment.entity';
 import { CustomerContact } from '../../src/customer-contacts/entities/customer-contact.entity';
 
 let userFixturePhoneCounter = 0;
@@ -33,7 +44,10 @@ export async function createUser(
   );
 }
 
-export async function loginAs(app: INestApplication, email: string): Promise<string> {
+export async function loginAs(
+  app: INestApplication,
+  email: string,
+): Promise<string> {
   const res = await request(app.getHttpServer())
     .post('/auth/login')
     .send({ identifier: email, password: 'password123' });
@@ -64,17 +78,30 @@ export async function createStaff(
   );
 }
 
-export async function loginByPhone(app: INestApplication, phone: string): Promise<string> {
+export async function loginByPhone(
+  app: INestApplication,
+  phone: string,
+): Promise<string> {
   const res = await request(app.getHttpServer())
     .post('/auth/login')
     .send({ identifier: phone, password: 'password123' });
   return res.body.accessToken as string;
 }
 
-export async function createVenue(ds: DataSource, ownerId: string, name: string): Promise<Venue> {
+export async function createVenue(
+  ds: DataSource,
+  ownerId: string,
+  name: string,
+): Promise<Venue> {
   const repo = ds.getRepository(Venue);
   return repo.save(
-    repo.create({ ownerId, name, address: '123 Le Loi', city: 'Ho Chi Minh', status: VenueStatus.ACTIVE }),
+    repo.create({
+      ownerId,
+      name,
+      address: '123 Le Loi',
+      city: 'Ho Chi Minh',
+      status: VenueStatus.ACTIVE,
+    }),
   );
 }
 
@@ -144,7 +171,12 @@ export async function createBooking(
   );
 }
 
-export async function payBooking(ds: DataSource, bookingId: string): Promise<Payment> {
+export async function payBooking(
+  ds: DataSource,
+  bookingId: string,
+): Promise<Payment> {
   const repo = ds.getRepository(Payment);
-  return repo.save(repo.create({ bookingId, status: PaymentStatus.PAID, paidAt: new Date() }));
+  return repo.save(
+    repo.create({ bookingId, status: PaymentStatus.PAID, paidAt: new Date() }),
+  );
 }

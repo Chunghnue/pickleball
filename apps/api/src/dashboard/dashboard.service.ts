@@ -56,7 +56,10 @@ export class DashboardService {
     private readonly paymentsRepository: Repository<Payment>,
   ) {}
 
-  async getSummary(ownerId: string, venueId?: string): Promise<DashboardSummary> {
+  async getSummary(
+    ownerId: string,
+    venueId?: string,
+  ): Promise<DashboardSummary> {
     const venueIds = venueId
       ? [(await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId)).id]
       : (await this.venuesService.findMineByOwner(ownerId)).map((v) => v.id);
@@ -81,60 +84,77 @@ export class DashboardService {
     const rangeStart = new Date(todayStart);
     rangeStart.setDate(rangeStart.getDate() - 29);
 
-    const [todayBookingsCount, revenueRows, newCustomerRows, revenueByCourtRows, recentBookingsRows] =
-      await Promise.all([
-        this.bookingsRepository.count({
-          where: {
-            courtId: In(courtIds),
-            createdAt: And(MoreThanOrEqual(todayStart), LessThan(todayEnd)),
-          },
-        }),
-        this.paymentsRepository
-          .createQueryBuilder('payment')
-          .innerJoin('bookings', 'booking', 'booking.id::text = payment.booking_id')
-          .select("TO_CHAR(payment.paid_at, 'YYYY-MM-DD')", 'date')
-          .addSelect('SUM(booking.total_price)', 'revenue')
-          .where('booking.court_id IN (:...courtIds)', { courtIds })
-          .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
-          .andWhere('payment.paid_at >= :from', { from: rangeStart })
-          .andWhere('payment.paid_at < :to', { to: todayEnd })
-          .groupBy("TO_CHAR(payment.paid_at, 'YYYY-MM-DD')")
-          .getRawMany<{ date: string; revenue: string }>(),
-        this.bookingsRepository
-          .createQueryBuilder('booking')
-          .select('booking.customer_id', 'customerId')
-          .addSelect('MIN(booking.created_at)', 'firstBookingAt')
-          .where('booking.court_id IN (:...courtIds)', { courtIds })
-          .groupBy('booking.customer_id')
-          .having('MIN(booking.created_at) >= :start', { start: monthStart })
-          .andHaving('MIN(booking.created_at) < :end', { end: monthEnd })
-          .getRawMany(),
-        this.paymentsRepository
-          .createQueryBuilder('payment')
-          .innerJoin('bookings', 'booking', 'booking.id::text = payment.booking_id')
-          .select('booking.court_id', 'courtId')
-          .addSelect('SUM(booking.total_price)', 'revenue')
-          .where('booking.court_id IN (:...courtIds)', { courtIds })
-          .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
-          .groupBy('booking.court_id')
-          .getRawMany<{ courtId: string; revenue: string }>(),
-        this.bookingsRepository
-          .createQueryBuilder('booking')
-          .innerJoin('users', 'customer', 'customer.id::text = booking.customer_id')
-          .select('booking.id', 'id')
-          .addSelect('booking.court_id', 'courtId')
-          .addSelect('customer.full_name', 'customerName')
-          .addSelect('customer.phone', 'customerPhone')
-          .addSelect("TO_CHAR(booking.date, 'YYYY-MM-DD')", 'date')
-          .addSelect('booking.start_time', 'startTime')
-          .addSelect('booking.end_time', 'endTime')
-          .addSelect('booking.total_price', 'totalPrice')
-          .addSelect('booking.status', 'status')
-          .where('booking.court_id IN (:...courtIds)', { courtIds })
-          .orderBy('booking.created_at', 'DESC')
-          .limit(10)
-          .getRawMany<RecentBookingRow>(),
-      ]);
+    const [
+      todayBookingsCount,
+      revenueRows,
+      newCustomerRows,
+      revenueByCourtRows,
+      recentBookingsRows,
+    ] = await Promise.all([
+      this.bookingsRepository.count({
+        where: {
+          courtId: In(courtIds),
+          createdAt: And(MoreThanOrEqual(todayStart), LessThan(todayEnd)),
+        },
+      }),
+      this.paymentsRepository
+        .createQueryBuilder('payment')
+        .innerJoin(
+          'bookings',
+          'booking',
+          'booking.id::text = payment.booking_id',
+        )
+        .select("TO_CHAR(payment.paid_at, 'YYYY-MM-DD')", 'date')
+        .addSelect('SUM(booking.total_price)', 'revenue')
+        .where('booking.court_id IN (:...courtIds)', { courtIds })
+        .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
+        .andWhere('payment.paid_at >= :from', { from: rangeStart })
+        .andWhere('payment.paid_at < :to', { to: todayEnd })
+        .groupBy("TO_CHAR(payment.paid_at, 'YYYY-MM-DD')")
+        .getRawMany<{ date: string; revenue: string }>(),
+      this.bookingsRepository
+        .createQueryBuilder('booking')
+        .select('booking.customer_id', 'customerId')
+        .addSelect('MIN(booking.created_at)', 'firstBookingAt')
+        .where('booking.court_id IN (:...courtIds)', { courtIds })
+        .groupBy('booking.customer_id')
+        .having('MIN(booking.created_at) >= :start', { start: monthStart })
+        .andHaving('MIN(booking.created_at) < :end', { end: monthEnd })
+        .getRawMany(),
+      this.paymentsRepository
+        .createQueryBuilder('payment')
+        .innerJoin(
+          'bookings',
+          'booking',
+          'booking.id::text = payment.booking_id',
+        )
+        .select('booking.court_id', 'courtId')
+        .addSelect('SUM(booking.total_price)', 'revenue')
+        .where('booking.court_id IN (:...courtIds)', { courtIds })
+        .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
+        .groupBy('booking.court_id')
+        .getRawMany<{ courtId: string; revenue: string }>(),
+      this.bookingsRepository
+        .createQueryBuilder('booking')
+        .innerJoin(
+          'users',
+          'customer',
+          'customer.id::text = booking.customer_id',
+        )
+        .select('booking.id', 'id')
+        .addSelect('booking.court_id', 'courtId')
+        .addSelect('customer.full_name', 'customerName')
+        .addSelect('customer.phone', 'customerPhone')
+        .addSelect("TO_CHAR(booking.date, 'YYYY-MM-DD')", 'date')
+        .addSelect('booking.start_time', 'startTime')
+        .addSelect('booking.end_time', 'endTime')
+        .addSelect('booking.total_price', 'totalPrice')
+        .addSelect('booking.status', 'status')
+        .where('booking.court_id IN (:...courtIds)', { courtIds })
+        .orderBy('booking.created_at', 'DESC')
+        .limit(10)
+        .getRawMany<RecentBookingRow>(),
+    ]);
 
     const revenueByDay = fillRevenueByDay(revenueRows, last30Days);
     const todayRevenue = revenueByDay[revenueByDay.length - 1].revenue;
@@ -150,7 +170,9 @@ export class DashboardService {
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
-    const courtNameById = new Map(courts.map((court) => [court.id, court.name]));
+    const courtNameById = new Map(
+      courts.map((court) => [court.id, court.name]),
+    );
     const recentBookings = recentBookingsRows.map((row) => ({
       id: row.id,
       customerName: row.customerName,
@@ -167,7 +189,8 @@ export class DashboardService {
       todayBookingsCount,
       todayRevenue,
       courts: {
-        active: courts.filter((court) => court.status === CourtStatus.ACTIVE).length,
+        active: courts.filter((court) => court.status === CourtStatus.ACTIVE)
+          .length,
         total: courts.length,
       },
       newCustomersThisMonth: newCustomerRows.length,

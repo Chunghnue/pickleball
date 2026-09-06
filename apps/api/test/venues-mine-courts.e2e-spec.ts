@@ -3,7 +3,12 @@ import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { createTestApp, clearDatabase } from './utils/test-app';
-import { StaffRole, User, UserRole, UserStatus } from '../src/users/entities/user.entity';
+import {
+  StaffRole,
+  User,
+  UserRole,
+  UserStatus,
+} from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../src/courts/entities/court.entity';
 
@@ -24,7 +29,10 @@ describe('GET /venues/mine/courts (e2e)', () => {
     await app.close();
   });
 
-  async function createOwnerAndLogin(): Promise<{ ownerId: string; token: string }> {
+  async function createOwnerAndLogin(): Promise<{
+    ownerId: string;
+    token: string;
+  }> {
     const passwordHash = await bcrypt.hash('password123', 10);
     const usersRepo = dataSource.getRepository(User);
     const owner = await usersRepo.save(
@@ -40,7 +48,10 @@ describe('GET /venues/mine/courts (e2e)', () => {
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ identifier: 'owner@test.com', password: 'password123' });
-    return { ownerId: owner.id, token: loginResponse.body.accessToken as string };
+    return {
+      ownerId: owner.id,
+      token: loginResponse.body.accessToken as string,
+    };
   }
 
   it('returns courts across every venue instead of matching GET /venues/mine/:id', async () => {

@@ -3,7 +3,10 @@ import { Reflector } from '@nestjs/core';
 import { OwnerScopeGuard } from './owner-scope.guard';
 import { StaffRole, UserRole } from '../../users/entities/user.entity';
 
-function buildContext(user: unknown, request: { effectiveOwnerId?: string } = {}) {
+function buildContext(
+  user: unknown,
+  request: { effectiveOwnerId?: string } = {},
+) {
   const req = { user, ...request };
   return {
     getHandler: () => ({}),
@@ -19,10 +22,15 @@ function buildReflector(tier: 'full' | 'operational' | 'owner' | undefined) {
 describe('OwnerScopeGuard', () => {
   it('allows an owner on a full-tier route and sets effectiveOwnerId to their own id', () => {
     const guard = new OwnerScopeGuard(buildReflector('full'));
-    const ctx = buildContext({ userId: 'owner-1', role: UserRole.OWNER, ownerId: null, staffRole: null });
+    const ctx = buildContext({
+      userId: 'owner-1',
+      role: UserRole.OWNER,
+      ownerId: null,
+      staffRole: null,
+    });
 
     expect(guard.canActivate(ctx)).toBe(true);
-    expect((ctx.switchToHttp().getRequest() as any).effectiveOwnerId).toBe('owner-1');
+    expect(ctx.switchToHttp().getRequest().effectiveOwnerId).toBe('owner-1');
   });
 
   it('allows a manager staff on a full-tier route, scoped to their owner', () => {
@@ -35,7 +43,7 @@ describe('OwnerScopeGuard', () => {
     });
 
     expect(guard.canActivate(ctx)).toBe(true);
-    expect((ctx.switchToHttp().getRequest() as any).effectiveOwnerId).toBe('owner-1');
+    expect(ctx.switchToHttp().getRequest().effectiveOwnerId).toBe('owner-1');
   });
 
   it('rejects a cashier staff on a full-tier route', () => {
@@ -60,15 +68,20 @@ describe('OwnerScopeGuard', () => {
     });
 
     expect(guard.canActivate(ctx)).toBe(true);
-    expect((ctx.switchToHttp().getRequest() as any).effectiveOwnerId).toBe('owner-1');
+    expect(ctx.switchToHttp().getRequest().effectiveOwnerId).toBe('owner-1');
   });
 
   it('allows an owner on an owner-tier route', () => {
     const guard = new OwnerScopeGuard(buildReflector('owner'));
-    const ctx = buildContext({ userId: 'owner-1', role: UserRole.OWNER, ownerId: null, staffRole: null });
+    const ctx = buildContext({
+      userId: 'owner-1',
+      role: UserRole.OWNER,
+      ownerId: null,
+      staffRole: null,
+    });
 
     expect(guard.canActivate(ctx)).toBe(true);
-    expect((ctx.switchToHttp().getRequest() as any).effectiveOwnerId).toBe('owner-1');
+    expect(ctx.switchToHttp().getRequest().effectiveOwnerId).toBe('owner-1');
   });
 
   it('rejects a manager staff on an owner-tier route (owner-tier excludes even full-tier staff)', () => {
@@ -85,14 +98,24 @@ describe('OwnerScopeGuard', () => {
 
   it('rejects a customer on any owner-scoped route', () => {
     const guard = new OwnerScopeGuard(buildReflector('operational'));
-    const ctx = buildContext({ userId: 'cust-1', role: UserRole.CUSTOMER, ownerId: null, staffRole: null });
+    const ctx = buildContext({
+      userId: 'cust-1',
+      role: UserRole.CUSTOMER,
+      ownerId: null,
+      staffRole: null,
+    });
 
     expect(guard.canActivate(ctx)).toBe(false);
   });
 
   it('allows any authenticated user when no @OwnerScope metadata is set', () => {
     const guard = new OwnerScopeGuard(buildReflector(undefined));
-    const ctx = buildContext({ userId: 'cust-1', role: UserRole.CUSTOMER, ownerId: null, staffRole: null });
+    const ctx = buildContext({
+      userId: 'cust-1',
+      role: UserRole.CUSTOMER,
+      ownerId: null,
+      staffRole: null,
+    });
 
     expect(guard.canActivate(ctx)).toBe(true);
   });

@@ -1,19 +1,27 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddBranchFieldsToVenues1787940000000
-  implements MigrationInterface
-{
+export class AddBranchFieldsToVenues1787940000000 implements MigrationInterface {
   name = 'AddBranchFieldsToVenues1787940000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "venues" ADD "slug" character varying`);
+    await queryRunner.query(
+      `ALTER TABLE "venues" ADD "slug" character varying`,
+    );
     await queryRunner.query(
       `CREATE UNIQUE INDEX "venues_slug_unique_idx" ON "venues" ("slug") WHERE "slug" IS NOT NULL`,
     );
-    await queryRunner.query(`ALTER TABLE "venues" ADD "district" character varying`);
-    await queryRunner.query(`ALTER TABLE "venues" ADD "latitude" double precision`);
-    await queryRunner.query(`ALTER TABLE "venues" ADD "longitude" double precision`);
-    await queryRunner.query(`ALTER TABLE "venues" ADD "email" character varying`);
+    await queryRunner.query(
+      `ALTER TABLE "venues" ADD "district" character varying`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "venues" ADD "latitude" double precision`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "venues" ADD "longitude" double precision`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "venues" ADD "email" character varying`,
+    );
     await queryRunner.query(
       `ALTER TABLE "venues" ADD "is_hidden" boolean NOT NULL DEFAULT false`,
     );
@@ -27,7 +35,9 @@ export class AddBranchFieldsToVenues1787940000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "public"."IDX_venue_slug_history_venue_id"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_venue_slug_history_venue_id"`,
+    );
     await queryRunner.query(`DROP TABLE "venue_slug_history"`);
     await queryRunner.query(`ALTER TABLE "venues" DROP COLUMN "is_hidden"`);
     await queryRunner.query(`ALTER TABLE "venues" DROP COLUMN "email"`);

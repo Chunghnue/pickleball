@@ -6,8 +6,14 @@ import { createTestApp, clearDatabase } from './utils/test-app';
 import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Venue, VenueStatus } from '../src/courts/entities/venue.entity';
 import { Court, CourtStatus } from '../src/courts/entities/court.entity';
-import { Booking, BookingStatus } from '../src/bookings/entities/booking.entity';
-import { Payment, PaymentStatus } from '../src/payments/entities/payment.entity';
+import {
+  Booking,
+  BookingStatus,
+} from '../src/bookings/entities/booking.entity';
+import {
+  Payment,
+  PaymentStatus,
+} from '../src/payments/entities/payment.entity';
 
 describe('Owner dashboard summary (e2e)', () => {
   let app: INestApplication;
@@ -146,7 +152,11 @@ describe('Owner dashboard summary (e2e)', () => {
     expect(response.body.courts).toEqual({ active: 0, total: 0 });
     expect(response.body.newCustomersThisMonth).toBe(0);
     expect(response.body.revenueByDay).toHaveLength(30);
-    expect(response.body.revenueByDay.every((d: { revenue: number }) => d.revenue === 0)).toBe(true);
+    expect(
+      response.body.revenueByDay.every(
+        (d: { revenue: number }) => d.revenue === 0,
+      ),
+    ).toBe(true);
     expect(response.body.revenueByCourt).toEqual([]);
     expect(response.body.recentBookings).toEqual([]);
   });
@@ -168,7 +178,7 @@ describe('Owner dashboard summary (e2e)', () => {
       .expect(403);
   });
 
-  it('aggregates bookings, revenue, courts, new customers, revenue-by-court and recent bookings scoped to the owner\'s own venues', async () => {
+  it("aggregates bookings, revenue, courts, new customers, revenue-by-court and recent bookings scoped to the owner's own venues", async () => {
     const owner = await createUser('owner1@test.com', UserRole.OWNER);
     const otherOwner = await createUser('owner2@test.com', UserRole.OWNER);
     const customer = await createUser('customer@test.com', UserRole.CUSTOMER);
@@ -180,11 +190,19 @@ describe('Owner dashboard summary (e2e)', () => {
     const otherVenue = await createVenue(otherOwner.id, 'Not Mine');
     const otherCourt = await createCourt(otherVenue.id, 'Other Court', true);
 
-    const paidBooking = await createBooking(courtWithRevenue.id, customer.id, 300000);
+    const paidBooking = await createBooking(
+      courtWithRevenue.id,
+      customer.id,
+      300000,
+    );
     await payBooking(paidBooking.id);
     await createBooking(courtWithRevenue.id, customer.id, 150000);
 
-    const otherBooking = await createBooking(otherCourt.id, customer.id, 999999);
+    const otherBooking = await createBooking(
+      otherCourt.id,
+      customer.id,
+      999999,
+    );
     await payBooking(otherBooking.id);
 
     const token = await loginAs('owner1@test.com');

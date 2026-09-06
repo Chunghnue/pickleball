@@ -83,7 +83,12 @@ export class CourtsController {
     if (!file) {
       throw new BadRequestException('Vui lòng chọn file ảnh');
     }
-    return this.courtsService.addImage(effectiveOwnerId, venueId, courtId, file);
+    return this.courtsService.addImage(
+      effectiveOwnerId,
+      venueId,
+      courtId,
+      file,
+    );
   }
 
   @Delete('venues/mine/:venueId/courts/:courtId/images/:imageId')
@@ -95,7 +100,12 @@ export class CourtsController {
     @Param('courtId') courtId: string,
     @Param('imageId') imageId: string,
   ) {
-    return this.courtsService.removeImage(effectiveOwnerId, venueId, courtId, imageId);
+    return this.courtsService.removeImage(
+      effectiveOwnerId,
+      venueId,
+      courtId,
+      imageId,
+    );
   }
 
   @Get('courts/:id/slots')

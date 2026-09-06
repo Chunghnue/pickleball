@@ -58,21 +58,11 @@ async function buildTestingModule() {
 
   return {
     service: module.get(CourtsService),
-    courtsRepo: module.get(getRepositoryToken(Court)) as ReturnType<
-      typeof mockCourtsRepository
-    >,
-    courtImagesRepo: module.get(getRepositoryToken(CourtImage)) as ReturnType<
-      typeof mockCourtImagesRepository
-    >,
-    bookingsRepo: module.get(getRepositoryToken(Booking)) as ReturnType<
-      typeof mockBookingsRepository
-    >,
-    venuesService: module.get(VenuesService) as ReturnType<
-      typeof mockVenuesService
-    >,
-    pricingService: module.get(PricingService) as ReturnType<
-      typeof mockPricingService
-    >,
+    courtsRepo: module.get(getRepositoryToken(Court)),
+    courtImagesRepo: module.get(getRepositoryToken(CourtImage)),
+    bookingsRepo: module.get(getRepositoryToken(Booking)),
+    venuesService: module.get(VenuesService),
+    pricingService: module.get(PricingService),
   };
 }
 
@@ -230,7 +220,10 @@ describe('CourtsService.findActiveByVenue', () => {
 describe('CourtsService.findByIdOrThrow', () => {
   it('returns the court regardless of status', async () => {
     const { service, courtsRepo } = await buildTestingModule();
-    courtsRepo.findOne.mockResolvedValue({ id: 'court-1', status: CourtStatus.CLOSED });
+    courtsRepo.findOne.mockResolvedValue({
+      id: 'court-1',
+      status: CourtStatus.CLOSED,
+    });
 
     const result = await service.findByIdOrThrow('court-1');
 
@@ -280,7 +273,8 @@ describe('CourtsService.getSlotsForDate', () => {
   });
 
   it('resolves each slot price through PricingService', async () => {
-    const { service, courtsRepo, venuesService, pricingService } = await buildTestingModule();
+    const { service, courtsRepo, venuesService, pricingService } =
+      await buildTestingModule();
     courtsRepo.findOne.mockResolvedValue({
       id: 'court-1',
       venueId: 'venue-1',
@@ -291,12 +285,22 @@ describe('CourtsService.getSlotsForDate', () => {
       status: CourtStatus.ACTIVE,
     });
     venuesService.findPublicById.mockResolvedValue({ id: 'venue-1' });
-    pricingService.resolvePrice.mockResolvedValueOnce(120000).mockResolvedValueOnce(80000);
+    pricingService.resolvePrice
+      .mockResolvedValueOnce(120000)
+      .mockResolvedValueOnce(80000);
 
     const result = await service.getSlotsForDate('court-1', '2026-08-25');
 
-    expect(pricingService.resolvePrice).toHaveBeenCalledWith('court-1', '2026-08-25', '08:00');
-    expect(pricingService.resolvePrice).toHaveBeenCalledWith('court-1', '2026-08-25', '09:00');
+    expect(pricingService.resolvePrice).toHaveBeenCalledWith(
+      'court-1',
+      '2026-08-25',
+      '08:00',
+    );
+    expect(pricingService.resolvePrice).toHaveBeenCalledWith(
+      'court-1',
+      '2026-08-25',
+      '09:00',
+    );
     expect(result).toEqual([
       { start: '08:00', end: '09:00', price: 120000 },
       { start: '09:00', end: '10:00', price: 80000 },
@@ -351,7 +355,8 @@ describe('CourtsService.getSlotsForDate', () => {
 
 describe('CourtsService.findAllForOwner', () => {
   it('returns courts across all of the owner venues with venueName and images attached', async () => {
-    const { service, courtsRepo, courtImagesRepo, venuesService } = await buildTestingModule();
+    const { service, courtsRepo, courtImagesRepo, venuesService } =
+      await buildTestingModule();
     venuesService.findMineByOwner.mockResolvedValue([
       { id: 'venue-1', name: 'Chi nhánh A' },
       { id: 'venue-2', name: 'Chi nhánh B' },
@@ -361,7 +366,11 @@ describe('CourtsService.findAllForOwner', () => {
       { id: 'court-2', venueId: 'venue-2', name: 'Sân 2' },
     ]);
     courtImagesRepo.find.mockResolvedValue([
-      { id: 'image-1', courtId: 'court-1', url: '/uploads/courts/court-1/a.jpg' },
+      {
+        id: 'image-1',
+        courtId: 'court-1',
+        url: '/uploads/courts/court-1/a.jpg',
+      },
     ]);
 
     const result = await service.findAllForOwner('owner-1');
@@ -372,9 +381,21 @@ describe('CourtsService.findAllForOwner', () => {
         venueId: 'venue-1',
         name: 'Sân 1',
         venueName: 'Chi nhánh A',
-        images: [{ id: 'image-1', courtId: 'court-1', url: '/uploads/courts/court-1/a.jpg' }],
+        images: [
+          {
+            id: 'image-1',
+            courtId: 'court-1',
+            url: '/uploads/courts/court-1/a.jpg',
+          },
+        ],
       },
-      { id: 'court-2', venueId: 'venue-2', name: 'Sân 2', venueName: 'Chi nhánh B', images: [] },
+      {
+        id: 'court-2',
+        venueId: 'venue-2',
+        name: 'Sân 2',
+        venueName: 'Chi nhánh B',
+        images: [],
+      },
     ]);
   });
 
@@ -391,8 +412,13 @@ describe('CourtsService.findAllForOwner', () => {
 
 describe('CourtsService.remove', () => {
   it('deletes the court and its images when it has no booking history', async () => {
-    const { service, courtsRepo, courtImagesRepo, bookingsRepo, venuesService } =
-      await buildTestingModule();
+    const {
+      service,
+      courtsRepo,
+      courtImagesRepo,
+      bookingsRepo,
+      venuesService,
+    } = await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     courtsRepo.findOne.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
     bookingsRepo.count.mockResolvedValue(0);
@@ -400,16 +426,22 @@ describe('CourtsService.remove', () => {
     await service.remove('owner-1', 'venue-1', 'court-1');
 
     expect(courtImagesRepo.delete).toHaveBeenCalledWith({ courtId: 'court-1' });
-    expect(courtsRepo.remove).toHaveBeenCalledWith({ id: 'court-1', venueId: 'venue-1' });
+    expect(courtsRepo.remove).toHaveBeenCalledWith({
+      id: 'court-1',
+      venueId: 'venue-1',
+    });
   });
 
   it('throws ConflictException when the court has booking history', async () => {
-    const { service, courtsRepo, bookingsRepo, venuesService } = await buildTestingModule();
+    const { service, courtsRepo, bookingsRepo, venuesService } =
+      await buildTestingModule();
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     courtsRepo.findOne.mockResolvedValue({ id: 'court-1', venueId: 'venue-1' });
     bookingsRepo.count.mockResolvedValue(3);
 
-    await expect(service.remove('owner-1', 'venue-1', 'court-1')).rejects.toThrow(
+    await expect(
+      service.remove('owner-1', 'venue-1', 'court-1'),
+    ).rejects.toThrow(
       'Sân đã có lịch sử đặt sân, hãy chuyển sang trạng thái Tạm đóng thay vì xóa',
     );
   });
@@ -419,8 +451,8 @@ describe('CourtsService.remove', () => {
     venuesService.getOwnedVenueOrThrow.mockResolvedValue({ id: 'venue-1' });
     courtsRepo.findOne.mockResolvedValue(null);
 
-    await expect(service.remove('owner-1', 'venue-1', 'court-1')).rejects.toThrow(
-      'Court court-1 không tồn tại',
-    );
+    await expect(
+      service.remove('owner-1', 'venue-1', 'court-1'),
+    ).rejects.toThrow('Court court-1 không tồn tại');
   });
 });

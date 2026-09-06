@@ -44,7 +44,11 @@ export interface RevenueReportTransaction {
 }
 
 export interface RevenueReport {
-  currentPeriod: { revenue: number; transactionCount: number; avgPerTransaction: number };
+  currentPeriod: {
+    revenue: number;
+    transactionCount: number;
+    avgPerTransaction: number;
+  };
   previousPeriod: { revenue: number };
   changeAmount: number;
   changePercent: number | null;
@@ -78,7 +82,10 @@ export class ReportsService {
     private readonly paymentsRepository: Repository<Payment>,
   ) {}
 
-  async getRevenueReport(ownerId: string, dto: GetRevenueReportDto): Promise<RevenueReport> {
+  async getRevenueReport(
+    ownerId: string,
+    dto: GetRevenueReportDto,
+  ): Promise<RevenueReport> {
     this.assertValidRange(dto);
     const page = clampPage(dto.page);
     const pageSize = clampPageSize(dto.pageSize);
@@ -96,43 +103,59 @@ export class ReportsService {
       previousPeriod.to,
     );
 
-    const [currentAggregate, previousAggregate, revenueByDayRows, transactionRows] =
-      await Promise.all([
-        this.aggregatePeriod(courtIds, start, end),
-        this.aggregatePeriod(courtIds, prevStart, prevEnd),
-        this.paymentsRepository
-          .createQueryBuilder('payment')
-          .innerJoin('bookings', 'booking', 'booking.id::text = payment.booking_id')
-          .select("TO_CHAR(payment.paid_at, 'YYYY-MM-DD')", 'date')
-          .addSelect('SUM(booking.total_price)', 'revenue')
-          .where('booking.court_id IN (:...courtIds)', { courtIds })
-          .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
-          .andWhere('payment.paid_at >= :start', { start })
-          .andWhere('payment.paid_at < :end', { end })
-          .groupBy("TO_CHAR(payment.paid_at, 'YYYY-MM-DD')")
-          .getRawMany<{ date: string; revenue: string }>(),
-        this.fetchTransactions(courtIds, start, end, { skip: (page - 1) * pageSize, take: pageSize }),
-      ]);
+    const [
+      currentAggregate,
+      previousAggregate,
+      revenueByDayRows,
+      transactionRows,
+    ] = await Promise.all([
+      this.aggregatePeriod(courtIds, start, end),
+      this.aggregatePeriod(courtIds, prevStart, prevEnd),
+      this.paymentsRepository
+        .createQueryBuilder('payment')
+        .innerJoin(
+          'bookings',
+          'booking',
+          'booking.id::text = payment.booking_id',
+        )
+        .select("TO_CHAR(payment.paid_at, 'YYYY-MM-DD')", 'date')
+        .addSelect('SUM(booking.total_price)', 'revenue')
+        .where('booking.court_id IN (:...courtIds)', { courtIds })
+        .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
+        .andWhere('payment.paid_at >= :start', { start })
+        .andWhere('payment.paid_at < :end', { end })
+        .groupBy("TO_CHAR(payment.paid_at, 'YYYY-MM-DD')")
+        .getRawMany<{ date: string; revenue: string }>(),
+      this.fetchTransactions(courtIds, start, end, {
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
 
     const currentRevenue = Number(currentAggregate.revenue ?? 0);
     const currentCount = Number(currentAggregate.count);
     const previousRevenue = Number(previousAggregate.revenue ?? 0);
 
-    const transactions: RevenueReportTransaction[] = transactionRows.map((row) => ({
-      id: row.id,
-      transactionCode: buildTransactionCode(row.id),
-      customerName: row.customerName,
-      customerPhone: row.customerPhone,
-      paidAt: row.paidAt.toISOString(),
-      amount: Number(row.amount),
-      status: 'paid',
-    }));
+    const transactions: RevenueReportTransaction[] = transactionRows.map(
+      (row) => ({
+        id: row.id,
+        transactionCode: buildTransactionCode(row.id),
+        customerName: row.customerName,
+        customerPhone: row.customerPhone,
+        paidAt: row.paidAt.toISOString(),
+        amount: Number(row.amount),
+        status: 'paid',
+      }),
+    );
 
     return {
       currentPeriod: {
         revenue: currentRevenue,
         transactionCount: currentCount,
-        avgPerTransaction: computeAvgPerTransaction(currentRevenue, currentCount),
+        avgPerTransaction: computeAvgPerTransaction(
+          currentRevenue,
+          currentCount,
+        ),
       },
       previousPeriod: { revenue: previousRevenue },
       changeAmount: currentRevenue - previousRevenue,
@@ -145,7 +168,10 @@ export class ReportsService {
     };
   }
 
-  async getRevenueReportCsv(ownerId: string, dto: GetRevenueReportDto): Promise<string> {
+  async getRevenueReportCsv(
+    ownerId: string,
+    dto: GetRevenueReportDto,
+  ): Promise<string> {
     this.assertValidRange(dto);
     const courtIds = await this.resolveCourtIds(ownerId, dto.venueId);
     if (courtIds.length === 0) {
@@ -170,12 +196,17 @@ export class ReportsService {
     }
   }
 
-  private async resolveCourtIds(ownerId: string, venueId?: string): Promise<string[]> {
+  private async resolveCourtIds(
+    ownerId: string,
+    venueId?: string,
+  ): Promise<string[]> {
     const venueIds = venueId
       ? [(await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId)).id]
       : (await this.venuesService.findMineByOwner(ownerId)).map((v) => v.id);
     if (venueIds.length === 0) return [];
-    const courts = await this.courtsRepository.find({ where: { venueId: In(venueIds) } });
+    const courts = await this.courtsRepository.find({
+      where: { venueId: In(venueIds) },
+    });
     return courts.map((c) => c.id);
   }
 
@@ -207,11 +238,18 @@ export class ReportsService {
       .createQueryBuilder('payment')
       .innerJoin('bookings', 'booking', 'booking.id::text = payment.booking_id')
       .leftJoin('users', 'customer', 'customer.id::text = booking.customer_id')
-      .leftJoin('customer_contacts', 'contact', 'contact.id = booking.customer_contact_id')
+      .leftJoin(
+        'customer_contacts',
+        'contact',
+        'contact.id = booking.customer_contact_id',
+      )
       .select('payment.id', 'id')
       .addSelect('payment.paid_at', 'paidAt')
       .addSelect('booking.total_price', 'amount')
-      .addSelect('COALESCE(customer.full_name, contact.full_name)', 'customerName')
+      .addSelect(
+        'COALESCE(customer.full_name, contact.full_name)',
+        'customerName',
+      )
       .addSelect('COALESCE(customer.phone, contact.phone)', 'customerPhone')
       .where('booking.court_id IN (:...courtIds)', { courtIds })
       .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
@@ -227,7 +265,11 @@ export class ReportsService {
     return qb.getRawMany<TransactionRow>();
   }
 
-  private emptyReport(days: string[], page: number, pageSize: number): RevenueReport {
+  private emptyReport(
+    days: string[],
+    page: number,
+    pageSize: number,
+  ): RevenueReport {
     return {
       currentPeriod: { revenue: 0, transactionCount: 0, avgPerTransaction: 0 },
       previousPeriod: { revenue: 0 },

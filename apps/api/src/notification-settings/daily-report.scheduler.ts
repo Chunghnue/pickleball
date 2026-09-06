@@ -20,7 +20,9 @@ export class DailyReportScheduler {
   async sendDailyReports(): Promise<void> {
     const owners = await this.usersService.findActiveOwners();
     for (const owner of owners) {
-      const settings = await this.notificationSettingsService.getForOwner(owner.id);
+      const settings = await this.notificationSettingsService.getForOwner(
+        owner.id,
+      );
       if (!settings.dailyReport) {
         continue;
       }

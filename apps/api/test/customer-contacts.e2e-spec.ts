@@ -21,7 +21,10 @@ describe('POST /customer-contacts (e2e)', () => {
   });
 
   it('rejects unauthenticated access with 401', async () => {
-    await request(app.getHttpServer()).post('/customer-contacts').send({}).expect(401);
+    await request(app.getHttpServer())
+      .post('/customer-contacts')
+      .send({})
+      .expect(401);
   });
 
   it('rejects a non-owner with 403', async () => {
@@ -40,7 +43,11 @@ describe('POST /customer-contacts (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/customer-contacts')
       .set('Authorization', `Bearer ${token}`)
-      .send({ fullName: 'Nguyễn Văn A', phone: '0900000002', note: 'Thích sân 1' })
+      .send({
+        fullName: 'Nguyễn Văn A',
+        phone: '0900000002',
+        note: 'Thích sân 1',
+      })
       .expect(201);
     expect(res.body.id).toBeDefined();
     expect(res.body.fullName).toBe('Nguyễn Văn A');

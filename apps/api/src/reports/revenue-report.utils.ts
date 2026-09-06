@@ -15,7 +15,8 @@ export function getPreviousPeriodRange(from: string, to: string): PeriodRange {
   const [ty, tm, td] = to.split('-').map(Number);
   const fromDate = new Date(fy, fm - 1, fd);
   const toDate = new Date(ty, tm - 1, td);
-  const dayCount = Math.round((toDate.getTime() - fromDate.getTime()) / 86_400_000) + 1;
+  const dayCount =
+    Math.round((toDate.getTime() - fromDate.getTime()) / 86_400_000) + 1;
 
   const prevTo = new Date(fromDate);
   prevTo.setDate(prevTo.getDate() - 1);
@@ -29,7 +30,10 @@ export function buildTransactionCode(paymentId: string): string {
   return `GD-${paymentId.slice(0, 8).toUpperCase()}`;
 }
 
-export function computeAvgPerTransaction(revenue: number, transactionCount: number): number {
+export function computeAvgPerTransaction(
+  revenue: number,
+  transactionCount: number,
+): number {
   if (transactionCount === 0) return 0;
   return Math.round((revenue / transactionCount) * 100) / 100;
 }
@@ -39,7 +43,10 @@ export function computeChangePercent(
   previousRevenue: number,
 ): number | null {
   if (previousRevenue === 0) return null;
-  return Math.round(((currentRevenue - previousRevenue) / previousRevenue) * 1000) / 10;
+  return (
+    Math.round(((currentRevenue - previousRevenue) / previousRevenue) * 1000) /
+    10
+  );
 }
 
 export function formatDateTimeVN(date: Date): string {
@@ -64,7 +71,14 @@ function csvField(value: string): string {
   return value;
 }
 
-const CSV_HEADER = ['Mã GD', 'Khách hàng', 'SĐT', 'Thời gian', 'Số tiền', 'Trạng thái'];
+const CSV_HEADER = [
+  'Mã GD',
+  'Khách hàng',
+  'SĐT',
+  'Thời gian',
+  'Số tiền',
+  'Trạng thái',
+];
 
 export function toRevenueCsv(rows: RevenueCsvRow[]): string {
   const dataLines = rows.map((row) =>

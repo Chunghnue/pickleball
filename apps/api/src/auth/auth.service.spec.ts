@@ -33,16 +33,22 @@ async function buildTestingModule() {
       { provide: MailService, useFactory: mockMailService },
       { provide: JwtService, useFactory: mockJwtService },
       { provide: ConfigService, useFactory: mockConfigService },
-      { provide: getRepositoryToken(EmailVerificationToken), useFactory: mockRepository },
+      {
+        provide: getRepositoryToken(EmailVerificationToken),
+        useFactory: mockRepository,
+      },
       { provide: getRepositoryToken(RefreshToken), useFactory: mockRepository },
-      { provide: getRepositoryToken(PasswordResetToken), useFactory: mockRepository },
+      {
+        provide: getRepositoryToken(PasswordResetToken),
+        useFactory: mockRepository,
+      },
     ],
   }).compile();
 
   return {
     service: module.get(AuthService),
-    usersService: module.get(UsersService) as ReturnType<typeof mockUsersService>,
-    refreshTokenRepo: module.get(getRepositoryToken(RefreshToken)) as ReturnType<typeof mockRepository>,
+    usersService: module.get(UsersService),
+    refreshTokenRepo: module.get(getRepositoryToken(RefreshToken)),
   };
 }
 
@@ -50,7 +56,10 @@ describe('AuthService.changePassword', () => {
   it('rejects when currentPassword does not match', async () => {
     const { service, usersService } = await buildTestingModule();
     const hash = await bcrypt.hash('correct-password', 10);
-    usersService.findById.mockResolvedValue({ id: 'user-1', passwordHash: hash });
+    usersService.findById.mockResolvedValue({
+      id: 'user-1',
+      passwordHash: hash,
+    });
 
     await expect(
       service.changePassword('user-1', 'wrong-password', 'new-password123'),
@@ -59,13 +68,24 @@ describe('AuthService.changePassword', () => {
   });
 
   it('updates the password and revokes all refresh tokens when currentPassword matches', async () => {
-    const { service, usersService, refreshTokenRepo } = await buildTestingModule();
+    const { service, usersService, refreshTokenRepo } =
+      await buildTestingModule();
     const hash = await bcrypt.hash('correct-password', 10);
-    usersService.findById.mockResolvedValue({ id: 'user-1', passwordHash: hash });
+    usersService.findById.mockResolvedValue({
+      id: 'user-1',
+      passwordHash: hash,
+    });
 
-    await service.changePassword('user-1', 'correct-password', 'new-password123');
+    await service.changePassword(
+      'user-1',
+      'correct-password',
+      'new-password123',
+    );
 
-    expect(usersService.updatePassword).toHaveBeenCalledWith('user-1', 'new-password123');
+    expect(usersService.updatePassword).toHaveBeenCalledWith(
+      'user-1',
+      'new-password123',
+    );
     expect(refreshTokenRepo.update).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-1' }),
       expect.objectContaining({ revokedAt: expect.any(Date) }),

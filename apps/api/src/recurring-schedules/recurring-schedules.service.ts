@@ -1,8 +1,16 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThanOrEqual, Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
-import { RecurringSchedule, RecurringScheduleStatus } from './entities/recurring-schedule.entity';
+import {
+  RecurringSchedule,
+  RecurringScheduleStatus,
+} from './entities/recurring-schedule.entity';
 import { CreateRecurringScheduleDto } from './dto/create-recurring-schedule.dto';
 import { UpdateRecurringScheduleDto } from './dto/update-recurring-schedule.dto';
 import { generateOccurrenceDates } from './occurrence-dates.util';
@@ -36,7 +44,11 @@ export class RecurringSchedulesService {
     ownerId: string,
     venueId: string,
     dto: CreateRecurringScheduleDto,
-  ): Promise<{ schedule: RecurringSchedule; generatedCount: number; conflictingDates: string[] }> {
+  ): Promise<{
+    schedule: RecurringSchedule;
+    generatedCount: number;
+    conflictingDates: string[];
+  }> {
     await this.venuesService.getOwnedVenueOrThrow(ownerId, venueId);
     const court = await this.courtsService.findByIdOrThrow(dto.courtId);
     if (court.venueId !== venueId) {
@@ -50,10 +62,15 @@ export class RecurringSchedulesService {
         new Date(`${dto.validFrom}T00:00:00Z`).getTime()) /
       (24 * 60 * 60 * 1000);
     if (spanDays > MAX_SPAN_DAYS) {
-      throw new BadRequestException('Khoảng thời gian lịch cố định tối đa 12 tháng');
+      throw new BadRequestException(
+        'Khoảng thời gian lịch cố định tối đa 12 tháng',
+      );
     }
 
-    const customerRef = await this.customerContactsService.resolveSelector(ownerId, dto);
+    const customerRef = await this.customerContactsService.resolveSelector(
+      ownerId,
+      dto,
+    );
 
     const schedule = await this.repository.save(
       this.repository.create({
@@ -72,8 +89,14 @@ export class RecurringSchedulesService {
     );
 
     const sessionPrice =
-      Math.round(dto.pricePerSession * (1 - (dto.discountPercent ?? 0) / 100) * 100) / 100;
-    const dates = generateOccurrenceDates(dto.validFrom, dto.validTo, dto.dayOfWeek);
+      Math.round(
+        dto.pricePerSession * (1 - (dto.discountPercent ?? 0) / 100) * 100,
+      ) / 100;
+    const dates = generateOccurrenceDates(
+      dto.validFrom,
+      dto.validTo,
+      dto.dayOfWeek,
+    );
     const conflictingDates: string[] = [];
     let generatedCount = 0;
 
@@ -118,7 +141,11 @@ export class RecurringSchedulesService {
     return schedule;
   }
 
-  async cancel(ownerId: string, venueId: string, id: string): Promise<RecurringSchedule> {
+  async cancel(
+    ownerId: string,
+    venueId: string,
+    id: string,
+  ): Promise<RecurringSchedule> {
     const schedule = await this.getOwnedScheduleOrThrow(ownerId, venueId, id);
     if (schedule.status === RecurringScheduleStatus.CANCELLED) {
       throw new BadRequestException('Lịch cố định đã bị huỷ');
@@ -130,7 +157,11 @@ export class RecurringSchedulesService {
     return schedule;
   }
 
-  async pause(ownerId: string, venueId: string, id: string): Promise<RecurringSchedule> {
+  async pause(
+    ownerId: string,
+    venueId: string,
+    id: string,
+  ): Promise<RecurringSchedule> {
     const schedule = await this.getOwnedScheduleOrThrow(ownerId, venueId, id);
     if (schedule.status !== RecurringScheduleStatus.ACTIVE) {
       throw new BadRequestException('Chỉ có thể tạm dừng lịch đang hoạt động');
@@ -139,7 +170,11 @@ export class RecurringSchedulesService {
     return this.repository.save(schedule);
   }
 
-  async resume(ownerId: string, venueId: string, id: string): Promise<RecurringSchedule> {
+  async resume(
+    ownerId: string,
+    venueId: string,
+    id: string,
+  ): Promise<RecurringSchedule> {
     const schedule = await this.getOwnedScheduleOrThrow(ownerId, venueId, id);
     if (schedule.status !== RecurringScheduleStatus.PAUSED) {
       throw new BadRequestException('Chỉ có thể tiếp tục lịch đang tạm dừng');
@@ -162,8 +197,10 @@ export class RecurringSchedulesService {
       throw new BadRequestException('validTo phải sau hoặc bằng validFrom');
     }
 
-    if (dto.pricePerSession !== undefined) schedule.pricePerSession = dto.pricePerSession;
-    if (dto.discountPercent !== undefined) schedule.discountPercent = dto.discountPercent;
+    if (dto.pricePerSession !== undefined)
+      schedule.pricePerSession = dto.pricePerSession;
+    if (dto.discountPercent !== undefined)
+      schedule.discountPercent = dto.discountPercent;
     if (dto.note !== undefined) schedule.note = dto.note;
     if (dto.autoRenew !== undefined) schedule.autoRenew = dto.autoRenew;
     if (dto.validTo !== undefined) schedule.validTo = dto.validTo;
@@ -174,22 +211,32 @@ export class RecurringSchedulesService {
   private async resolveCustomerInfo(
     schedules: RecurringSchedule[],
   ): Promise<Map<string, { fullName: string; phone: string | null }>> {
-    const userIds = schedules.map((s) => s.customerId).filter((id): id is string => !!id);
+    const userIds = schedules
+      .map((s) => s.customerId)
+      .filter((id): id is string => !!id);
     const contactIds = schedules
       .map((s) => s.customerContactId)
       .filter((id): id is string => !!id);
 
     const [users, contacts] = await Promise.all([
-      userIds.length > 0 ? this.usersRepository.find({ where: { id: In(userIds) } }) : [],
+      userIds.length > 0
+        ? this.usersRepository.find({ where: { id: In(userIds) } })
+        : [],
       contactIds.length > 0
-        ? this.customerContactsRepository.find({ where: { id: In(contactIds) } })
+        ? this.customerContactsRepository.find({
+            where: { id: In(contactIds) },
+          })
         : [],
     ]);
 
     const info = new Map<string, { fullName: string; phone: string | null }>();
-    for (const user of users) info.set(user.id, { fullName: user.fullName, phone: user.phone });
+    for (const user of users)
+      info.set(user.id, { fullName: user.fullName, phone: user.phone });
     for (const contact of contacts)
-      info.set(contact.id, { fullName: contact.fullName, phone: contact.phone });
+      info.set(contact.id, {
+        fullName: contact.fullName,
+        phone: contact.phone,
+      });
     return info;
   }
 
@@ -205,7 +252,10 @@ export class RecurringSchedulesService {
       }
     >
   > {
-    const courts = await this.courtsService.findByVenueForOwner(ownerId, venueId);
+    const courts = await this.courtsService.findByVenueForOwner(
+      ownerId,
+      venueId,
+    );
     const courtIds = courts.map((court) => court.id);
     const schedules = await this.repository.find({
       where: { courtId: In(courtIds.length > 0 ? courtIds : ['__none__']) },
@@ -214,10 +264,13 @@ export class RecurringSchedulesService {
     const info = await this.resolveCustomerInfo(schedules);
     return Promise.all(
       schedules.map(async (schedule) => {
-        const customer = info.get(schedule.customerId ?? schedule.customerContactId ?? '');
+        const customer = info.get(
+          schedule.customerId ?? schedule.customerContactId ?? '',
+        );
         return {
           ...schedule,
-          occurrenceCount: await this.bookingsService.countByRecurringScheduleId(schedule.id),
+          occurrenceCount:
+            await this.bookingsService.countByRecurringScheduleId(schedule.id),
           customerName: customer?.fullName ?? 'Khách hàng',
           customerPhone: customer?.phone ?? null,
         };
@@ -231,7 +284,8 @@ export class RecurringSchedulesService {
     id: string,
   ): Promise<{ schedule: RecurringSchedule; occurrences: Booking[] }> {
     const schedule = await this.getOwnedScheduleOrThrow(ownerId, venueId, id);
-    const occurrences = await this.bookingsService.findByRecurringScheduleId(id);
+    const occurrences =
+      await this.bookingsService.findByRecurringScheduleId(id);
     return { schedule, occurrences };
   }
 
@@ -256,9 +310,16 @@ export class RecurringSchedulesService {
     const renewalStart = addDays(schedule.validTo, 1);
     const newValidTo = addDays(schedule.validTo, 30);
     const sessionPrice =
-      Math.round(schedule.pricePerSession * (1 - (schedule.discountPercent ?? 0) / 100) * 100) /
-      100;
-    const dates = generateOccurrenceDates(renewalStart, newValidTo, schedule.dayOfWeek);
+      Math.round(
+        schedule.pricePerSession *
+          (1 - (schedule.discountPercent ?? 0) / 100) *
+          100,
+      ) / 100;
+    const dates = generateOccurrenceDates(
+      renewalStart,
+      newValidTo,
+      schedule.dayOfWeek,
+    );
     const customerRef = schedule.customerId
       ? { customerId: schedule.customerId }
       : { customerContactId: schedule.customerContactId as string };
