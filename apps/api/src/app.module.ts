@@ -24,6 +24,7 @@ import { NotificationSettingsModule } from './notification-settings/notification
 import { ReportsModule } from './reports/reports.module';
 import { PageViewsModule } from './page-views/page-views.module';
 import { BlogModule } from './blog/blog.module';
+import { ContactModule } from './contact/contact.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { BlogModule } from './blog/blog.module';
     ReportsModule,
     PageViewsModule,
     BlogModule,
+    ContactModule,
   ],
   controllers: [AppController],
   providers: [
