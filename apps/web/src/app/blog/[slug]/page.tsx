@@ -37,6 +37,7 @@ interface BlogPostDetail {
 export default function BlogDetailPage() {
   const params = useParams<{ slug: string }>();
   const [post, setPost] = useState<BlogPostDetail | null | "not-found">(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/blog/${params.slug}`).then(async (res) => {
@@ -44,13 +45,29 @@ export default function BlogDetailPage() {
         setPost("not-found");
         return;
       }
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(data?.message ?? "Không thể tải bài viết.");
+        return;
+      }
       setPost(data as BlogPostDetail);
     });
   }, [params.slug]);
 
   if (post === "not-found") {
     notFound();
+  }
+
+  if (error) {
+    return (
+      <>
+        <PublicHeader />
+        <div className="flex flex-1 items-center justify-center p-8">
+          <p className="text-destructive">{error}</p>
+        </div>
+        <PublicFooter />
+      </>
+    );
   }
 
   if (!post) {
