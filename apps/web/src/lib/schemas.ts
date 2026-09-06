@@ -8,6 +8,14 @@ export const registerSchema = z.object({
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+export const registerFormSchema = registerSchema
+  .extend({ confirmPassword: z.string().min(1, 'Vui lòng nhập lại mật khẩu') })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Mật khẩu xác nhận không khớp',
+    path: ['confirmPassword'],
+  });
+export type RegisterFormInput = z.infer<typeof registerFormSchema>;
+
 export const loginSchema = z.object({
   identifier: z.string().min(1, 'Vui lòng nhập email hoặc số điện thoại'),
   password: z.string().min(1, 'Vui lòng nhập mật khẩu'),
