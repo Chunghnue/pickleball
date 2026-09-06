@@ -22,6 +22,7 @@ import { RecurringSchedulesModule } from './recurring-schedules/recurring-schedu
 import { StaffModule } from './staff/staff.module';
 import { NotificationSettingsModule } from './notification-settings/notification-settings.module';
 import { ReportsModule } from './reports/reports.module';
+import { PageViewsModule } from './page-views/page-views.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { ReportsModule } from './reports/reports.module';
     StaffModule,
     NotificationSettingsModule,
     ReportsModule,
+    PageViewsModule,
   ],
   controllers: [AppController],
   providers: [

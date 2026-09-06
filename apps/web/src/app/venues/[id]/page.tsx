@@ -22,6 +22,7 @@ import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import type { AvailabilitySlot } from "@/lib/slot-selection";
 import { DAY_LABELS, orderForDisplay } from "@/app/owner/settings/operating-hours-format";
+import { useTrackPageView } from "@/lib/page-view-tracker";
 
 const VenueLocationMap = dynamic(() => import("./venue-location-map"), {
   ssr: false,
@@ -71,6 +72,8 @@ export default function VenueDetailPage() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+
+  useTrackPageView(params.id);
 
   useEffect(() => {
     fetch(`/api/venues/${params.id}`).then(async (res) => {
