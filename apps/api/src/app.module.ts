@@ -23,6 +23,7 @@ import { StaffModule } from './staff/staff.module';
 import { NotificationSettingsModule } from './notification-settings/notification-settings.module';
 import { ReportsModule } from './reports/reports.module';
 import { PageViewsModule } from './page-views/page-views.module';
+import { BlogModule } from './blog/blog.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { PageViewsModule } from './page-views/page-views.module';
     NotificationSettingsModule,
     ReportsModule,
     PageViewsModule,
+    BlogModule,
   ],
   controllers: [AppController],
   providers: [
