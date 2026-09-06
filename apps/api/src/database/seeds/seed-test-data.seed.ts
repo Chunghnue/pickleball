@@ -13,6 +13,8 @@ import { NotificationSettings } from '../../notification-settings/entities/notif
 import { generateBookingSlotStarts } from '../../bookings/booking-slot-generator';
 import { PageView } from '../../page-views/entities/page-view.entity';
 import { classifySource, detectIsMobile } from '../../page-views/page-view.utils';
+import { BlogPost, BlogCategory } from '../../blog/entities/blog-post.entity';
+import { computeReadingMinutes } from '../../blog/reading-time.util';
 
 const PASSWORD = 'Test@123456';
 
@@ -57,6 +59,7 @@ async function run() {
   const paymentRepo = AppDataSource.getRepository(Payment);
   const notifRepo = AppDataSource.getRepository(NotificationSettings);
   const pageViewRepo = AppDataSource.getRepository(PageView);
+  const blogPostRepo = AppDataSource.getRepository(BlogPost);
 
   // --- Users ---
   const admin = await upsertUser(userRepo, {
@@ -373,6 +376,79 @@ async function run() {
     console.log(`${pageViews.length} page views created.`);
   } else {
     console.log('Page views already exist, skipping.');
+  }
+
+  // --- Blog posts (for the public /blog page) ---
+  const blogSeeds: {
+    slug: string;
+    title: string;
+    excerpt: string;
+    content: string;
+    category: BlogCategory;
+    daysAgo: number;
+  }[] = [
+    {
+      slug: 'phan-mem-quan-ly-san-bong-tot-nhat-2025',
+      title: 'Phần mềm quản lý sân bóng tốt nhất 2025',
+      excerpt: 'So sánh các phần mềm quản lý sân bóng phổ biến nhất hiện nay và tiêu chí lựa chọn phù hợp.',
+      content: 'Nội dung chi tiết so sánh các phần mềm quản lý sân bóng, tiêu chí đánh giá, và gợi ý lựa chọn cho từng quy mô sân.'.repeat(20),
+      category: BlogCategory.PHAN_MEM,
+      daysAgo: 3,
+    },
+    {
+      slug: 'huong-dan-mo-san-pickleball-tu-a-den-z',
+      title: 'Hướng dẫn mở sân pickleball từ A đến Z',
+      excerpt: 'Các bước cần chuẩn bị để mở một sân pickleball, từ mặt bằng, chi phí đến vận hành.',
+      content: 'Nội dung hướng dẫn chi tiết từng bước mở sân pickleball, chi phí đầu tư, và kinh nghiệm vận hành thực tế.'.repeat(20),
+      category: BlogCategory.HUONG_DAN,
+      daysAgo: 7,
+    },
+    {
+      slug: 'cach-quan-ly-san-bong-hieu-qua-tang-doanh-thu',
+      title: 'Cách quản lý sân bóng hiệu quả tăng doanh thu',
+      excerpt: 'Những chiến lược quản lý giúp chủ sân tối ưu công suất sử dụng và tăng doanh thu.',
+      content: 'Nội dung phân tích các chiến lược kinh doanh, tối ưu giá thuê sân, và giữ chân khách hàng thân thiết.'.repeat(20),
+      category: BlogCategory.KINH_DOANH,
+      daysAgo: 12,
+    },
+    {
+      slug: 'xu-huong-san-pickleball-viet-nam-2025',
+      title: 'Xu hướng sân pickleball Việt Nam 2025',
+      excerpt: 'Pickleball đang phát triển nhanh chóng tại Việt Nam — những xu hướng đáng chú ý trong năm 2025.',
+      content: 'Nội dung phân tích tốc độ tăng trưởng của pickleball tại Việt Nam và dự báo xu hướng năm tới.'.repeat(20),
+      category: BlogCategory.XU_HUONG,
+      daysAgo: 20,
+    },
+    {
+      slug: 'cach-tinh-gia-thue-san-bong-da',
+      title: 'Cách tính giá thuê sân bóng đá',
+      excerpt: 'Hướng dẫn xây dựng bảng giá thuê sân bóng đá hợp lý theo khung giờ và ngày trong tuần.',
+      content: 'Nội dung hướng dẫn xây dựng bảng giá theo khung giờ cao điểm, ngày thường/cuối tuần, và ưu đãi khách quen.'.repeat(20),
+      category: BlogCategory.HUONG_DAN,
+      daysAgo: 30,
+    },
+  ];
+
+  for (const seed of blogSeeds) {
+    const existing = await blogPostRepo.findOne({ where: { slug: seed.slug } });
+    if (existing) {
+      console.log(`Blog post ${seed.slug} already exists, skipping.`);
+      continue;
+    }
+    const publishedAt = new Date(today);
+    publishedAt.setDate(publishedAt.getDate() - seed.daysAgo);
+    await blogPostRepo.save(
+      blogPostRepo.create({
+        slug: seed.slug,
+        title: seed.title,
+        excerpt: seed.excerpt,
+        content: seed.content,
+        category: seed.category,
+        readingMinutes: computeReadingMinutes(seed.content),
+        publishedAt,
+      }),
+    );
+    console.log(`Blog post ${seed.slug} created.`);
   }
 
   await AppDataSource.destroy();
