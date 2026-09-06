@@ -34,7 +34,7 @@ export default function TaiKhoanLayout({
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
+    window.location.href = "/login?logout=true";
   }
 
   return (

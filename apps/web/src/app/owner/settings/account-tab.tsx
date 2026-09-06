@@ -136,7 +136,7 @@ export function AccountTab() {
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
+    window.location.href = "/login?logout=true";
   }
 
   if (!profile) {

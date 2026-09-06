@@ -23,7 +23,7 @@ export function PublicHeader() {
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
+    window.location.href = "/login?logout=true";
   }
 
   const initial = fullName?.trim().charAt(0).toUpperCase() || "?";
