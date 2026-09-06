@@ -28,10 +28,11 @@ export class BlogService {
     const base: FindOptionsWhere<BlogPost> = {};
     if (dto.category) base.category = dto.category;
 
-    const where: FindOptionsWhere<BlogPost> | FindOptionsWhere<BlogPost>[] = dto.query
+    const query = dto.query?.trim();
+    const where: FindOptionsWhere<BlogPost> | FindOptionsWhere<BlogPost>[] = query
       ? [
-          { ...base, title: ILike(`%${dto.query}%`) },
-          { ...base, excerpt: ILike(`%${dto.query}%`) },
+          { ...base, title: ILike(`%${query}%`) },
+          { ...base, excerpt: ILike(`%${query}%`) },
         ]
       : base;
 

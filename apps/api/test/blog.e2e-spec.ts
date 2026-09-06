@@ -60,14 +60,20 @@ describe('Blog e2e', () => {
   });
 
   it('GET /blog?query= searches title and excerpt', async () => {
-    const match = await createPost({ title: 'Hướng dẫn mở sân pickleball' });
-    await createPost({ title: 'Không liên quan', excerpt: 'khác' });
+    const titleMatch = await createPost({ title: 'Hướng dẫn mở sân pickleball' });
+    const excerptMatch = await createPost({
+      title: 'Không liên quan',
+      excerpt: 'Mẹo chơi pickleball cho người mới',
+    });
+    await createPost({ title: 'Khác hẳn', excerpt: 'khác' });
 
     const response = await request(app.getHttpServer())
       .get('/blog?query=pickleball')
       .expect(200);
 
-    expect(response.body.items.map((i: { id: string }) => i.id)).toEqual([match.id]);
+    expect(response.body.items.map((i: { id: string }) => i.id).sort()).toEqual(
+      [titleMatch.id, excerptMatch.id].sort(),
+    );
   });
 
   it('GET /blog paginates with page and pageSize', async () => {

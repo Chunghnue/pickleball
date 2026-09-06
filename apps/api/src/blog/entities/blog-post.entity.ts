@@ -15,6 +15,7 @@ export enum BlogCategory {
 }
 
 @Entity('blog_posts')
+@Index(['category', 'publishedAt'])
 export class BlogPost {
   @PrimaryGeneratedColumn('uuid')
   id: string;
