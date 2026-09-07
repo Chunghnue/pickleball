@@ -588,18 +588,14 @@ function ContactCard({ venue }: { venue: PublicVenueDetail }) {
         )}
       </div>
 
-      {venue.email && (
-        <>
-          <div className={DIVIDER_CLASS} />
-          <a
-            href={`mailto:${venue.email}`}
-            className="flex w-full items-center justify-center gap-1.5 rounded-full border border-green-700 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
-          >
-            <Mail className="size-4" />
-            Liên hệ chủ sân
-          </a>
-        </>
-      )}
+      <div className={DIVIDER_CLASS} />
+      <Link
+        href="/lien-he"
+        className="flex w-full items-center justify-center gap-1.5 rounded-full border border-green-700 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+      >
+        <Mail className="size-4" />
+        Liên hệ chủ sân
+      </Link>
     </div>
   );
 }
