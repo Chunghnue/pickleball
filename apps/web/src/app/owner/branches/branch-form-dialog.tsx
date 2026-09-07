@@ -250,7 +250,7 @@ export function BranchFormDialog(props: CreateProps | EditProps) {
             <div className="flex flex-wrap items-baseline justify-between gap-1">
               <Label className="font-semibold">Đường dẫn (slug)</Label>
               <span className="text-xs text-muted-foreground">
-                URL: sanbong.vn/&lt;môn-thể-thao&gt;/
+                URL: pickleball.vn/&lt;môn-thể-thao&gt;/
                 <span className="font-medium text-blue-600 dark:text-blue-400">tự-sinh-từ-tên</span>
               </span>
             </div>
@@ -290,7 +290,7 @@ export function BranchFormDialog(props: CreateProps | EditProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="off"
-                placeholder="branch@sanbong.vn"
+                placeholder="branch@pickleball.vn"
                 className="h-9"
               />
             </div>

@@ -36,5 +36,5 @@ export function formatMoney(amount: number): string {
 }
 
 export function publicUrl(slug: string | null): string {
-  return slug ? `sanbong.vn/${slug}` : "Chưa có đường dẫn";
+  return slug ? `pickleball.vn/${slug}` : "Chưa có đường dẫn";
 }
