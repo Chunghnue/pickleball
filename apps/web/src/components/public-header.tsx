@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Headset, History, LandPlot, LogIn, LogOut, Map, Search, User } from "lucide-react";
+import { BookOpen, History, LandPlot, LogIn, LogOut, Map, Search, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,13 +56,6 @@ export function PublicHeader() {
             >
               <BookOpen className="size-4" />
               Blog
-            </Link>
-            <Link
-              href="/lien-he"
-              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-green-600 dark:hover:text-green-400"
-            >
-              <Headset className="size-4" />
-              Liên hệ
             </Link>
           </nav>
         </div>
