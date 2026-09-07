@@ -203,6 +203,15 @@ export const supportMessageSchema = z.object({
 });
 export type SupportMessageInput = z.infer<typeof supportMessageSchema>;
 
+export const newsletterSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Vui lòng nhập email')
+    .email('Email không hợp lệ')
+    .max(254, 'Tối đa 254 ký tự'),
+});
+export type NewsletterInput = z.infer<typeof newsletterSchema>;
+
 export const partnerSportTypeValues = [
   'bong-da',
   'tennis',
