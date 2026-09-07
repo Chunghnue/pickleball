@@ -329,11 +329,11 @@ import { newsletterSchema, type NewsletterInput } from "@/lib/schemas";
 import { getSubmitErrorMessage } from "@/lib/error-message";
 
 // Giá trị do chủ dự án cấp; để "" nếu chưa có → mục tương ứng tự ẩn.
-const HOTLINE = "";
+const HOTLINE = "0368 886 999";
 const SOCIAL: { label: string; href: string; icon: typeof Facebook }[] = [
-  { label: "Facebook", href: "", icon: Facebook },
-  { label: "TikTok", href: "", icon: Music2 },
-  { label: "YouTube", href: "", icon: Youtube },
+  { label: "Facebook", href: "https://www.facebook.com", icon: Facebook },
+  { label: "TikTok", href: "https://www.tiktok.com", icon: Music2 },
+  { label: "YouTube", href: "https://www.youtube.com", icon: Youtube },
 ];
 
 export function PublicFooter() {
@@ -527,7 +527,7 @@ Expected: build thành công, không lỗi TS/ESLint (kiểm tra `Music2`, `Face
 
 Khởi động api (`cd apps/api && npm run start:dev`) và web (`cd apps/web && npm run dev`). Mở `http://localhost:3000/` (hoặc bất kỳ trang public có footer):
 - Footer hiện: brand, cột Khám phá, cột Hỗ trợ (Chính sách hoàn tiền / Điều khoản sử dụng là chữ mờ + nhãn "Sắp có", không click được), khối "Đăng ký nhận ưu đãi", nút "Liên hệ ngay".
-- `HOTLINE=""` và `SOCIAL.href=""` → không có dòng hotline, không có icon social, layout không vỡ.
+- Hotline hiện `0368 886 999` (click gọi `tel:0368886999`); 3 icon Facebook/TikTok/YouTube hiện đúng, mở tab mới tới URL tương ứng.
 - Nhập email sai định dạng → bấm "Đăng ký" → hiện lỗi "Email không hợp lệ", **không** gọi API (kiểm tra Network tab).
 - Nhập email hợp lệ → "Đăng ký" → form đổi sang "Đã đăng ký! Bạn sẽ nhận ưu đãi qua email."
 - Kiểm tra DB: `docker compose exec -T db psql -U postgres -d pickleball -c 'select email from newsletter_subscribers;'` → thấy email vừa nhập (chữ thường).
@@ -545,5 +545,5 @@ git commit -m "feat(web): enrich public footer with social, support column, news
 
 ## Ghi chú khi thực thi
 
-- Trước khi merge, thay `HOTLINE` và các `SOCIAL[].href` bằng giá trị thật khi chủ dự án cung cấp (số điện thoại + URL Facebook/TikTok/YouTube). Nếu bỏ TikTok, xoá phần tử TikTok khỏi mảng `SOCIAL` và import `Music2` nếu không còn dùng.
+- Giá trị liên hệ đã do chủ dự án cấp và gắn sẵn trong plan: hotline `0368 886 999`, Facebook/TikTok/YouTube trỏ trang chủ mỗi nền tảng. Cập nhật lại nếu sau này có URL trang riêng của thương hiệu.
 - Kiểm tra tên database/user Postgres thật trong `apps/api/.env` nếu lệnh psql ở Task 2 Step 5 khác cấu hình mặc định.
