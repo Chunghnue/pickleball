@@ -84,23 +84,34 @@ Chuẩn hoá về chữ thường trong service (không ở DTO) để tránh 2 
 
 ### 4.4 `ContactService.subscribeNewsletter()` — idempotent
 
-Đăng ký cùng email 2 lần **không** được ném lỗi 500 (vi phạm unique). Chuẩn hoá `email.trim().toLowerCase()`, dùng insert bỏ qua trùng rồi trả bản ghi hiện có:
+Đăng ký cùng email 2 lần **không** được ném lỗi 500 (vi phạm unique). Chuẩn hoá `email.trim().toLowerCase()`, tìm trước — nếu đã có thì trả bản ghi cũ; nếu chưa thì lưu, và bắt `QueryFailedError` phòng khi 2 request trùng email chạy song song:
 
 ```ts
 async subscribeNewsletter(
   dto: CreateNewsletterSubscriberDto,
 ): Promise<NewsletterSubscriber> {
   const email = dto.email.trim().toLowerCase();
-  await this.newsletterSubscribersRepository
-    .createQueryBuilder()
-    .insert()
-    .values({ email })
-    .orIgnore() // ON CONFLICT DO NOTHING trên cột email unique
-    .execute();
-  return this.newsletterSubscribersRepository.findOneByOrFail({ email });
+  const existing = await this.newsletterSubscribersRepository.findOne({
+    where: { email },
+  });
+  if (existing) return existing;
+  try {
+    return await this.newsletterSubscribersRepository.save(
+      this.newsletterSubscribersRepository.create({ email }),
+    );
+  } catch (err) {
+    // thua race: một request song song vừa chèn cùng email → lấy lại bản ghi đó
+    if (err instanceof QueryFailedError) {
+      const found = await this.newsletterSubscribersRepository.findOne({
+        where: { email },
+      });
+      if (found) return found;
+    }
+    throw err;
+  }
 }
 ```
-Trả 201 cho cả email mới lẫn email đã tồn tại — không tiết lộ ai đã đăng ký. Inject repo `NewsletterSubscriber` vào constructor `ContactService` (thêm dòng thứ ba, cùng pattern 2 repo hiện có).
+Trả 201 cho cả email mới lẫn email đã tồn tại — không tiết lộ ai đã đăng ký. Inject repo `NewsletterSubscriber` vào constructor `ContactService` (thêm dòng thứ ba, cùng pattern 2 repo hiện có); import `QueryFailedError` từ `typeorm`.
 
 ### 4.5 Controller & module
 
