@@ -88,7 +88,7 @@ describe("formatMoney", () => {
 
 describe("publicUrl", () => {
   it("builds the public URL from a slug", () => {
-    expect(publicUrl("san-abc")).toBe("sanbong.vn/san-abc");
+    expect(publicUrl("san-abc")).toBe("pickleball.vn/san-abc");
   });
 
   it("shows a placeholder when slug is null", () => {

@@ -26,7 +26,7 @@ const CARD_CLASS =
 
 const CHANNELS = [
   { icon: Phone, title: "Hotline", value: "081 22 88 111", detail: "Miễn phí, 7:00–22:00" },
-  { icon: Mail, title: "Email", value: "support@sanbong.vn", detail: "Phản hồi trong 2 giờ" },
+  { icon: Mail, title: "Email", value: "support@pickleball.vn", detail: "Phản hồi trong 2 giờ" },
   { icon: MessagesSquare, title: "Chat", value: "Zalo / Messenger", detail: "Chat trực tiếp ngay" },
   { icon: MapPin, title: "Văn phòng", value: "Tầng 8, 123 Lê Văn Lương", detail: "Hà Nội" },
 ];
@@ -46,12 +46,12 @@ const FAQS = [
   {
     question: "Thanh toán có an toàn không?",
     answer:
-      "Mọi giao dịch trên SanBong.vn được xử lý qua cổng thanh toán uy tín và mã hóa, đảm bảo an toàn cho khách hàng.",
+      "Mọi giao dịch trên Pickleball được xử lý qua cổng thanh toán uy tín và mã hóa, đảm bảo an toàn cho khách hàng.",
   },
   {
     question: "Làm sao để đăng ký sân?",
     answer:
-      'Chủ sân điền form ở tab "Đăng ký chủ sân" bên cạnh — đội ngũ SanBong.vn sẽ liên hệ và kích hoạt tài khoản quản lý.',
+      'Chủ sân điền form ở tab "Đăng ký chủ sân" bên cạnh — đội ngũ Pickleball sẽ liên hệ và kích hoạt tài khoản quản lý.',
   },
 ];
 

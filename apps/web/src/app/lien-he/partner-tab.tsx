@@ -35,7 +35,7 @@ const BENEFITS = [
   { icon: CalendarClock, label: "Quản lý lịch đặt sân, doanh thu trực tuyến 24/7" },
   { icon: BarChart3, label: "Giảm tình trạng sân trống, tăng doanh thu đến 40%" },
   { icon: HeartHandshake, label: "Hỗ trợ kỹ thuật và vận hành miễn phí" },
-  { icon: LayoutDashboard, label: "Có Dashboard quản lý chuyên nghiệp trên SanBong App" },
+  { icon: LayoutDashboard, label: "Có Dashboard quản lý chuyên nghiệp trên Pickleball App" },
 ];
 
 const SPORT_TYPE_LABELS: Record<(typeof partnerSportTypeValues)[number], string> = {
@@ -179,7 +179,7 @@ export function PartnerTab() {
         <Rocket className="size-9 text-green-600 dark:text-green-400" />
         <p className="text-lg font-semibold">Đã gửi đăng ký!</p>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Đội ngũ SanBong.vn sẽ liên hệ và kích hoạt tài khoản quản lý cho bạn trong thời
+          Đội ngũ Pickleball sẽ liên hệ và kích hoạt tài khoản quản lý cho bạn trong thời
           gian sớm nhất.
         </p>
       </div>
@@ -207,7 +207,7 @@ export function PartnerTab() {
             Đăng ký trở thành đối tác chủ sân
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Điền thông tin bên dưới, đội ngũ SanBong.vn sẽ liên hệ duyệt và kích hoạt tài
+            Điền thông tin bên dưới, đội ngũ Pickleball sẽ liên hệ duyệt và kích hoạt tài
             khoản cho bạn
           </p>
         </div>
