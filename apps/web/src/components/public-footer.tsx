@@ -29,6 +29,9 @@ export function PublicFooter() {
             <Link href="/blog" className="hover:text-green-400">
               Blog
             </Link>
+            <Link href="/lien-he" className="hover:text-green-400">
+              Liên hệ & hỗ trợ
+            </Link>
           </div>
         </div>
         <div>
@@ -51,7 +54,7 @@ export function PublicFooter() {
         <p>
           Đăng ký chủ sân?{" "}
           <Link
-            href="/register/owner"
+            href="/lien-he?tab=dang-ky-chu-san"
             className="font-medium text-green-400 hover:underline"
           >
             Liên hệ ngay
