@@ -2,6 +2,7 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ContactService } from './contact.service';
 import { CreateSupportMessageDto } from './dto/create-support-message.dto';
 import { CreatePartnerApplicationDto } from './dto/create-partner-application.dto';
+import { CreateNewsletterSubscriberDto } from './dto/create-newsletter-subscriber.dto';
 
 @Controller('contact')
 export class ContactController {
@@ -17,5 +18,11 @@ export class ContactController {
   @HttpCode(HttpStatus.CREATED)
   createPartnerApplication(@Body() dto: CreatePartnerApplicationDto) {
     return this.contactService.createPartnerApplication(dto);
+  }
+
+  @Post('newsletter-subscribers')
+  @HttpCode(HttpStatus.CREATED)
+  subscribeNewsletter(@Body() dto: CreateNewsletterSubscriberDto) {
+    return this.contactService.subscribeNewsletter(dto);
   }
 }
