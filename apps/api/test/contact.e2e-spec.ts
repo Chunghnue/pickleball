@@ -112,5 +112,19 @@ describe('Contact e2e', () => {
         .send({ ...validPayload, sportTypes: [] })
         .expect(400);
     });
+
+    it('rejects an invalid ownerEmail with 400', async () => {
+      await request(app.getHttpServer())
+        .post('/contact/partner-applications')
+        .send({ ...validPayload, ownerEmail: 'not-an-email' })
+        .expect(400);
+    });
+
+    it('rejects a non-positive courtCount with 400', async () => {
+      await request(app.getHttpServer())
+        .post('/contact/partner-applications')
+        .send({ ...validPayload, courtCount: 0 })
+        .expect(400);
+    });
   });
 });

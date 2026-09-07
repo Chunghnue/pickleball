@@ -191,10 +191,15 @@ export const changePasswordSchema = z
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 export const supportMessageSchema = z.object({
-  fullName: z.string().min(1, 'Vui lòng nhập họ và tên'),
-  phone: z.string().min(1, 'Vui lòng nhập số điện thoại'),
-  email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
-  message: z.string().min(1, 'Vui lòng nhập nội dung'),
+  fullName: z.string().min(1, 'Vui lòng nhập họ và tên').max(120, 'Tối đa 120 ký tự'),
+  phone: z.string().min(1, 'Vui lòng nhập số điện thoại').max(20, 'Tối đa 20 ký tự'),
+  email: z
+    .string()
+    .email('Email không hợp lệ')
+    .max(254, 'Tối đa 254 ký tự')
+    .optional()
+    .or(z.literal('')),
+  message: z.string().min(1, 'Vui lòng nhập nội dung').max(5000, 'Tối đa 5000 ký tự'),
 });
 export type SupportMessageInput = z.infer<typeof supportMessageSchema>;
 
@@ -209,18 +214,24 @@ export const partnerSportTypeValues = [
 ] as const;
 
 export const partnerApplicationSchema = z.object({
-  ownerFullName: z.string().min(1, 'Vui lòng nhập họ tên chủ sân'),
-  ownerPhone: z.string().min(1, 'Vui lòng nhập số điện thoại'),
-  ownerEmail: z.string().email('Email không hợp lệ'),
-  venueName: z.string().min(1, 'Vui lòng nhập tên cơ sở'),
-  address: z.string().min(1, 'Vui lòng nhập địa chỉ'),
-  province: z.string().min(1, 'Vui lòng chọn tỉnh/thành phố'),
-  ward: z.string().optional(),
+  ownerFullName: z
+    .string()
+    .min(1, 'Vui lòng nhập họ tên chủ sân')
+    .max(120, 'Tối đa 120 ký tự'),
+  ownerPhone: z.string().min(1, 'Vui lòng nhập số điện thoại').max(20, 'Tối đa 20 ký tự'),
+  ownerEmail: z.string().email('Email không hợp lệ').max(254, 'Tối đa 254 ký tự'),
+  venueName: z.string().min(1, 'Vui lòng nhập tên cơ sở').max(255, 'Tối đa 255 ký tự'),
+  address: z.string().min(1, 'Vui lòng nhập địa chỉ').max(255, 'Tối đa 255 ký tự'),
+  province: z
+    .string()
+    .min(1, 'Vui lòng chọn tỉnh/thành phố')
+    .max(120, 'Tối đa 120 ký tự'),
+  ward: z.string().max(120, 'Tối đa 120 ký tự').optional(),
   sportTypes: z
     .array(z.enum(partnerSportTypeValues))
     .min(1, 'Chọn ít nhất 1 loại sân'),
   courtCount: z.coerce.number().int('Phải là số nguyên').min(1, 'Phải lớn hơn 0'),
-  website: z.string().optional(),
-  note: z.string().optional(),
+  website: z.string().max(255, 'Tối đa 255 ký tự').optional(),
+  note: z.string().max(2000, 'Tối đa 2000 ký tự').optional(),
 });
 export type PartnerApplicationInput = z.infer<typeof partnerApplicationSchema>;

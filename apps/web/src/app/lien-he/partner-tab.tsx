@@ -84,7 +84,10 @@ export function PartnerTab() {
   useEffect(() => {
     fetch("/api/locations/provinces")
       .then((res) => res.json())
-      .then((data) => setProvinces(Array.isArray(data) ? data : []));
+      .then((data) => setProvinces(Array.isArray(data) ? data : []))
+      .catch(() => {
+        toast.error("Không tải được danh sách tỉnh/thành phố, vui lòng thử lại.");
+      });
   }, []);
 
   async function handleProvinceChange(code: string) {
@@ -96,9 +99,14 @@ export function PartnerTab() {
     form.setValue("province", province?.name ?? "", { shouldValidate: true });
     if (!code) return;
 
-    const response = await fetch(`/api/locations/provinces/${code}`);
-    const data = await response.json();
-    setWards(Array.isArray(data.wards) ? data.wards : []);
+    try {
+      const response = await fetch(`/api/locations/provinces/${code}`);
+      const data = await response.json();
+      setWards(Array.isArray(data?.wards) ? data.wards : []);
+    } catch {
+      toast.error("Không tải được danh sách phường/xã, vui lòng thử lại.");
+      setWards([]);
+    }
   }
 
   function handleWardChange(code: string) {

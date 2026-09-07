@@ -6,7 +6,7 @@ export async function GET(
 ) {
   const { code } = await params;
   const upstream = await fetch(
-    `https://provinces.open-api.vn/api/v2/p/${code}?depth=2`,
+    `https://provinces.open-api.vn/api/v2/p/${encodeURIComponent(code)}?depth=2`,
   );
   return toNextResponse(upstream);
 }
