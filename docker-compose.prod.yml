@@ -1,0 +1,117 @@
+# Production stack: Postgres + API (NestJS) + Web (Next.js standalone).
+#
+#   cp deploy/.env.example deploy/.env   # then edit secrets
+#   ./deploy/deploy.sh
+#
+# The `web` container joins the external `proxy-net` network so an existing
+# nginx-proxy-manager (or any reverse proxy on that network) can route to it
+# as `http://pickleball-web:3000`. Everything else stays on the private
+# `internal` network. See deploy/README.md.
+name: pickleball-prod
+
+x-db-env: &db-env
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_USERNAME: ${DB_USERNAME:-pickleball}
+  DB_PASSWORD: ${DB_PASSWORD:-pickleball}
+  DB_NAME: ${DB_NAME:-pickleball}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pickleball-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-pickleball}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pickleball}
+      POSTGRES_DB: ${DB_NAME:-pickleball}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-pickleball} -d ${DB_NAME:-pickleball}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # One-shot: runs TypeORM migrations, then exits. Uses the `build` stage of
+  # the API image because migrations run through ts-node against src/.
+  api-migrate:
+    build:
+      context: ./apps/api
+      target: build
+    image: pickleball-api:build
+    command: npm run migration:run
+    environment:
+      <<: *db-env
+    networks: [internal]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ./apps/api
+      target: runtime
+    image: pickleball-api:latest
+    container_name: pickleball-api
+    restart: unless-stopped
+    environment:
+      <<: *db-env
+      NODE_ENV: production
+      PORT: "3001"
+      UPLOADS_DIR: /app/uploads
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in deploy/.env}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-30}
+      MAIL_HOST: ${MAIL_HOST:-mailhog}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@pickleball.local}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+    volumes:
+      - api_uploads:/app/uploads
+    networks: [internal]
+    expose: ["3001"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: ./apps/web
+      target: runtime
+      args:
+        API_BASE_URL: http://api:3001
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
+    image: pickleball-web:latest
+    container_name: pickleball-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      API_BASE_URL: http://api:3001
+    networks: [internal, proxy-net]
+    expose: ["3000"]
+    depends_on:
+      - api
+
+  # Dev-parity mail catcher. Enable with:  --profile mail
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: pickleball-prod-mailhog
+    restart: unless-stopped
+    profiles: ["mail"]
+    networks: [internal]
+
+volumes:
+  postgres_data:
+  api_uploads:
+
+networks:
+  internal:
+  proxy-net:
+    external: true

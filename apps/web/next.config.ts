@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import { API_BASE_URL } from "./src/lib/api-config";
 
 const nextConfig: NextConfig = {
+  // Emit .next/standalone so the Docker image can run `node server.js` without
+  // shipping node_modules. `next start` from `.next/` keeps working too.
+  output: "standalone",
   async rewrites() {
     return [
       {

@@ -40,6 +40,21 @@ Seed test data (idempotent) from `apps/api`:
 owner, staff, and customer accounts (password `Test@123456`) plus a sample
 venue, courts, pricing rules, and bookings.
 
+## Production deployment
+
+Dockerized stack (Postgres + API + Next.js standalone) in
+`docker-compose.prod.yml` with `apps/api/Dockerfile` and `apps/web/Dockerfile`.
+
+```bash
+cp deploy/.env.example deploy/.env   # set JWT_ACCESS_SECRET, DB_PASSWORD, APP_URL...
+./deploy/deploy.sh                   # build -> migrate -> up -d -> healthcheck
+```
+
+`deploy/deploy.sh --pull` for routine updates; `deploy/migrate.sh`,
+`deploy/seed.sh` for those steps alone. `api`/`web` expose no host ports;
+`web` joins the external `proxy-net` network for a reverse proxy to route to
+`pickleball-web:3000`. Full notes in `deploy/README.md`.
+
 ## Domain overview (from `docs/spec/00-tong-quan.md`)
 
 The admin UI is organized around a left sidebar with these functional groups:

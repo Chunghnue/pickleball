@@ -1,2 +1,5 @@
 .superpowers/
 node_modules/
+
+# Local deploy secrets
+deploy/.env
