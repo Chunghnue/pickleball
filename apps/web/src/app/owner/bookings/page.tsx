@@ -42,7 +42,12 @@ function todayString(): string {
 export default function OwnerBookingsPage() {
   const { selectedVenueId } = useBranch();
   const [venues, setVenues] = useState<VenueOption[] | null>(null);
-  const [venueId, setVenueId] = useState<string>("");
+  // The active branch is driven solely by the global BranchSwitcher (sidebar).
+  // "All branches" has no calendar of its own, so fall back to the first venue.
+  const venueId =
+    selectedVenueId !== ALL_BRANCHES_ID
+      ? selectedVenueId
+      : (venues?.[0]?.id ?? "");
   const [courts, setCourts] = useState<Court[]>([]);
   const [bookings, setBookings] = useState<OwnerBooking[]>([]);
   const [selectedDate, setSelectedDate] = useState(todayString());
@@ -81,22 +86,28 @@ export default function OwnerBookingsPage() {
     window.history.replaceState(null, "", "/owner/bookings");
   }, []);
 
+  // When the active branch changes, discard the previous branch's courts,
+  // bookings and any open dialog so a stale court id can't be submitted
+  // against the newly selected venue.
   useEffect(() => {
-    if (selectedVenueId !== ALL_BRANCHES_ID) {
-      setVenueId(selectedVenueId);
-      return;
-    }
-    if (venues && venues.length > 0) {
-      setVenueId((current) => current || venues[0].id);
-    }
-  }, [selectedVenueId, venues]);
-
-  const loadCourts = useCallback(() => {
-    if (!venueId) return;
-    fetch(`/api/venues/mine/${venueId}/courts`)
-      .then((res) => res.json())
-      .then((data) => setCourts(Array.isArray(data) ? data : []));
+    setCourts([]);
+    setBookings([]);
+    setQuickBook(null);
+    setDetail(null);
   }, [venueId]);
+
+  const loadCourts = useCallback(
+    (isCurrent: () => boolean = () => true) => {
+      if (!venueId) return;
+      fetch(`/api/venues/mine/${venueId}/courts`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!isCurrent()) return;
+          setCourts(Array.isArray(data) ? data : []);
+        });
+    },
+    [venueId],
+  );
 
   const loadBookings = useCallback(
     (showToast?: boolean) => {
@@ -114,7 +125,11 @@ export default function OwnerBookingsPage() {
   );
 
   useEffect(() => {
-    loadCourts();
+    let active = true;
+    loadCourts(() => active);
+    return () => {
+      active = false;
+    };
   }, [loadCourts]);
 
   useEffect(() => {
@@ -153,6 +168,7 @@ export default function OwnerBookingsPage() {
 
   const now = selectedDate === todayString() ? new Date() : null;
   const activeCourts = courts.filter((c) => c.status === "active");
+  const activeVenueName = venues?.find((v) => v.id === venueId)?.name ?? "";
 
   const counts = useMemo(() => {
     const hours = buildHourAxis(
@@ -221,22 +237,12 @@ export default function OwnerBookingsPage() {
           <h1 className="text-2xl font-bold">Lịch đặt sân</h1>
           <p className="text-sm text-muted-foreground">
             {formatHeaderDate(parsePageDate(selectedDate))} · {activeCourts.length} sân
+            {selectedVenueId === ALL_BRANCHES_ID && activeVenueName && (
+              <> · đang xem chi nhánh <span className="font-medium">{activeVenueName}</span></>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {venues && venues.length > 1 && (
-            <select
-              value={venueId}
-              onChange={(e) => setVenueId(e.target.value)}
-              className="h-9 rounded-lg border px-2.5 text-sm"
-            >
-              {venues.map((venue) => (
-                <option key={venue.id} value={venue.id}>
-                  {venue.name}
-                </option>
-              ))}
-            </select>
-          )}
           <Button
             type="button"
             variant="outline"

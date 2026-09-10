@@ -61,7 +61,12 @@ export function QuickBookDialog({
 
   useEffect(() => {
     if (!open) return;
-    const resolvedCourtId = initialCourtId ?? activeCourts[0]?.id ?? "";
+    // Only honour initialCourtId if it belongs to the currently active venue —
+    // switching branches while the dialog is open (or clicking a stale grid
+    // cell) can otherwise carry a court id from the previous venue.
+    const initialIsValid =
+      initialCourtId != null && activeCourts.some((c) => c.id === initialCourtId);
+    const resolvedCourtId = (initialIsValid ? initialCourtId : activeCourts[0]?.id) ?? "";
     setCourtId(resolvedCourtId);
     const resolvedCourt = activeCourts.find((c) => c.id === resolvedCourtId);
     const defaultHour = resolvedCourt
@@ -82,6 +87,16 @@ export function QuickBookDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialCourtId, initialHour, maxDurationHours, prefillCustomer]);
 
+  // If the active venue changes while the dialog is open, the court list is
+  // replaced — drop a now-invalid selection so it can't be submitted.
+  useEffect(() => {
+    if (!open || !courtId) return;
+    if (!activeCourts.some((c) => c.id === courtId)) {
+      setCourtId(activeCourts[0]?.id ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, courts]);
+
   const selectedCourt = activeCourts.find((c) => c.id === courtId);
   const startTimeOptions = selectedCourt
     ? buildHourAxis([
@@ -101,6 +116,10 @@ export function QuickBookDialog({
   async function handleSubmit() {
     if (!courtId || !startTime || !fullName.trim() || !phone.trim()) {
       toast.error("Vui lòng nhập đủ thông tin bắt buộc");
+      return;
+    }
+    if (!activeCourts.some((c) => c.id === courtId)) {
+      toast.error("Sân không thuộc chi nhánh đang chọn, vui lòng chọn lại");
       return;
     }
     setSubmitting(true);
