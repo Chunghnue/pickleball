@@ -48,7 +48,7 @@ export function PublicHeader() {
               className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-green-600 dark:hover:text-green-400"
             >
               <Map className="size-4" />
-              Bản đồ
+              Bản đồ 2
             </Link>
             <Link
               href="/blog"
